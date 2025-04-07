@@ -4,6 +4,7 @@ import * as request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
+// Deprecated: Doesn’t work
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
