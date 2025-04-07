@@ -1,9 +1,9 @@
-const DEFAULT_TYPE = "about:blank";
+const DEFAULT_TYPE = 'about:blank';
 
 /**
- * Represents a standardized error response following the RFC 7807 format.
+ * Represents a standardized exception response following the RFC 7807 format.
  */
-export class ErrorResponse {
+export class ExceptionResponse {
   /** A URI reference that identifies the problem type (default value if not provided). */
   type: string;
 
@@ -14,15 +14,15 @@ export class ErrorResponse {
   status: number;
 
   /** A human-readable explanation specific to this occurrence of the problem. */
-  detail: string;
+  detail: string | object;
 
   /** A URI reference that identifies the specific occurrence of the problem. */
   instance: string;
 
   /**
-   * Creates an instance of `ErrorResponse`.
+   * Creates an instance of `ExceptionResponse`.
    * @param title - A short, human-readable summary of the problem.
-   * @param status - The HTTP status code associated with the error.
+   * @param status - The HTTP status code associated with the exception.
    * @param detail - A human-readable explanation of the occurrence of the problem.
    * @param instance - A URI reference identifying the specific occurrence of the problem.
    * @param type - (Optional) A URI reference identifying the problem type. Defaults to `DEFAULT_TYPE`.
@@ -30,9 +30,9 @@ export class ErrorResponse {
   constructor(
     title: string,
     status: number,
-    detail: string,
+    detail: string | object,
     instance: string,
-    type?: string
+    type?: string,
   ) {
     this.type = type ?? DEFAULT_TYPE;
     this.title = title;
