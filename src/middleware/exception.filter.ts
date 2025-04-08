@@ -37,7 +37,6 @@ export class BaseExceptionFilter implements ExceptionFilter {
           : exception.message;
       status = exception.getStatus();
       exceptionResponse = new ExceptionResponse(exception.name, status, message, request.url);
-      console.debug(exceptionResponse);
     } else {
       logger.error('An unexpected error in the request has occured');
       status = HttpStatus.INTERNAL_SERVER_ERROR;
