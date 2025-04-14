@@ -12,6 +12,7 @@
 - [Support](#support)
 - [License](#license)
 - [Code Style](#code-style)
+- [Codecov](#Codecov)
 
 ## Description
 
@@ -163,3 +164,7 @@ $ npm run format
 ```bash
 $ npm run format:check
 ```
+
+## Codecov
+
+[![codecov](https://codecov.io/github/IS2-Class-Connect/classconnect-education-service/graph/badge.svg?token=6UAWRK2GS6)](https://codecov.io/github/IS2-Class-Connect/classconnect-education-service)
