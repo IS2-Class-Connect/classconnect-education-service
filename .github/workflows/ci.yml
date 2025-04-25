@@ -13,7 +13,7 @@ jobs:
     env:
       JWT_SECRET: testsecret
       PORT: 3000
-      DATABASE_URL: postgresql://cc-education-user:cc-education@localhost:5433/education-tests
+      DATABASE_URL: postgresql://cc-education-user:cc-education@postgres:5433/education-tests
 
     steps:
       - name: Checkout code
@@ -46,7 +46,7 @@ jobs:
       - name: Tear down Docker containers
         if: always()
         run: npm run docker:down
-        
+
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
         with:
