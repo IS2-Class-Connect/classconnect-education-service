@@ -60,9 +60,9 @@ export class CourseController {
    * @throws NotFoundError if the course does not exist.
    */
   @Get(':id')
-  getCourse(@Param('id') id: number) {
+  async getCourse(@Param('id') id: number) {
     logger.info(`Getting course with id ${id}`);
-    const course = this.service.findCourseById(id);
+    const course = await this.service.findCourseById(id);
     if (!course) {
       logger.warn(`Course with ID ${id} not found.`);
       throw new NotFoundException(`The course with ID ${id} was not found.`);
@@ -77,9 +77,9 @@ export class CourseController {
    */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  deleteCourse(@Param('id') id: number) {
+  async deleteCourse(@Param('id') id: number) {
     logger.info(`Deleting course with ID ${id}`);
-    if (!this.service.deleteCourse(id)) {
+    if (!(await this.service.deleteCourse(id))) {
       logger.warn(`Course with ID ${id} not found.`);
       throw new NotFoundException(`Course with ID ${id} does not exist.`);
     }
