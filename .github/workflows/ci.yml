@@ -13,7 +13,7 @@ jobs:
     env:
       JWT_SECRET: testsecret
       PORT: 3000
-      DATABASE_URL: postgresql://cc-education-user:cc-education@postgres:5433/education-tests
+      DATABASE_URL: postgresql://cc-education-user:cc-education@localhost:5433/education-tests
 
     steps:
       - name: Checkout code
@@ -29,18 +29,6 @@ jobs:
 
       - name: Start test database with Docker
         run: npm run docker:up
-
-      - name: Wait for database to be ready
-        run: |
-          echo "Waiting for PostgreSQL to be ready..."
-          for i in {1..30}; do
-            if docker exec $(docker ps -qf "name=postgres") pg_isready -h localhost -p 5432 -U cc_education_user; then
-              echo "PostgreSQL is ready!"
-              break
-            fi
-            echo "Waiting..."
-            sleep 1
-          done
 
       - name: Run Prisma migrations
         run: npx prisma migrate deploy
