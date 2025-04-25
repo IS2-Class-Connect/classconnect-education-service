@@ -1,45 +1,46 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from 'src/prisma.service';
+import { Prisma, Course } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { logger } from 'src/logger';
-import { Course } from '../entities/course';
 
-/**
- * Repository class responsible for managing Course entities in memory.
- */
+@Injectable()
 export class CourseRepository {
-  private courses: Map<number, Course> = new Map<number, Course>();
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Retrieves all courses.
-   * @returns An array of all stored courses.
+   * Retrieves all courses from the database.
    */
-  findAll(): Course[] {
-    return Array.from(this.courses.values());
+  findAll(): Promise<Course[]> {
+    return this.prisma.course.findMany();
   }
 
   /**
    * Finds a course by its ID.
-   * @param id - The ID of the course to find.
-   * @returns The course if found, otherwise `undefined`.
    */
-  findById(id: number): Course | undefined {
-    return this.courses.get(id);
+  findById(id: number): Promise<Course | null> {
+    return this.prisma.course.findUnique({ where: { id } });
   }
 
   /**
-   * Creates a new course.
-   * @param course - The course to create.
-   * @returns The created course.
+   * Creates a new course in the database.
    */
-  create(course: Course): Course {
-    this.courses.set(course.id, course);
-    return course;
+  create(data: Prisma.CourseCreateInput): Promise<Course> {
+    return this.prisma.course.create({ data });
   }
 
   /**
-   * Deletes a course by its ID.
-   * @param id - The ID of the course to delete.
-   * @returns `true` if the course was deleted, `false` if it did not exist.
+   * Deletes a course by ID.
    */
-  delete(id: number): boolean {
-    return this.courses.delete(id);
+  async delete(id: number): Promise<Course | null> {
+    try {
+      return await this.prisma.course.delete({ where: { id } });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
+        logger.error(`Course with ID ${id} not found.`);
+        return Promise.resolve(null);
+      }
+      throw error;
+    }
   }
 }

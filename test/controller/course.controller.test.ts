@@ -11,59 +11,62 @@ describe('CourseController', () => {
       findAllCourses: jest.fn(),
       findCourseById: jest.fn(),
       createCourse: jest.fn(),
+      deleteCourse: jest.fn(),
     } as any;
     controller = new CourseController(mockService);
   });
 
-  test('Should retreive a new Course instance', () => {
+  test('Should retreive a new Course instance', async () => {
     const courseDTO = {
       title: 'Ingeniería del software 2',
       description: 'Curso de Ingeniería del software 2',
     };
-    const mockCreatedCourse = { id: 1, ...courseDTO };
+    const mockCreatedCourse = { id: 1, ...courseDTO, createdAt: new Date() };
 
-    (mockService.createCourse as jest.Mock).mockReturnValue(mockCreatedCourse);
+    (mockService.createCourse as jest.Mock).mockResolvedValue(mockCreatedCourse);
 
-    const result = controller.createCourse(courseDTO);
+    const result = await controller.createCourse(courseDTO);
 
     expect(result).toEqual(mockCreatedCourse);
     expect(mockService.createCourse).toHaveBeenCalledWith(courseDTO);
   });
 
-  test('Should retreive all courses', () => {
+  test('Should retreive all courses', async () => {
     const mockCourses = [
       {
         id: 1,
         title: 'Ingeniería del software 2',
         description: 'Curso de Ingeniería del software 2',
+        createdAt: new Date(),
       },
       {
         id: 2,
         title: 'Ingeniería del software 1',
         description: 'Curso de Ingeniería del software 1, es correlativa a IS2',
+        createdAt: new Date(),
       },
     ];
-    (mockService.findAllCourses as jest.Mock).mockReturnValue(mockCourses);
+    (mockService.findAllCourses as jest.Mock).mockResolvedValue(mockCourses);
 
-    const result = controller.getAllCourses();
+    const result = await controller.getAllCourses();
 
     expect(result).toEqual(mockCourses);
     expect(mockService.findAllCourses).toHaveBeenCalled();
   });
 
-  test('Should retreive an existing course', () => {
-    const mockCourse = { id: 1, title: 'IS2', description: 'Curso' };
-    (mockService.findCourseById as jest.Mock).mockReturnValue(mockCourse);
+  test('Should retreive an existing course', async () => {
+    const mockCourse = { id: 1, title: 'IS2', description: 'Curso', createdAt: new Date() };
+    (mockService.findCourseById as jest.Mock).mockResolvedValue(mockCourse);
 
-    const result = controller.getCourse(1);
+    const result = await controller.getCourse(1);
 
     expect(result).toEqual(mockCourse);
     expect(mockService.findCourseById).toHaveBeenCalledWith(1);
   });
 
-  test('Should throw a NotFoundError for looking for a non existing course', () => {
-    (mockService.findCourseById as jest.Mock).mockReturnValue(undefined);
+  test('Should throw a NotFoundError for looking for a non existing course', async () => {
+    (mockService.findCourseById as jest.Mock).mockResolvedValue(undefined);
 
-    expect(() => controller.getCourse(999)).toThrow(NotFoundException);
+    await expect(controller.getCourse(999)).rejects.toThrow(NotFoundException);
   });
 });
