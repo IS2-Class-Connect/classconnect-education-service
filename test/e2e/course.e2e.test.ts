@@ -6,16 +6,6 @@ import { AppModule } from '../../src/app.module';
 import { BaseExceptionFilter } from '../../src/middleware/exception.filter';
 import { ResponseInterceptor } from '../../src/middleware/response.interceptor';
 
-// .env
-// DATABASE_URL=postgresql://cc_education_user:cc_education@localhost:5432/class_connect_education?schema=public
-// PORT=8080
-// JWT_SECRET=your_jwt_secret_here
-
-// .env.test
-// DATABASE_URL="postgresql://prisma:prisma@localhost:5433/education-tests"
-// PORT=8080
-// JWT_SECRET=your_jwt_secret_here
-
 describe('Course e2e', () => {
   let app: INestApplication<App>;
 
