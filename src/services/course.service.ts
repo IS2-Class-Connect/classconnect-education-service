@@ -1,16 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { CourseRequestDTO } from '../dtos/course.request.dto';
 import { CourseResponseDTO } from '../dtos/course.response.dto';
+import { Course } from '../entities/course';
 import { CourseRepository } from '../repositories/course.repository';
 import { logger } from 'src/logger';
-import { Course } from '@prisma/client';
 
 /**
  * Service class responsible for business logic related to Courses.
  */
 @Injectable()
 export class CourseService {
-  constructor(private readonly repository: CourseRepository) {}
+  private repository: CourseRepository = new CourseRepository();
+  private idCounter: number = 1;
 
   private getResponseDTO(course: Course): CourseResponseDTO {
     return {
@@ -21,12 +22,25 @@ export class CourseService {
   }
 
   /**
+   * Sets a custom repository (useful for testing).
+   * @param repository - The repository instance to use.
+   */
+  setRepository(repository: CourseRepository) {
+    this.repository = repository;
+  }
+
+  /**
    * Creates a new course.
    * @param requestDTO - The data transfer object containing course data.
    * @returns The newly created course.
    */
-  async createCourse(requestDTO: CourseRequestDTO): Promise<CourseResponseDTO> {
-    const course = await this.repository.create(requestDTO);
+  createCourse(requestDTO: CourseRequestDTO): CourseResponseDTO {
+    const course: Course = {
+      id: this.idCounter++,
+      createdAt: new Date(),
+      ...requestDTO,
+    };
+    this.repository.create(course);
     return this.getResponseDTO(course);
   }
 
@@ -34,8 +48,9 @@ export class CourseService {
    * Retrieves all courses.
    * @returns An array of all courses.
    */
-  async findAllCourses(): Promise<CourseResponseDTO[]> {
-    const courses: CourseResponseDTO[] = (await this.repository.findAll())
+  findAllCourses(): CourseResponseDTO[] {
+    const courses: CourseResponseDTO[] = this.repository
+      .findAll()
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .map((course) => this.getResponseDTO(course));
     return courses;
@@ -46,8 +61,8 @@ export class CourseService {
    * @param id - The ID of the course.
    * @returns The course if found, otherwise `undefined`.
    */
-  async findCourseById(id: number): Promise<CourseResponseDTO | undefined> {
-    const course = await this.repository.findById(id);
+  findCourseById(id: number): CourseResponseDTO | undefined {
+    const course = this.repository.findById(id);
     return course ? this.getResponseDTO(course) : undefined;
   }
 
@@ -56,8 +71,7 @@ export class CourseService {
    * @param id - The ID of the course.
    * @returns `true` if the course was deleted, `false` otherwise.
    */
-  async deleteCourse(id: number): Promise<CourseResponseDTO | null> {
-    const course = await this.repository.delete(id);
-    return course ? this.getResponseDTO(course) : null;
+  deleteCourse(id: number): boolean {
+    return this.repository.delete(id);
   }
 }
