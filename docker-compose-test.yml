@@ -1,0 +1,11 @@
+services:
+  db:
+    image: postgres:15
+    restart: always
+    container_name: classconnect-education-tests
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: cc-education-user
+      POSTGRES_PASSWORD: cc-education
+      POSTGRES_DB: education-tests
