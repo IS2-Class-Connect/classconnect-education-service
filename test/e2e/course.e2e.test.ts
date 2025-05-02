@@ -5,9 +5,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../../src/app.module';
 import { BaseExceptionFilter } from '../../src/middleware/exception.filter';
 import { ResponseInterceptor } from '../../src/middleware/response.interceptor';
+import { getDatesAfterToday } from 'test/utils';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
+  const { startDate, endDate, registrationDeadline } = getDatesAfterToday();
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -28,6 +30,10 @@ describe('Course e2e', () => {
     const courseData = {
       title: 'Ingeniería del Software 2',
       description: 'Curso de Ingeniería del Software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
     };
 
     const res = await request(app.getHttpServer()).post('/courses').send(courseData);
@@ -51,6 +57,10 @@ describe('Course e2e', () => {
     const courseData = {
       title: 'Ingeniería del Software 2.2',
       description: 'Curso de Ingeniería del Software 2.2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
     };
 
     await request(app.getHttpServer()).post('/courses').send(courseData);
@@ -61,22 +71,32 @@ describe('Course e2e', () => {
     expect(res.status).toBe(200);
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
+    expect(data[0]).toEqual({
+      id: data[0].id,
+      ...courseData,
+    });
   });
 
   test('GET /courses/:id should retreive a course by its id', async () => {
-    const id = (
-      await request(app.getHttpServer()).post('/courses').send({
-        title: 'Ingeniería del Software 2.3',
-        description: 'Curso de Ingeniería del Software 2.3',
-      })
-    ).body.data.id;
+    const courseData = {
+      title: 'Ingeniería del Software 2.3',
+      description: 'Curso de Ingeniería del Software 2.3',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+    };
+    const id = (await request(app.getHttpServer()).post('/courses').send(courseData)).body.data.id;
 
     const res = await request(app.getHttpServer()).get(`/courses/${id}`);
-    const data = res.body.data;
+    const responseData = res.body.data;
 
     expect(res.status).toBe(200);
-    expect(data).toHaveProperty('id', id);
-    expect(data.title).toBe('Ingeniería del Software 2.3');
+    expect(responseData).toHaveProperty('id', id);
+    expect(responseData).toEqual({
+      id: id,
+      ...courseData,
+    });
   });
 
   test('POST /courses wrong CourseRequestDTO should retreive a Bad Request Error', async () => {
@@ -89,7 +109,14 @@ describe('Course e2e', () => {
       title: 'BadRequestException',
       status: 400,
       detail:
-        'The request data does not meet the following constraints: property badRequest should not exist; title should not be empty; title must be a string; description should not be empty; description must be a string',
+        'The request data does not meet the following constraints: ' +
+        'property badRequest should not exist; ' +
+        'title should not be empty; title must be a string; ' +
+        'description should not be empty; description must be a string; ' +
+        'startDate should not be empty; startDate must be a valid ISO 8601 date string; ' +
+        'endDate should not be empty; endDate must be a valid ISO 8601 date string; ' +
+        'registrationDeadline should not be empty; registrationDeadline must be a valid ISO 8601 date string; ' +
+        'totalPlaces must be an integer number; totalPlaces should not be empty',
       instance: '/courses',
     };
 

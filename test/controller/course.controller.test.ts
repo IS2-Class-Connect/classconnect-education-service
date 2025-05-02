@@ -1,10 +1,12 @@
 import { NotFoundException } from '@nestjs/common';
 import { CourseController } from '../../src/controllers/course.controller';
 import { CourseService } from '../../src/services/course.service';
+import { getDatesAfterToday } from 'test/utils';
 
 describe('CourseController', () => {
   let controller: CourseController;
   let mockService: CourseService;
+  const { startDate, endDate, registrationDeadline } = getDatesAfterToday();
 
   beforeEach(() => {
     mockService = {
@@ -20,8 +22,19 @@ describe('CourseController', () => {
     const courseDTO = {
       title: 'Ingeniería del software 2',
       description: 'Curso de Ingeniería del software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
     };
-    const mockCreatedCourse = { id: 1, ...courseDTO, createdAt: new Date() };
+    const mockCreatedCourse = {
+      id: 1,
+      ...courseDTO,
+      createdAt: new Date(),
+      startDate,
+      endDate,
+      registrationDeadline,
+    };
 
     (mockService.createCourse as jest.Mock).mockResolvedValue(mockCreatedCourse);
 
@@ -37,12 +50,20 @@ describe('CourseController', () => {
         id: 1,
         title: 'Ingeniería del software 2',
         description: 'Curso de Ingeniería del software 2',
+        startDate,
+        endDate,
+        registrationDeadline,
+        totalPlaces: 100,
         createdAt: new Date(),
       },
       {
         id: 2,
         title: 'Ingeniería del software 1',
         description: 'Curso de Ingeniería del software 1, es correlativa a IS2',
+        startDate,
+        endDate,
+        registrationDeadline,
+        totalPlaces: 100,
         createdAt: new Date(),
       },
     ];
@@ -55,7 +76,16 @@ describe('CourseController', () => {
   });
 
   test('Should retreive an existing course', async () => {
-    const mockCourse = { id: 1, title: 'IS2', description: 'Curso', createdAt: new Date() };
+    const mockCourse = {
+      id: 1,
+      title: 'IS2',
+      description: 'Curso',
+      createdAt: new Date(),
+      startDate,
+      endDate,
+      registrationDeadline,
+      totalPlaces: 100,
+    };
     (mockService.findCourseById as jest.Mock).mockResolvedValue(mockCourse);
 
     const result = await controller.getCourse(1);
