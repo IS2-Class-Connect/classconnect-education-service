@@ -1,7 +1,7 @@
 /**
  * Data Transfer Object (DTO) for retreiving a Course.
  */
-export interface CourseResponseDTO {
+export interface CourseResponseDto {
   /** ID of the course */
   id: number;
   /** Title of the course */

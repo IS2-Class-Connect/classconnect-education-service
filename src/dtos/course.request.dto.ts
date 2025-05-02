@@ -1,9 +1,9 @@
-import { IsString, IsNotEmpty, Matches, IsNumber, IsInt, IsDateString } from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, IsDateString } from 'class-validator';
 
 /**
  * Data Transfer Object (DTO) for creating a new Course.
  */
-export class CourseRequestDTO {
+export class CourseRequestDto {
   /** Title of the course */
   @IsString()
   @IsNotEmpty()
@@ -30,17 +30,18 @@ export class CourseRequestDTO {
   registrationDeadline: string;
 
   /** Total places of the course */
-  @IsNotEmpty()
   @IsInt()
+  @IsNotEmpty()
   totalPlaces: number;
 
   /**
-   * Creates an instance of CourseRequestDTO.
+   * Creates an instance of CourseRequestDto.
    * @param title - The title of the course.
    * @param description - The description of the course.
    * @param startDate - The start date of the course.
    * @param endDate - The end date of the course.
    * @param registrationDeadline - The registration deadline of the course.
+   * @param totalPlaces - The places available for the course inscription.
    */
   constructor(
     title: string,

@@ -10,9 +10,11 @@ import {
   Delete,
   HttpStatus,
   NotFoundException,
+  Patch,
 } from '@nestjs/common';
-import { CourseRequestDTO } from '../dtos/course.request.dto';
+import { CourseRequestDto } from '../dtos/course.request.dto';
 import { logger } from '../logger';
+import { CourseUpdateDto } from 'src/dtos/course.update.dto';
 
 /**
  * Controller class for handling HTTP requests related to courses.
@@ -22,21 +24,13 @@ export class CourseController {
   constructor(private readonly service: CourseService) {}
 
   /**
-   * Sets a custom service.
-   * @param service - The service instance to use.
-   */
-  // setService(service: CourseService) {
-  //   this.service = service;
-  // }
-
-  /**
    * Creates a new course.
    * @param requestDTO - The validated data transfer object from the request body.
    * @returns The newly created course.
    */
   @HttpCode(HttpStatus.CREATED)
   @Post()
-  createCourse(@Body() requestDTO: CourseRequestDTO) {
+  createCourse(@Body() requestDTO: CourseRequestDto) {
     logger.info(
       `Creating a new course with title ${requestDTO.title} and description ${requestDTO.description}`,
     );
@@ -68,6 +62,24 @@ export class CourseController {
       throw new NotFoundException(`The course with ID ${id} was not found.`);
     }
     return course;
+  }
+
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  /**
+   * Updates an existing course with the provided data.
+   *
+   * @param id - The unique identifier of the course to be updated.
+   * @param updateDTO - The data transfer object containing the updated course information.
+   * @returns The updated course data.
+   */
+  async updateCourse(@Param('id') id: number, @Body() updateDTO: CourseUpdateDto) {
+    logger.info(`Updating course with ID ${id}`);
+    const updateCourse = await this.service.updateCourse(id, updateDTO);
+    if (!updateCourse) {
+      throw new NotFoundException(`The course with ID ${id} was not found.`);
+    }
+    return updateCourse;
   }
 
   /**

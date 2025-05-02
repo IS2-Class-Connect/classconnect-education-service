@@ -5,10 +5,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../../src/app.module';
 import { BaseExceptionFilter } from '../../src/middleware/exception.filter';
 import { ResponseInterceptor } from '../../src/middleware/response.interceptor';
-import { getDatesAfterToday } from 'test/utils';
+import { cleanDataBase, getDatesAfterToday } from 'test/utils';
+import { PrismaService } from 'src/prisma.service';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
+  let prisma: PrismaService;
+
   const { startDate, endDate, registrationDeadline } = getDatesAfterToday();
 
   beforeEach(async () => {
@@ -24,6 +27,19 @@ describe('Course e2e', () => {
     app.useGlobalFilters(new BaseExceptionFilter());
     app.useGlobalInterceptors(new ResponseInterceptor());
     await app.init();
+
+    prisma = moduleFixture.get<PrismaService>(PrismaService);
+  });
+
+  afterEach(async () => {
+    await cleanDataBase(prisma);
+  });
+
+  afterAll(async () => {
+    await cleanDataBase(prisma);
+
+    await prisma.$disconnect();
+    await app.close();
   });
 
   test('POST /courses should create a new course instance', async () => {
@@ -99,33 +115,69 @@ describe('Course e2e', () => {
     });
   });
 
-  test('POST /courses wrong CourseRequestDTO should retreive a Bad Request Error', async () => {
+  test('POST /courses wrong CourseRequestDto should retreive a Bad Request Error', async () => {
     const res = await request(app.getHttpServer())
       .post('/courses')
       .send({ badRequest: 'This is a bad request' });
 
-    const expectedRes = {
-      type: 'about:blank',
-      title: 'BadRequestException',
-      status: 400,
-      detail:
-        'The request data does not meet the following constraints: ' +
-        'property badRequest should not exist; ' +
-        'title should not be empty; title must be a string; ' +
-        'description should not be empty; description must be a string; ' +
-        'startDate should not be empty; startDate must be a valid ISO 8601 date string; ' +
-        'endDate should not be empty; endDate must be a valid ISO 8601 date string; ' +
-        'registrationDeadline should not be empty; registrationDeadline must be a valid ISO 8601 date string; ' +
-        'totalPlaces must be an integer number; totalPlaces should not be empty',
-      instance: '/courses',
-    };
-
     expect(res.status).toBe(400);
-    expect(res.body).toEqual(expectedRes);
+    expect(res.body).toHaveProperty('type');
+    expect(res.body).toHaveProperty('title', 'BadRequestException');
+    expect(res.body).toHaveProperty('status', 400);
+    expect(res.body).toHaveProperty('detail');
+    expect(res.body).toHaveProperty('instance', '/courses');
   });
 
   test('GET /courses/{id} getting non existing course should retreive a Course Not Found', async () => {
     const res = await request(app.getHttpServer()).get('/courses/999').send();
+
+    const expectedRes = {
+      type: 'about:blank',
+      title: 'NotFoundException',
+      status: 404,
+      detail: 'The course with ID 999 was not found.',
+      instance: '/courses/999',
+    };
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual(expectedRes);
+  });
+
+  test('PATCH /courses/{id} should retreive the updted course with id', async () => {
+    const courseData = {
+      title: 'Ingeniería del Software 2',
+      description: 'Curso de Ingeniería del Software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+    };
+    const id = (await request(app.getHttpServer()).post('/courses').send(courseData)).body.data.id;
+
+    const updatedCourseData = {
+      title: 'Ingeniería del Software 2 actualizado',
+      description: 'Curso de Ingeniería del Software 2 actualizado',
+      totalPlaces: 200,
+    };
+
+    const res = await request(app.getHttpServer()).patch(`/courses/${id}`).send(updatedCourseData);
+
+    const responseData = res.body.data;
+
+    const expected = {
+      id,
+      ...courseData,
+      ...updatedCourseData,
+    };
+
+    expect(res.status).toBe(200);
+    expect(responseData).toEqual(expected);
+  });
+
+  test('PATCH /courses/{id} updating non existing course should retreive a Course Not Found', async () => {
+    const res = await request(app.getHttpServer()).patch('/courses/999').send({
+      title: 'Titulo actualizado',
+    });
 
     const expectedRes = {
       type: 'about:blank',

@@ -13,6 +13,7 @@ describe('CourseController', () => {
       findAllCourses: jest.fn(),
       findCourseById: jest.fn(),
       createCourse: jest.fn(),
+      updateCourse: jest.fn(),
       deleteCourse: jest.fn(),
     } as any;
     controller = new CourseController(mockService);
@@ -98,5 +99,42 @@ describe('CourseController', () => {
     (mockService.findCourseById as jest.Mock).mockResolvedValue(undefined);
 
     await expect(controller.getCourse(999)).rejects.toThrow(NotFoundException);
+  });
+
+  test('Should update an existing course', async () => {
+    const id = 1;
+
+    const courseUpdateDTO = {
+      title: 'Updated Title',
+      description: 'Updated Description',
+    };
+
+    const expected = {
+      id,
+      ...courseUpdateDTO,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+      createdAt: new Date(),
+    };
+
+    (mockService.updateCourse as jest.Mock).mockResolvedValue(expected);
+
+    const result = await controller.updateCourse(id, courseUpdateDTO);
+
+    expect(result).toEqual(expected);
+    expect(mockService.updateCourse).toHaveBeenCalledWith(id, courseUpdateDTO);
+  });
+
+  test('Should throw a NotFoundError when updating a non-existing course', async () => {
+    const courseUpdateDTO = {
+      title: 'Updated Title',
+      description: 'Updated Description',
+    };
+
+    (mockService.updateCourse as jest.Mock).mockResolvedValue(undefined);
+
+    await expect(controller.updateCourse(999, courseUpdateDTO)).rejects.toThrow(NotFoundException);
   });
 });
