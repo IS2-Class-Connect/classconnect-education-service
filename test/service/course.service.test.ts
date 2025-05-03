@@ -1,77 +1,99 @@
 import { CourseService } from '../../src/services/course.service';
-import { CourseRequestDTO } from '../../src/dtos/course.request.dto';
-import { logger } from '../../src/logger';
+import { CourseRequestDto } from '../../src/dtos/course.request.dto';
 import { CourseRepository } from 'src/repositories/course.repository';
+import { CourseResponseDto } from 'src/dtos/course.response.dto';
+import { getDatesAfterToday } from 'test/utils';
 
 describe('CourseService', () => {
   let service: CourseService;
   let mockRepository: CourseRepository;
+  const { startDate, endDate, registrationDeadline } = getDatesAfterToday();
 
   beforeEach(() => {
     mockRepository = {
       findAll: jest.fn(),
       findById: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
       delete: jest.fn(),
     } as any;
     service = new CourseService(mockRepository);
   });
 
   test('Should create a Course', async () => {
-    const courseData: CourseRequestDTO = {
+    const courseRequestDTO: CourseRequestDto = {
       title: 'Ingeniería del software 2',
       description: 'Curso de Ingeniería del software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+    };
+
+    const expectedResponseDTO: CourseResponseDto = {
+      id: 1,
+      ...courseRequestDTO,
     };
 
     (mockRepository.create as jest.Mock).mockResolvedValue({
-      id: 1,
+      ...expectedResponseDTO,
+      startDate,
+      endDate,
+      registrationDeadline,
       createdAt: new Date(),
-      ...courseData,
     });
 
-    const newCourse = await service.createCourse(courseData);
+    const foundResponseDTO = await service.createCourse(courseRequestDTO);
 
-    expect(newCourse).toBeDefined();
-    expect(newCourse.title).toBe('Ingeniería del software 2');
-    expect(newCourse.description).toBe('Curso de Ingeniería del software 2');
+    expect(foundResponseDTO).toBeDefined();
+    expect(foundResponseDTO).toEqual(expectedResponseDTO);
   });
 
   test('Should retreive courses currently existing', async () => {
-    const expectedResponse1 = {
+    const expectedResponseDTO1 = {
       id: 1,
       title: 'Ingeniería del software 1',
       description: 'Curso de Ingeniería del software 1, es correlativa a IS2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
     };
 
-    const expectedResponse2 = {
+    const expectedResponseDTO2 = {
       id: 2,
       title: 'Ingeniería del software 2',
       description: 'Curso de Ingeniería del software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
     };
 
     (mockRepository.findAll as jest.Mock).mockResolvedValue([
-      { createdAt: new Date(), ...expectedResponse1 },
-      { createdAt: new Date(), ...expectedResponse2 },
+      {
+        ...expectedResponseDTO1,
+        startDate,
+        endDate,
+        registrationDeadline,
+        createdAt: new Date(Date.now()),
+      },
+      {
+        ...expectedResponseDTO2,
+        startDate,
+        endDate,
+        registrationDeadline,
+        createdAt: new Date(Date.now() - 1000),
+      },
     ]);
 
-    const courses = await service.findAllCourses();
+    const foundResponseDTO = await service.findAllCourses();
 
-    expect(courses).toBeDefined();
-
-    const coursesChecked = [false, false];
-    for (const course of courses) {
-      if (course.id == expectedResponse1.id) {
-        expect(course).toEqual(expectedResponse1);
-        coursesChecked[0] = true;
-      } else if (course.id == expectedResponse2.id) {
-        expect(course).toEqual(expectedResponse2);
-        coursesChecked[1] = true;
-      }
-    }
-    if (!(coursesChecked[0] && coursesChecked[1])) {
-      logger.debug('Service.findAllCourses() did not retreive every course created before.');
-      expect(true).toEqual(false);
-    }
+    expect(foundResponseDTO).toBeDefined();
+    expect(foundResponseDTO.length).toEqual(2);
+    // check to be ordered by createdAt
+    expect(foundResponseDTO[0]).toEqual(expectedResponseDTO1);
+    expect(foundResponseDTO[1]).toEqual(expectedResponseDTO2);
   });
 
   test('Should retreive the course matching the id passed', async () => {
@@ -79,11 +101,21 @@ describe('CourseService', () => {
       id: 1,
       title: 'Ingeniería del software 2',
       description: 'Curso de Ingeniería del software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
     };
 
     (mockRepository.findById as jest.Mock).mockImplementation((id: number) => {
       if (id === expected.id) {
-        return Promise.resolve({ createdAt: new Date(), ...expected });
+        return Promise.resolve({
+          ...expected,
+          startDate,
+          endDate,
+          registrationDeadline,
+          createdAt: new Date(),
+        });
       }
       return Promise.resolve(null);
     });
@@ -97,5 +129,47 @@ describe('CourseService', () => {
     (mockRepository.findById as jest.Mock).mockResolvedValue(null);
     const result = await service.findCourseById(123);
     expect(result).toBeUndefined();
+  });
+
+  test('Should update a course and return the updated course', async () => {
+    const id = 1;
+    const courseUpdateDTO = {
+      title: 'Ingeniería del software 2 - Actualizado',
+      description: 'Curso actualizado de Ingeniería del software 2',
+      totalPlaces: 120,
+    };
+
+    const existingCourse = {
+      id,
+      title: 'Ingeniería del software 2',
+      description: 'Curso de Ingeniería del software 2',
+      startDate: startDate,
+      endDate: endDate,
+      registrationDeadline: registrationDeadline,
+      totalPlaces: 100,
+      createdAt: new Date(),
+    };
+
+    const updatedCourse = {
+      ...existingCourse,
+      ...courseUpdateDTO,
+    };
+
+    const expectedResult: CourseResponseDto = {
+      ...courseUpdateDTO,
+      id,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+    };
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue(existingCourse);
+    (mockRepository.update as jest.Mock).mockResolvedValue(updatedCourse);
+
+    const result = await service.updateCourse(id, courseUpdateDTO);
+
+    expect(mockRepository.findById).toHaveBeenCalledWith(id);
+    expect(mockRepository.update).toHaveBeenCalledWith(id, courseUpdateDTO);
+    expect(result).toEqual(expectedResult);
   });
 });
