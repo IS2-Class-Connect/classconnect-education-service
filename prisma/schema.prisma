@@ -13,6 +13,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  STUDENT
+  ASSISTANT
+}
+
 model Course {
   id                   Int     @id @default(autoincrement())
   title                String
@@ -22,4 +27,16 @@ model Course {
   registrationDeadline DateTime @map("registration_deadline")
   totalPlaces          Int @map("total_places")
   createdAt            DateTime @default(now())
+
+  enrollments          Enrollment[]
+}
+
+model Enrollment {
+  courseId Int @map("course_id")
+  userId   String @map("user_id")
+  favorite Boolean @default(false)
+  role     Role
+
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  @@id([courseId, userId])
 }

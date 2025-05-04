@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
-import { Prisma, Course } from '@prisma/client';
+import { Prisma, Course, Enrollment } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { logger } from 'src/logger';
 
@@ -21,7 +21,6 @@ export class CourseRepository {
    * Updates an existing course in the database.
    */
   async update(id: number, data: Prisma.CourseUpdateInput): Promise<Course> {
-    // return this.prisma.course.update({ where: { id }, data });
     try {
       return await this.prisma.course.update({ where: { id }, data });
     } catch (error) {
@@ -46,6 +45,12 @@ export class CourseRepository {
     return this.prisma.course.findUnique({ where: { id } });
   }
 
+  async findCourseEnrollments(id: number): Promise<Enrollment[] | null> {
+    return this.prisma.enrollment.findMany({
+      where: { courseId: id },
+    });
+  }
+
   /**
    * Deletes a course by ID.
    */
@@ -56,6 +61,58 @@ export class CourseRepository {
       if (error instanceof PrismaClientKnownRequestError && error.code === PRISMA__NOT_FOUND_CODE) {
         logger.error(`Course with ID ${id} not found.`);
         return Promise.resolve(null);
+      }
+      throw error;
+    }
+  }
+
+  async createEnrollment(data: Prisma.EnrollmentUncheckedCreateInput): Promise<Enrollment | null> {
+    try {
+      return await this.prisma.enrollment.create({ data });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2003') {
+          // Foreign key constraint failed
+          throw new NotFoundException(`The course with ID ${data.courseId} was not found.`);
+        }
+        if (error.code === 'P2002') {
+          // Unique constraint failed
+          throw new ConflictException(
+            `User ${data.userId} is already enrolled in course ${data.courseId}.`,
+          );
+        }
+      }
+      throw error;
+    }
+  }
+
+  async findCourseEnrollmentByUserId(courseId: number, userId: string): Promise<Enrollment | null> {
+    return this.prisma.enrollment.findUnique({
+      where: {
+        courseId_userId: {
+          courseId,
+          userId,
+        },
+      },
+    });
+  }
+
+  async deleteEnrollment(courseId: number, userId: string): Promise<Enrollment | null> {
+    try {
+      return await this.prisma.enrollment.delete({
+        where: {
+          courseId_userId: {
+            courseId,
+            userId,
+          },
+        },
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError && error.code === PRISMA__NOT_FOUND_CODE) {
+        logger.error(`Enrollment for user ${userId} in course ${courseId} not found.`);
+        throw new NotFoundException(
+          `Enrollment for user ${userId} in course ${courseId} not found.`,
+        );
       }
       throw error;
     }

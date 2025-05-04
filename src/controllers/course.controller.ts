@@ -15,6 +15,7 @@ import {
 import { CourseRequestDto } from '../dtos/course.request.dto';
 import { logger } from '../logger';
 import { CourseUpdateDto } from 'src/dtos/course.update.dto';
+import { CourseCreateEnrollmentDto } from 'src/dtos/course.create.enrollment';
 
 /**
  * Controller class for handling HTTP requests related to courses.
@@ -95,5 +96,41 @@ export class CourseController {
       logger.warn(`Course with ID ${id} not found.`);
       throw new NotFoundException(`Course with ID ${id} does not exist.`);
     }
+  }
+
+  /**
+   * Adds a user enrollment to a specific course.
+   * @param courseId - The ID of the course to which the participant will be added.
+   * @param dto - The data transfer object containing enrollment information.
+   * @throws NotFoundException if the course does not exist.
+   * @throws ConflictException if the user is already enrolled in the course.
+   * @throws BadRequestException if the enrollment data is invalid.
+   * @returns The enrollment details of the participant.
+   */
+  @Post(':courseId/enrollments')
+  async createEnrollment(
+    @Param('courseId') courseId: number,
+    @Body() dto: CourseCreateEnrollmentDto,
+  ) {
+    return this.service.createEnrollment(courseId, dto);
+  }
+
+  /**
+   * Retrieves all enrollments for a specific course.
+   * @param courseId - The ID of the course whose enrollments are to be retrieved.
+   * @returns An array of enrollments for the specified course.
+   * @throws NotFoundError if the course does not exist.
+   */
+  @Get(':courseId/enrollments')
+  async getCourseEnrollments(@Param('courseId') courseId: number) {
+    logger.info(`Getting enrollments for course with ID ${courseId}`);
+    return await this.service.getCourseEnrollments(courseId);
+  }
+
+  @Delete(':courseId/enrollments/:userId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteEnrollment(@Param('courseId') courseId: number, @Param('userId') userId: string) {
+    logger.info(`Deleting enrollment for user ${userId} in course ${courseId}`);
+    return this.service.deleteEnrollment(courseId, userId);
   }
 }

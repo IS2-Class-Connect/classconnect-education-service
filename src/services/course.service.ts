@@ -7,8 +7,9 @@ import {
 import { CourseRequestDto } from '../dtos/course.request.dto';
 import { CourseResponseDto } from '../dtos/course.response.dto';
 import { CourseRepository } from '../repositories/course.repository';
-import { Course } from '@prisma/client';
+import { Course, Enrollment, Role } from '@prisma/client';
 import { CourseUpdateDto } from 'src/dtos/course.update.dto';
+import { CourseCreateEnrollmentDto } from 'src/dtos/course.create.enrollment';
 
 const MIN_PLACES_LIMIT = 1;
 
@@ -185,5 +186,39 @@ export class CourseService {
   async deleteCourse(id: number): Promise<CourseResponseDto | null> {
     const course = await this.repository.delete(id);
     return course ? getResponseDTO(course) : null;
+  }
+
+  async createEnrollment(
+    courseId: number,
+    userEnrollment: CourseCreateEnrollmentDto,
+  ): Promise<Enrollment | null> {
+    if (!Number.isInteger(courseId) || courseId <= 0) {
+      throw new BadRequestException('Invalid course ID.');
+    }
+    return await this.repository.createEnrollment({ courseId, ...userEnrollment });
+  }
+
+  async getCourseEnrollments(courseId: number): Promise<Enrollment[] | null> {
+    if (!Number.isInteger(courseId) || courseId <= 0) {
+      throw new BadRequestException('Invalid course ID.');
+    }
+
+    if (!(await this.repository.findById(courseId))) {
+      throw new NotFoundException(`Course with ID ${courseId} not found.`);
+    }
+
+    return await this.repository.findCourseEnrollments(courseId);
+  }
+
+  async deleteEnrollment(courseId: number, userId: string): Promise<Enrollment | null> {
+    if (!Number.isInteger(courseId) || courseId <= 0) {
+      throw new BadRequestException('Invalid course ID.');
+    }
+
+    if (!(await this.repository.findById(courseId))) {
+      throw new NotFoundException(`Course with ID ${courseId} not found.`);
+    }
+
+    return await this.repository.deleteEnrollment(courseId, userId);
   }
 }
