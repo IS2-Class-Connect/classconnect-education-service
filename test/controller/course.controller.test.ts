@@ -27,6 +27,7 @@ describe('CourseController', () => {
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
       totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
     };
     const mockCreatedCourse = {
       id: 1,
@@ -55,6 +56,7 @@ describe('CourseController', () => {
         endDate,
         registrationDeadline,
         totalPlaces: 100,
+        teacherId: '123e4567-e89b-12d3-a456-426614174000',
         createdAt: new Date(),
       },
       {
@@ -65,6 +67,7 @@ describe('CourseController', () => {
         endDate,
         registrationDeadline,
         totalPlaces: 100,
+        teacherId: '123e4567-e89b-12d3-a456-426614174001',
         createdAt: new Date(),
       },
     ];
@@ -86,6 +89,7 @@ describe('CourseController', () => {
       endDate,
       registrationDeadline,
       totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
     };
     (mockService.findCourseById as jest.Mock).mockResolvedValue(mockCourse);
 
@@ -116,6 +120,7 @@ describe('CourseController', () => {
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
       totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
       createdAt: new Date(),
     };
 

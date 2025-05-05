@@ -50,6 +50,7 @@ describe('Course e2e', () => {
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
       totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
     };
 
     const res = await request(app.getHttpServer()).post('/courses').send(courseData);
@@ -77,6 +78,7 @@ describe('Course e2e', () => {
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
       totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
     };
 
     await request(app.getHttpServer()).post('/courses').send(courseData);
@@ -101,6 +103,7 @@ describe('Course e2e', () => {
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
       totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
     };
     const id = (await request(app.getHttpServer()).post('/courses').send(courseData)).body.data.id;
 
@@ -151,6 +154,7 @@ describe('Course e2e', () => {
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
       totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
     };
     const id = (await request(app.getHttpServer()).post('/courses').send(courseData)).body.data.id;
 

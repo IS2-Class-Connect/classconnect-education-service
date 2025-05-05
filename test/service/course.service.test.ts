@@ -28,6 +28,7 @@ describe('CourseService', () => {
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
       totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
     };
 
     const expectedResponseDTO: CourseResponseDto = {
@@ -58,6 +59,7 @@ describe('CourseService', () => {
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
       totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
     };
 
     const expectedResponseDTO2 = {
@@ -68,6 +70,7 @@ describe('CourseService', () => {
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
       totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174001',
     };
 
     (mockRepository.findAll as jest.Mock).mockResolvedValue([
@@ -105,6 +108,7 @@ describe('CourseService', () => {
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
       totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
     };
 
     (mockRepository.findById as jest.Mock).mockImplementation((id: number) => {
@@ -147,6 +151,7 @@ describe('CourseService', () => {
       endDate: endDate,
       registrationDeadline: registrationDeadline,
       totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
       createdAt: new Date(),
     };
 
@@ -161,6 +166,7 @@ describe('CourseService', () => {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
     };
 
     (mockRepository.findById as jest.Mock).mockResolvedValue(existingCourse);
