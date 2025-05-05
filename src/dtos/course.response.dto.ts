@@ -16,4 +16,6 @@ export interface CourseResponseDto {
   endDate: string;
   /** Total places available for the course */
   totalPlaces: number;
+  /** ID of the course head teacher */
+  teacherId: string;
 }

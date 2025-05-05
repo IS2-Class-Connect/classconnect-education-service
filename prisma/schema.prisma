@@ -21,5 +21,6 @@ model Course {
   endDate              DateTime @map("end_date")
   registrationDeadline DateTime @map("registration_deadline")
   totalPlaces          Int @map("total_places")
+  teacherId            String @map("teacher_id")
   createdAt            DateTime @default(now())
 }

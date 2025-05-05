@@ -34,6 +34,11 @@ export class CourseRequestDto {
   @IsNotEmpty()
   totalPlaces: number;
 
+  /** ID of the course head teacher */
+  @IsString()
+  @IsNotEmpty()
+  teacherId: string;
+
   /**
    * Creates an instance of CourseRequestDto.
    * @param title - The title of the course.
@@ -50,6 +55,7 @@ export class CourseRequestDto {
     endDate: string,
     registrationDeadline: string,
     totalPlaces: number,
+    teacherId: string,
   ) {
     this.title = title;
     this.description = description;
@@ -57,5 +63,6 @@ export class CourseRequestDto {
     this.endDate = endDate;
     this.registrationDeadline = registrationDeadline;
     this.totalPlaces = totalPlaces;
+    this.teacherId = teacherId;
   }
 }
