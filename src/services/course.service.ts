@@ -136,24 +136,15 @@ export class CourseService {
    * @returns The newly created course response DTO, or null if non course with the id exist.
    * @throws {NotFoundException} If the course trying to update is not found.
    */
-  async updateCourse(
-    id: number,
-    updateDTO: CourseUpdateDto,
-  ): Promise<CourseResponseDto | undefined> {
+  async updateCourse(id: number, updateDTO: CourseUpdateDto): Promise<CourseResponseDto | null> {
     const course = await this.repository.findById(id);
     if (!course) {
-      return;
+      throw new NotFoundException(`The course with ID ${id} was not found.`);
     }
 
     validateCourseUpdate(updateDTO, course);
 
     const updatedCourse = await this.repository.update(id, updateDTO);
-
-    if (!updatedCourse) {
-      throw new InternalServerErrorException(
-        `Unexpected error while trying to update course ${id}.`,
-      );
-    }
 
     return getResponseDTO(updatedCourse);
   }

@@ -20,6 +20,7 @@ describe('CourseService', () => {
       delete: jest.fn(),
       createEnrollment: jest.fn(),
       findCourseEnrollments: jest.fn(),
+      deleteEnrollment: jest.fn(),
     } as any;
     service = new CourseService(mockRepository);
   });
@@ -183,6 +184,61 @@ describe('CourseService', () => {
     expect(result).toEqual(expectedResult);
   });
 
+  test('Should throw an exception when trying to update a course', async () => {
+    const id = 1;
+    const courseUpdateDTO = {
+      title: 'Ingeniería del software 2 - Actualizado',
+      description: 'Curso actualizado de Ingeniería del software 2',
+      totalPlaces: 120,
+    };
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue(null);
+
+    await expect(service.updateCourse(id, courseUpdateDTO)).rejects.toThrow();
+  });
+
+  test('Should delete an existing course', async () => {
+    const id = 1;
+
+    const courseData = {
+      id,
+      title: 'Ingeniería del software 2',
+      description: 'Curso de Ingeniería del software 2',
+      startDate: startDate,
+      endDate: endDate,
+      registrationDeadline: registrationDeadline,
+      createdAt: new Date(),
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
+      totalPlaces: 100,
+    };
+
+    const expected: CourseResponseDto = {
+      id,
+      title: courseData.title,
+      description: courseData.description,
+      startDate: courseData.startDate.toISOString(),
+      endDate: courseData.endDate.toISOString(),
+      registrationDeadline: courseData.registrationDeadline.toISOString(),
+      totalPlaces: courseData.totalPlaces,
+      teacherId: courseData.teacherId,
+    };
+
+    (mockRepository.delete as jest.Mock).mockResolvedValue(courseData);
+
+    const result = await service.deleteCourse(id);
+
+    expect(mockRepository.delete).toHaveBeenCalledWith(id);
+    expect(result).toEqual(expected);
+  });
+
+  test('Should return null when trying to delete a course', async () => {
+    const id = 1;
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue(null);
+
+    expect(await service.deleteCourse(id)).toBeNull();
+  });
+
   test('Should create an enrollement', async () => {
     const courseId = 1;
     const courseCreateEnrollment = {
@@ -206,6 +262,22 @@ describe('CourseService', () => {
     const result = await service.createEnrollment(courseId, courseCreateEnrollment);
 
     expect(result).toEqual(expected);
+  });
+
+  test('Should throw an exception when trying to create an enrollment on a non existing course', async () => {
+    const courseId = 1;
+    const courseCreateEnrollment = {
+      userId: '123e4567-e89b-12d3-a456-426614174001',
+      role: Role.STUDENT,
+    };
+
+    (mockRepository.createEnrollment as jest.Mock).mockImplementation(() => {
+      throw new NotFoundException('Course not found');
+    });
+
+    await expect(service.createEnrollment(courseId, courseCreateEnrollment)).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   test('Should retrieve the existing enrollments of a specific course', async () => {
@@ -273,5 +345,25 @@ describe('CourseService', () => {
     (mockRepository.findById as jest.Mock).mockResolvedValue(undefined);
 
     await expect(service.deleteEnrollment(courseId, userId)).rejects.toThrow(NotFoundException);
+  });
+
+  test('Should throw an exception when trying to delete a non existing enrollment', async () => {
+    const courseIdExt = 1;
+    const userIdExt = '123e4567-e89b-12d3-a456-426614174001';
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue('dummy value');
+
+    (mockRepository.deleteEnrollment as jest.Mock).mockImplementation(
+      (courseId: number, userId: string) => {
+        if (courseId == courseIdExt && userId == userIdExt) {
+          throw new NotFoundException(
+            `Enrollment for user ${userId} in course ${courseId} not found.`,
+          );
+        }
+      },
+    );
+
+    await expect(service.deleteEnrollment(courseIdExt, userIdExt)).rejects.toThrow();
+    expect(mockRepository.deleteEnrollment).toHaveBeenCalledWith(courseIdExt, userIdExt);
   });
 });

@@ -21,14 +21,7 @@ export class CourseRepository {
    * Updates an existing course in the database.
    */
   async update(id: number, data: Prisma.CourseUpdateInput): Promise<Course> {
-    try {
-      return await this.prisma.course.update({ where: { id }, data });
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-        throw new NotFoundException(`The course with ID ${id} was not found.`);
-      }
-      throw error; // Re-throw other unexpected errors
-    }
+    return await this.prisma.course.update({ where: { id }, data });
   }
 
   /**
@@ -43,12 +36,6 @@ export class CourseRepository {
    */
   findById(id: number): Promise<Course | null> {
     return this.prisma.course.findUnique({ where: { id } });
-  }
-
-  async findCourseEnrollments(id: number): Promise<Enrollment[] | null> {
-    return this.prisma.enrollment.findMany({
-      where: { courseId: id },
-    });
   }
 
   /**
@@ -96,22 +83,35 @@ export class CourseRepository {
   }
 
   /**
-   * Retrieves an enrollment record for a specific course and user.
+   * Retrieves a list of enrollments for a specific course.
    *
-   * @param courseId - The unique identifier of the course.
-   * @param userId - The unique identifier of the user.
-   * @returns A promise that resolves to the enrollment record if found, or `null` if no matching record exists.
+   * @param id - The unique identifier of the course.
+   * @returns A promise that resolves to an array of `Enrollment` objects associated with the course,
+   *          or `null` if no enrollments are found.
    */
-  async findCourseEnrollmentByUserId(courseId: number, userId: string): Promise<Enrollment | null> {
-    return this.prisma.enrollment.findUnique({
-      where: {
-        courseId_userId: {
-          courseId,
-          userId,
-        },
-      },
+  async findCourseEnrollments(id: number): Promise<Enrollment[] | null> {
+    return this.prisma.enrollment.findMany({
+      where: { courseId: id },
     });
   }
+
+  // /**
+  //  * Retrieves an enrollment record for a specific course and user.
+  //  *
+  //  * @param courseId - The unique identifier of the course.
+  //  * @param userId - The unique identifier of the user.
+  //  * @returns A promise that resolves to the enrollment record if found, or `null` if no matching record exists.
+  //  */
+  // async findCourseEnrollmentByUserId(courseId: number, userId: string): Promise<Enrollment | null> {
+  //   return this.prisma.enrollment.findUnique({
+  //     where: {
+  //       courseId_userId: {
+  //         courseId,
+  //         userId,
+  //       },
+  //     },
+  //   });
+  // }
 
   /**
    * Deletes an enrollment for a specific user in a specific course.
