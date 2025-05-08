@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsString, Min } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import { Role } from '@prisma/client';
 
 export class CourseCreateEnrollmentDto {

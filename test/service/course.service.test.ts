@@ -263,7 +263,7 @@ describe('CourseService', () => {
 
     (mockRepository.findById as jest.Mock).mockResolvedValue(undefined);
 
-    expect(service.getCourseEnrollments(courseId)).rejects.toThrow(NotFoundException);
+    await expect(service.getCourseEnrollments(courseId)).rejects.toThrow(NotFoundException);
   });
 
   test('Should throw an exception when trying to delete an enrollment from a non existing course', async () => {
@@ -272,6 +272,6 @@ describe('CourseService', () => {
 
     (mockRepository.findById as jest.Mock).mockResolvedValue(undefined);
 
-    expect(service.deleteEnrollment(courseId, userId)).rejects.toThrow(NotFoundException);
+    await expect(service.deleteEnrollment(courseId, userId)).rejects.toThrow(NotFoundException);
   });
 });
