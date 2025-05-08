@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CourseRequestDto } from '../dtos/course.request.dto';
 import { CourseResponseDto } from '../dtos/course.response.dto';
 import { CourseRepository } from '../repositories/course.repository';
@@ -27,6 +22,7 @@ function getResponseDTO(course: Course): CourseResponseDto {
     registrationDeadline: course.registrationDeadline.toISOString(),
     endDate: course.endDate.toISOString(),
     totalPlaces: course.totalPlaces,
+    teacherId: course.teacherId,
   };
 }
 
