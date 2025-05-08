@@ -128,7 +128,13 @@ export class CourseController {
   }
 
   @Delete(':courseId/enrollments/:userId')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  /**
+   * Deletes the enrollment of a user in a specific course.
+   *
+   * @param courseId - The ID of the course from which the user will be unenrolled.
+   * @param userId - The ID of the user whose enrollment will be deleted.
+   * @returns A promise that resolves when the enrollment is successfully deleted.
+   */
   async deleteEnrollment(@Param('courseId') courseId: number, @Param('userId') userId: string) {
     logger.info(`Deleting enrollment for user ${userId} in course ${courseId}`);
     return this.service.deleteEnrollment(courseId, userId);

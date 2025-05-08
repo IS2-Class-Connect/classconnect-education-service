@@ -66,6 +66,15 @@ export class CourseRepository {
     }
   }
 
+  /**
+   * Creates a new enrollment record in the database.
+   *
+   * @param data - The data required to create an enrollment, adhering to the `Prisma.EnrollmentUncheckedCreateInput` type.
+   * @returns A promise that resolves to the created `Enrollment` object, or `null` if the operation fails.
+   * @throws {NotFoundException} If the course with the specified `courseId` does not exist (foreign key constraint failure).
+   * @throws {ConflictException} If the user with the specified `userId` is already enrolled in the course (unique constraint failure).
+   * @throws {Error} For any other unexpected errors during the operation.
+   */
   async createEnrollment(data: Prisma.EnrollmentUncheckedCreateInput): Promise<Enrollment | null> {
     try {
       return await this.prisma.enrollment.create({ data });
@@ -86,6 +95,13 @@ export class CourseRepository {
     }
   }
 
+  /**
+   * Retrieves an enrollment record for a specific course and user.
+   *
+   * @param courseId - The unique identifier of the course.
+   * @param userId - The unique identifier of the user.
+   * @returns A promise that resolves to the enrollment record if found, or `null` if no matching record exists.
+   */
   async findCourseEnrollmentByUserId(courseId: number, userId: string): Promise<Enrollment | null> {
     return this.prisma.enrollment.findUnique({
       where: {
@@ -97,6 +113,15 @@ export class CourseRepository {
     });
   }
 
+  /**
+   * Deletes an enrollment for a specific user in a specific course.
+   *
+   * @param courseId - The ID of the course from which the enrollment will be deleted.
+   * @param userId - The ID of the user whose enrollment will be deleted.
+   * @returns A promise that resolves to the deleted `Enrollment` object, or `null` if no enrollment was found.
+   * @throws {NotFoundException} If the enrollment for the specified user and course is not found.
+   * @throws {Error} If any other error occurs during the deletion process.
+   */
   async deleteEnrollment(courseId: number, userId: string): Promise<Enrollment | null> {
     try {
       return await this.prisma.enrollment.delete({

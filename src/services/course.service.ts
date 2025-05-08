@@ -1,8 +1,13 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CourseRequestDto } from '../dtos/course.request.dto';
 import { CourseResponseDto } from '../dtos/course.response.dto';
 import { CourseRepository } from '../repositories/course.repository';
-import { Course, Enrollment, Role } from '@prisma/client';
+import { Course, Enrollment } from '@prisma/client';
 import { CourseUpdateDto } from 'src/dtos/course.update.dto';
 import { CourseCreateEnrollmentDto } from 'src/dtos/course.create.enrollment';
 
@@ -184,6 +189,14 @@ export class CourseService {
     return course ? getResponseDTO(course) : null;
   }
 
+  /**
+   * Creates a new enrollment for a specified course.
+   *
+   * @param courseId - The ID of the course to enroll in. Must be a positive integer.
+   * @param userEnrollment - The enrollment details provided as a `CourseCreateEnrollmentDto` object.
+   * @returns A promise that resolves to the created `Enrollment` object, or `null` if the operation fails.
+   * @throws {BadRequestException} If the provided `courseId` is not a valid positive integer.
+   */
   async createEnrollment(
     courseId: number,
     userEnrollment: CourseCreateEnrollmentDto,
@@ -194,6 +207,15 @@ export class CourseService {
     return await this.repository.createEnrollment({ courseId, ...userEnrollment });
   }
 
+  /**
+   * Retrieves the enrollments for a specific course.
+   *
+   * @param courseId - The ID of the course for which to retrieve enrollments.
+   * @returns A promise that resolves to an array of enrollments for the specified course,
+   *          or `null` if no enrollments are found.
+   * @throws {BadRequestException} If the provided course ID is not a valid positive integer.
+   * @throws {NotFoundException} If no course is found with the specified ID.
+   */
   async getCourseEnrollments(courseId: number): Promise<Enrollment[] | null> {
     if (!Number.isInteger(courseId) || courseId <= 0) {
       throw new BadRequestException('Invalid course ID.');
@@ -206,6 +228,17 @@ export class CourseService {
     return await this.repository.findCourseEnrollments(courseId);
   }
 
+  /**
+   * Deletes an enrollment for a specific course and user.
+   *
+   * @param courseId - The ID of the course from which the enrollment will be deleted.
+   *                   Must be a positive integer.
+   * @param userId - The ID of the user whose enrollment will be deleted.
+   * @returns A promise that resolves to the deleted `Enrollment` object if successful,
+   *          or `null` if no enrollment was found to delete.
+   * @throws {BadRequestException} If the provided `courseId` is not a valid positive integer.
+   * @throws {NotFoundException} If the course with the specified `courseId` does not exist.
+   */
   async deleteEnrollment(courseId: number, userId: string): Promise<Enrollment | null> {
     if (!Number.isInteger(courseId) || courseId <= 0) {
       throw new BadRequestException('Invalid course ID.');
