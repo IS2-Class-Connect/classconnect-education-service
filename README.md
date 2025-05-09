@@ -1,6 +1,7 @@
 ## Table of Contents
 
 - [Description](#description)
+- [Endpoints](#endpoints)
 - [Technologies](#technologies)
 - [Project Setup](#project-setup)
 - [Running the Project](#running-the-project)
@@ -17,6 +18,85 @@
 ## Description
 
 This repository is a template for creating microservices for the Class-Connect application. It uses **NestJS**, **Prisma**, and **TypeScript** with a **package-layered architecture**. The template is intentionally minimal and ready to be customized for each specific microservice.
+
+## Endpoints
+
+- To test the API, you can use tools like Postman or send curl requests.
+
+- To create a course using curl:
+
+```bash
+    curl -X POST 'https://<host_url>/courses' \
+    -H 'Content-Type: application/json' \
+    -d '{
+    "title": "Course title",
+    "description": "Course description",
+    "teacherId": <teacher_id>,
+    "startDate": <start_date>,
+    "endDate": <end_date>,
+    "registrationDeadline": <registration_deadline>,
+    "totalPlaces": 100
+    }'
+```
+
+- To get all courses:
+
+```bash
+curl -X GET 'https://<host_url>/courses'
+```
+
+- To get course by id:
+
+```bash
+curl -X GET 'https://<host_url>/courses/{id}'
+```
+
+- To patch title, description, startDate, endDate, registrationDeadline, teacherId and totalPlaces course by id (every property mentioned is optional):
+
+```bash
+curl -X PATCH 'http://<host_url>/courses/{id}' \
+-H 'Content-Type: application/json' \
+-d '{
+  "title": "Updated title",
+  "description": "Updated description",
+  "totalPlaces": 200,
+  ...
+}'
+```
+
+- To delete a course by id:
+
+```bash
+curl -X DELETE 'https://<host_url>/courses/{id}'
+```
+
+- To create a course enrollment using curl:
+
+```bash
+    curl -X POST 'https://<host_url>/courses/{course_id}/enrollments' \
+    -H 'Content-Type: application/json' \
+    -d '{
+    "userId": <userId>,
+    "role": <role>,
+    }'
+```
+
+- To get all enrollments for a specific course:
+
+```bash
+curl -X GET 'https://<host_url>/courses/{course_id}/enrollments'
+```
+
+- To delete a course enrollment by the course id and user id:
+
+```bash
+curl -X DELETE 'https://<host_url>/courses/{course_id}/enrollments/{user_id}'
+```
+
+### Variables
+
+`<start_date>`, `<end_date>`, and `<registration_date>` are strings of the dates in ISO 8601 format: `YYYY-mm-ddThh:mm:ssZ`. \
+`<teacher_id>` and `<user_id>` must match with the `uuid` used in users service.
 
 ## Technologies
 
