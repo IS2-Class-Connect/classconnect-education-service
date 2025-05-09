@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { CourseController } from '../../src/controllers/course.controller';
 import { CourseService } from '../../src/services/course.service';
 import { getDatesAfterToday } from 'test/utils';
+import { Enrollment, Role } from '@prisma/client';
 
 describe('CourseController', () => {
   let controller: CourseController;
@@ -15,6 +16,9 @@ describe('CourseController', () => {
       createCourse: jest.fn(),
       updateCourse: jest.fn(),
       deleteCourse: jest.fn(),
+      createEnrollment: jest.fn(),
+      getCourseEnrollments: jest.fn(),
+      deleteEnrollment: jest.fn(),
     } as any;
     controller = new CourseController(mockService);
   });
@@ -141,5 +145,84 @@ describe('CourseController', () => {
     (mockService.updateCourse as jest.Mock).mockResolvedValue(undefined);
 
     await expect(controller.updateCourse(999, courseUpdateDTO)).rejects.toThrow(NotFoundException);
+  });
+
+  test('Should retrieve an enrollment to a course', async () => {
+    const courseId = 1;
+    const enrollmentDTO = {
+      userId: '123e4567-e89b-12d3-a456-426614174000',
+      role: Role.STUDENT,
+    };
+
+    const expected = {
+      courseId,
+      ...enrollmentDTO,
+      favorite: false,
+    };
+
+    (mockService.createEnrollment as jest.Mock).mockResolvedValue(expected);
+
+    const result = await controller.createEnrollment(courseId, enrollmentDTO);
+
+    expect(result).toEqual(expected);
+    expect(mockService.createEnrollment).toHaveBeenCalledWith(courseId, enrollmentDTO);
+  });
+
+  test('Should retrieve all enrollments for a course', async () => {
+    const courseId = 1;
+    const enrollments = [
+      {
+        courseId,
+        userId: '123e4567-e89b-12d3-a456-426614174001',
+        role: Role.STUDENT,
+        favorite: false,
+      },
+      {
+        courseId,
+        userId: '123e4567-e89b-12d3-a456-426614174002',
+        role: Role.STUDENT,
+        favorite: true,
+      },
+      {
+        courseId: 2,
+        userId: '123e4567-e89b-12d3-a456-426614174001',
+        role: Role.STUDENT,
+        favorite: false,
+      },
+    ];
+
+    const expected: Enrollment[] = [enrollments[0], enrollments[1]];
+
+    (mockService.getCourseEnrollments as jest.Mock).mockImplementation((id: number) =>
+      enrollments.filter((enrollment) => enrollment.courseId === id),
+    );
+
+    const result = await controller.getCourseEnrollments(courseId);
+
+    expect(result).toEqual(expected);
+    expect(mockService.getCourseEnrollments).toHaveBeenCalledWith(courseId);
+  });
+
+  test('Should delete an enrollment from a course', async () => {
+    const courseId = 1;
+    const userId = '123e4567-e89b-12d3-a456-426614174000';
+
+    const enrollmentDTO = {
+      userId,
+      role: Role.STUDENT,
+    };
+
+    const expected = {
+      courseId,
+      ...enrollmentDTO,
+      favorite: false,
+    };
+
+    (mockService.deleteEnrollment as jest.Mock).mockResolvedValue(expected);
+
+    const result = await controller.deleteEnrollment(courseId, userId);
+
+    expect(result).toEqual(expected);
+    expect(mockService.deleteEnrollment).toHaveBeenCalledWith(courseId, userId);
   });
 });

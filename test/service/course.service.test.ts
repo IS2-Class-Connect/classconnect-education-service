@@ -3,6 +3,8 @@ import { CourseRequestDto } from '../../src/dtos/course.request.dto';
 import { CourseRepository } from 'src/repositories/course.repository';
 import { CourseResponseDto } from 'src/dtos/course.response.dto';
 import { getDatesAfterToday } from 'test/utils';
+import { Enrollment, Prisma, Role } from '@prisma/client';
+import { NotFoundException } from '@nestjs/common';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -16,6 +18,9 @@ describe('CourseService', () => {
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      createEnrollment: jest.fn(),
+      findCourseEnrollments: jest.fn(),
+      deleteEnrollment: jest.fn(),
     } as any;
     service = new CourseService(mockRepository);
   });
@@ -50,7 +55,7 @@ describe('CourseService', () => {
     expect(foundResponseDTO).toEqual(expectedResponseDTO);
   });
 
-  test('Should retreive courses currently existing', async () => {
+  test('Should retrieve courses currently existing', async () => {
     const expectedResponseDTO1 = {
       id: 1,
       title: 'Ingeniería del software 1',
@@ -99,7 +104,7 @@ describe('CourseService', () => {
     expect(foundResponseDTO[1]).toEqual(expectedResponseDTO2);
   });
 
-  test('Should retreive the course matching the id passed', async () => {
+  test('Should retrieve the course matching the id passed', async () => {
     const expected = {
       id: 1,
       title: 'Ingeniería del software 2',
@@ -129,13 +134,13 @@ describe('CourseService', () => {
     expect(found).toEqual(expected);
   });
 
-  test('Should retreive undefined if course is not found', async () => {
+  test('Should retrieve undefined if course is not found', async () => {
     (mockRepository.findById as jest.Mock).mockResolvedValue(null);
     const result = await service.findCourseById(123);
     expect(result).toBeUndefined();
   });
 
-  test('Should update a course and return the updated course', async () => {
+  test('Should update a course and retrieve the updated course', async () => {
     const id = 1;
     const courseUpdateDTO = {
       title: 'Ingeniería del software 2 - Actualizado',
@@ -177,5 +182,188 @@ describe('CourseService', () => {
     expect(mockRepository.findById).toHaveBeenCalledWith(id);
     expect(mockRepository.update).toHaveBeenCalledWith(id, courseUpdateDTO);
     expect(result).toEqual(expectedResult);
+  });
+
+  test('Should throw an exception when trying to update a course', async () => {
+    const id = 1;
+    const courseUpdateDTO = {
+      title: 'Ingeniería del software 2 - Actualizado',
+      description: 'Curso actualizado de Ingeniería del software 2',
+      totalPlaces: 120,
+    };
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue(null);
+
+    await expect(service.updateCourse(id, courseUpdateDTO)).rejects.toThrow();
+  });
+
+  test('Should delete an existing course', async () => {
+    const id = 1;
+
+    const courseData = {
+      id,
+      title: 'Ingeniería del software 2',
+      description: 'Curso de Ingeniería del software 2',
+      startDate: startDate,
+      endDate: endDate,
+      registrationDeadline: registrationDeadline,
+      createdAt: new Date(),
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
+      totalPlaces: 100,
+    };
+
+    const expected: CourseResponseDto = {
+      id,
+      title: courseData.title,
+      description: courseData.description,
+      startDate: courseData.startDate.toISOString(),
+      endDate: courseData.endDate.toISOString(),
+      registrationDeadline: courseData.registrationDeadline.toISOString(),
+      totalPlaces: courseData.totalPlaces,
+      teacherId: courseData.teacherId,
+    };
+
+    (mockRepository.delete as jest.Mock).mockResolvedValue(courseData);
+
+    const result = await service.deleteCourse(id);
+
+    expect(mockRepository.delete).toHaveBeenCalledWith(id);
+    expect(result).toEqual(expected);
+  });
+
+  test('Should return null when trying to delete a course', async () => {
+    const id = 1;
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue(null);
+
+    expect(await service.deleteCourse(id)).toBeNull();
+  });
+
+  test('Should create an enrollement', async () => {
+    const courseId = 1;
+    const courseCreateEnrollment = {
+      userId: '123e4567-e89b-12d3-a456-426614174001',
+      role: Role.STUDENT,
+    };
+
+    const expected: Enrollment = {
+      ...courseCreateEnrollment,
+      courseId,
+      favorite: false,
+    };
+
+    (mockRepository.createEnrollment as jest.Mock).mockImplementation(
+      (data: Prisma.EnrollmentUncheckedCreateInput) => ({
+        ...data,
+        favorite: false,
+      }),
+    );
+
+    const result = await service.createEnrollment(courseId, courseCreateEnrollment);
+
+    expect(result).toEqual(expected);
+  });
+
+  test('Should throw an exception when trying to create an enrollment on a non existing course', async () => {
+    const courseId = 1;
+    const courseCreateEnrollment = {
+      userId: '123e4567-e89b-12d3-a456-426614174001',
+      role: Role.STUDENT,
+    };
+
+    (mockRepository.createEnrollment as jest.Mock).mockImplementation(() => {
+      throw new NotFoundException('Course not found');
+    });
+
+    await expect(service.createEnrollment(courseId, courseCreateEnrollment)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  test('Should retrieve the existing enrollments of a specific course', async () => {
+    const courseId = 1;
+    const enrollments = [
+      {
+        courseId,
+        userId: '123e4567-e89b-12d3-a456-426614174001',
+        role: Role.STUDENT,
+        favorite: false,
+      },
+      {
+        courseId,
+        userId: '123e4567-e89b-12d3-a456-426614174002',
+        role: Role.STUDENT,
+        favorite: true,
+      },
+      {
+        courseId: 2,
+        userId: '123e4567-e89b-12d3-a456-426614174001',
+        role: Role.STUDENT,
+        favorite: false,
+      },
+    ];
+
+    const expected: Enrollment[] = [enrollments[0], enrollments[1]];
+
+    const mockedCourse = {
+      courseId,
+      title: '',
+      description: '',
+      totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174010',
+      startDate: new Date(),
+      endDate: new Date(),
+      registrationDeadline: new Date(),
+      createdAt: new Date(),
+    };
+    (mockRepository.findById as jest.Mock).mockImplementation((id: number) =>
+      id == courseId ? mockedCourse : null,
+    );
+    (mockRepository.findCourseEnrollments as jest.Mock).mockImplementation((id: number) =>
+      enrollments.filter((enrollment) => enrollment.courseId === id),
+    );
+
+    const result = await service.getCourseEnrollments(courseId);
+
+    expect(mockRepository.findById).toHaveBeenCalledWith(courseId);
+    expect(mockRepository.findCourseEnrollments).toHaveBeenCalledWith(courseId);
+    expect(result).toEqual(expected);
+  });
+
+  test('Should throw an exception when trying to get an enrollment from a non existing course', async () => {
+    const courseId = 1;
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue(undefined);
+
+    await expect(service.getCourseEnrollments(courseId)).rejects.toThrow(NotFoundException);
+  });
+
+  test('Should throw an exception when trying to delete an enrollment from a non existing course', async () => {
+    const courseId = 1;
+    const userId = '123e4567-e89b-12d3-a456-426614174001';
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue(undefined);
+
+    await expect(service.deleteEnrollment(courseId, userId)).rejects.toThrow(NotFoundException);
+  });
+
+  test('Should throw an exception when trying to delete a non existing enrollment', async () => {
+    const courseIdExt = 1;
+    const userIdExt = '123e4567-e89b-12d3-a456-426614174001';
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue('dummy value');
+
+    (mockRepository.deleteEnrollment as jest.Mock).mockImplementation(
+      (courseId: number, userId: string) => {
+        if (courseId == courseIdExt && userId == userIdExt) {
+          throw new NotFoundException(
+            `Enrollment for user ${userId} in course ${courseId} not found.`,
+          );
+        }
+      },
+    );
+
+    await expect(service.deleteEnrollment(courseIdExt, userIdExt)).rejects.toThrow();
+    expect(mockRepository.deleteEnrollment).toHaveBeenCalledWith(courseIdExt, userIdExt);
   });
 });
