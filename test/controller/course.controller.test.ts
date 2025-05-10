@@ -18,6 +18,7 @@ describe('CourseController', () => {
       deleteCourse: jest.fn(),
       createEnrollment: jest.fn(),
       getCourseEnrollments: jest.fn(),
+      updateEnrollment: jest.fn(),
       deleteEnrollment: jest.fn(),
     } as any;
     controller = new CourseController(mockService);
@@ -203,18 +204,37 @@ describe('CourseController', () => {
     expect(mockService.getCourseEnrollments).toHaveBeenCalledWith(courseId);
   });
 
-  test('Should delete an enrollment from a course', async () => {
+  test('Shoulde update an enrollment', async () => {
     const courseId = 1;
     const userId = '123e4567-e89b-12d3-a456-426614174000';
 
     const enrollmentDTO = {
-      userId,
+      favorite: true,
       role: Role.STUDENT,
     };
 
     const expected = {
       courseId,
+      userId,
       ...enrollmentDTO,
+    };
+
+    (mockService.updateEnrollment as jest.Mock).mockResolvedValue(expected);
+
+    const result = await controller.updateEnrollment(courseId, userId, enrollmentDTO);
+
+    expect(mockService.updateEnrollment).toHaveBeenCalledWith(courseId, userId, enrollmentDTO);
+    expect(result).toEqual(expected);
+  });
+
+  test('Should delete an enrollment from a course', async () => {
+    const courseId = 1;
+    const userId = '123e4567-e89b-12d3-a456-426614174000';
+
+    const expected = {
+      courseId,
+      userId,
+      role: Role.STUDENT,
       favorite: false,
     };
 

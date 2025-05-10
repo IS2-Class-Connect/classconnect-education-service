@@ -7,6 +7,7 @@ import { BaseExceptionFilter } from '../../src/middleware/exception.filter';
 import { ResponseInterceptor } from '../../src/middleware/response.interceptor';
 import { cleanDataBase, getDatesAfterToday } from 'test/utils';
 import { PrismaService } from 'src/prisma.service';
+import { Role } from '@prisma/client';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
@@ -300,6 +301,88 @@ describe('Course e2e', () => {
       status: 404,
       detail: 'Course with ID 999 not found.',
       instance: '/courses/999/enrollments',
+    };
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual(expectedRes);
+  });
+
+  test('PATCH /courses/{courseId}/enrollments/{userId} should retreive the updated courseId enrollment from userId', async () => {
+    const courseData = {
+      title: 'Ingeniería del Software 2',
+      description: 'Curso de Ingeniería del Software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
+    };
+    const courseId = (await request(app.getHttpServer()).post('/courses').send(courseData)).body
+      .data.id;
+
+    const userId = '123e4567-e89b-12d3-a456-426614174001';
+
+    const enrollmentData = {
+      userId,
+      role: Role.ASSISTANT,
+    };
+
+    await request(app.getHttpServer())
+      .post(`/courses/${courseId}/enrollments`)
+      .send(enrollmentData);
+
+    const updateData = {
+      favorite: true,
+      role: Role.STUDENT,
+    };
+
+    const res = await request(app.getHttpServer())
+      .patch(`/courses/${courseId}/enrollments/${userId}`)
+      .send(updateData);
+
+    const expected = {
+      courseId,
+      userId,
+      ...updateData,
+    };
+
+    const response = res.body.data;
+
+    expect(res.status).toBe(200);
+    expect(response).toEqual(expected);
+  });
+
+  test('PATCH /courses/{courseId}/enrollments/{userId} updating non existing enrollment should throw NotFoundException', async () => {
+    const courseData = {
+      title: 'Ingeniería del Software 2',
+      description: 'Curso de Ingeniería del Software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
+    };
+
+    const courseId = (await request(app.getHttpServer()).post('/courses').send(courseData)).body
+      .data.id;
+
+    const userId = '123e4567-e89b-12d3-a456-426614174001';
+
+    const updateData = {
+      favorite: true,
+      role: Role.STUDENT,
+    };
+
+    const res = await request(app.getHttpServer())
+      .patch(`/courses/${courseId}/enrollments/${userId}`)
+      .send(updateData);
+
+    const expectedRes = {
+      type: 'about:blank',
+      title: 'NotFoundException',
+      status: 404,
+      detail: `Enrollment for user ${userId} in course ${courseId} not found.`,
+      instance: `/courses/${courseId}/enrollments/${userId}`,
     };
 
     expect(res.status).toBe(404);

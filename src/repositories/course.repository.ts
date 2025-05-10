@@ -3,8 +3,9 @@ import { PrismaService } from 'src/prisma.service';
 import { Prisma, Course, Enrollment } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { logger } from 'src/logger';
+import { CourseUpdateEnrollmentDto } from 'src/dtos/course.update.enrollment';
 
-const PRISMA__NOT_FOUND_CODE = 'P2025';
+const PRISMA_NOT_FOUND_CODE = 'P2025';
 
 @Injectable()
 export class CourseRepository {
@@ -45,7 +46,7 @@ export class CourseRepository {
     try {
       return await this.prisma.course.delete({ where: { id } });
     } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError && error.code === PRISMA__NOT_FOUND_CODE) {
+      if (error instanceof PrismaClientKnownRequestError && error.code === PRISMA_NOT_FOUND_CODE) {
         logger.error(`Course with ID ${id} not found.`);
         return Promise.resolve(null);
       }
@@ -95,6 +96,29 @@ export class CourseRepository {
     });
   }
 
+  async updateEnrollment(
+    courseId: number,
+    userId: string,
+    data: CourseUpdateEnrollmentDto,
+  ): Promise<Enrollment | null> {
+    try {
+      return await this.prisma.enrollment.update({
+        where: {
+          courseId_userId: { courseId, userId },
+        },
+        data,
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError && error.code === PRISMA_NOT_FOUND_CODE) {
+        logger.error(`Enrollment for user ${userId} in course ${courseId} not found.`);
+        throw new NotFoundException(
+          `Enrollment for user ${userId} in course ${courseId} not found.`,
+        );
+      }
+      throw error;
+    }
+  }
+
   // /**
   //  * Retrieves an enrollment record for a specific course and user.
   //  *
@@ -133,7 +157,7 @@ export class CourseRepository {
         },
       });
     } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError && error.code === PRISMA__NOT_FOUND_CODE) {
+      if (error instanceof PrismaClientKnownRequestError && error.code === PRISMA_NOT_FOUND_CODE) {
         logger.error(`Enrollment for user ${userId} in course ${courseId} not found.`);
         throw new NotFoundException(
           `Enrollment for user ${userId} in course ${courseId} not found.`,

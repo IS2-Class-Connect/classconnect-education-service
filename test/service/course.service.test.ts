@@ -20,6 +20,7 @@ describe('CourseService', () => {
       delete: jest.fn(),
       createEnrollment: jest.fn(),
       findCourseEnrollments: jest.fn(),
+      updateEnrollment: jest.fn(),
       deleteEnrollment: jest.fn(),
     } as any;
     service = new CourseService(mockRepository);
@@ -338,6 +339,32 @@ describe('CourseService', () => {
     await expect(service.getCourseEnrollments(courseId)).rejects.toThrow(NotFoundException);
   });
 
+  test('Should update an enrollment and retrieve the updated enrollment', async () => {
+    const courseId = 1;
+    const userId = '123e4567-e89b-12d3-a456-426614174010';
+    const updateEnrollementDto = {
+      favorite: true,
+    };
+
+    const expected = {
+      courseId,
+      userId,
+      role: Role.STUDENT,
+      ...updateEnrollementDto,
+    };
+
+    (mockRepository.updateEnrollment as jest.Mock).mockResolvedValue(expected);
+
+    const result = await service.updateEnrollment(courseId, userId, updateEnrollementDto);
+
+    expect(mockRepository.updateEnrollment).toHaveBeenCalledWith(
+      courseId,
+      userId,
+      updateEnrollementDto,
+    );
+    expect(result).toEqual(expected);
+  });
+
   test('Should throw an exception when trying to delete an enrollment from a non existing course', async () => {
     const courseId = 1;
     const userId = '123e4567-e89b-12d3-a456-426614174001';
@@ -345,6 +372,23 @@ describe('CourseService', () => {
     (mockRepository.findById as jest.Mock).mockResolvedValue(undefined);
 
     await expect(service.deleteEnrollment(courseId, userId)).rejects.toThrow(NotFoundException);
+  });
+
+  test('Should throw an exception when trying to update a non existing enrollment', async () => {
+    const courseId = 1;
+    const userId = '123e4567-e89b-12d3-a456-426614174001';
+
+    const updateEnrollementDto = {
+      favorite: false,
+    };
+
+    (mockRepository.updateEnrollment as jest.Mock).mockImplementation(() => {
+      throw new NotFoundException(`Enrollment for user ${userId} in course ${courseId} not found.`);
+    });
+
+    await expect(service.updateEnrollment(courseId, userId, updateEnrollementDto)).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   test('Should throw an exception when trying to delete a non existing enrollment', async () => {

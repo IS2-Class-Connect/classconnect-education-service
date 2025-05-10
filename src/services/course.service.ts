@@ -10,6 +10,7 @@ import { CourseRepository } from '../repositories/course.repository';
 import { Course, Enrollment } from '@prisma/client';
 import { CourseUpdateDto } from 'src/dtos/course.update.dto';
 import { CourseCreateEnrollmentDto } from 'src/dtos/course.create.enrollment';
+import { CourseUpdateEnrollmentDto } from 'src/dtos/course.update.enrollment';
 
 const MIN_PLACES_LIMIT = 1;
 
@@ -196,6 +197,17 @@ export class CourseService {
       throw new BadRequestException('Invalid course ID.');
     }
     return await this.repository.createEnrollment({ courseId, ...userEnrollment });
+  }
+
+  async updateEnrollment(
+    courseId: number,
+    userId: string,
+    enrollmentUpdateDto: CourseUpdateEnrollmentDto,
+  ): Promise<Enrollment | null> {
+    if (!Number.isInteger(courseId) || courseId <= 0) {
+      throw new BadRequestException('Invalid course ID.');
+    }
+    return await this.repository.updateEnrollment(courseId, userId, enrollmentUpdateDto);
   }
 
   /**
