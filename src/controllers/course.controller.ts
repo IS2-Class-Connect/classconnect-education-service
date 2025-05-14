@@ -16,6 +16,7 @@ import { CourseRequestDto } from '../dtos/course.request.dto';
 import { logger } from '../logger';
 import { CourseUpdateDto } from 'src/dtos/course.update.dto';
 import { CourseCreateEnrollmentDto } from 'src/dtos/course.create.enrollment';
+import { CourseUpdateEnrollmentDto } from 'src/dtos/course.update.enrollment';
 
 /**
  * Controller class for handling HTTP requests related to courses.
@@ -127,12 +128,32 @@ export class CourseController {
     return await this.service.getCourseEnrollments(courseId);
   }
 
+  @Patch(':courseId/enrollments/:userId')
+  /**
+   * Updates the enrollment of a user in a specific course.
+   *
+   * @param courseId - The ID of the course from which the enrollment belongs.
+   * @param userId - The ID of the user linked to the enrollment.
+   * @param updateEnrollmentDto - The data transfer object containing enrollment information.
+   * @throws BadRequestException if the enrollment data is invalid.
+   * @throws NotFoundError if the enrollment trying to be updated does not exist.
+   * @returns A promise that resolves when the enrollment is successfully updated.
+   */
+  async updateEnrollment(
+    @Param('courseId') courseId: number,
+    @Param('userId') userId: string,
+    @Body() updateEnrollmentDto: CourseUpdateEnrollmentDto,
+  ) {
+    return this.service.updateEnrollment(courseId, userId, updateEnrollmentDto);
+  }
+
   @Delete(':courseId/enrollments/:userId')
   /**
    * Deletes the enrollment of a user in a specific course.
    *
    * @param courseId - The ID of the course from which the user will be unenrolled.
    * @param userId - The ID of the user whose enrollment will be deleted.
+   * @throws NotFoundError if the enrollment trying to be deleted does not exist.
    * @returns A promise that resolves when the enrollment is successfully deleted.
    */
   async deleteEnrollment(@Param('courseId') courseId: number, @Param('userId') userId: string) {

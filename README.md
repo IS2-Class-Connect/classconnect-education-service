@@ -87,6 +87,17 @@ curl -X DELETE 'https://<host_url>/courses/{id}'
 curl -X GET 'https://<host_url>/courses/{course_id}/enrollments'
 ```
 
+- To patch a course enrollment favorite status or role (every property mentioned is optional) using curl:
+
+```bash
+    curl -X PATCH 'https://<host_url>/courses/{course_id}/enrollments/{userId}' \
+    -H 'Content-Type: application/json' \
+    -d '{
+    "favorite": true,
+    "role": <role>,
+    }'
+```
+
 - To delete a course enrollment by the course id and user id:
 
 ```bash
@@ -96,7 +107,8 @@ curl -X DELETE 'https://<host_url>/courses/{course_id}/enrollments/{user_id}'
 ### Variables
 
 `<start_date>`, `<end_date>`, and `<registration_date>` are strings of the dates in ISO 8601 format: `YYYY-mm-ddThh:mm:ssZ`. \
-`<teacher_id>` and `<user_id>` must match with the `uuid` used in users service.
+`<teacher_id>` and `<user_id>` must match with the `uuid` used in users service. \
+`<role>` must be `"STUDENT"` or `"ASSISTANT"`.
 
 ## Technologies
 
