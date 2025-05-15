@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'education-service'
+    static_configs:
+      - targets: ['education:3008']

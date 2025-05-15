@@ -5,13 +5,51 @@ services:
     image: postgres:15
     restart: always
     ports:
-      - "5432:5432"
+      - "5435:5432"
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
       POSTGRES_DB: classconnect
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - monitor-net
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "user", "-d", "classconnect"]
+      interval: 10s
+      retries: 10
+      start_period: 20s
+      timeout: 5s
+
+  education:
+    container_name: education
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - monitor-net
+    ports:
+      - 3008:3008
+    environment:
+      DATABASE_URL: postgresql://user:pass@postgres:5432/classconnect
+      PORT: 3008
+      JWT_SECRET: your_jwt_secret_here
+    depends_on:
+      postgres:
+        condition: service_healthy
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - monitor-net
+    ports:
+      - "9093:9090"
 
 volumes:
   pgdata:
+
+networks:
+  monitor-net:
+   external:
+     name: classconnect_net
