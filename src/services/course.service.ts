@@ -1,11 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CourseRequestDto } from '../dtos/course.request.dto';
 import { CourseResponseDto } from '../dtos/course.response.dto';
-import { CourseRepository } from '../repositories/course.repository';
+import { CourseRepository, EnrollmentWithCourse } from '../repositories/course.repository';
 import { Course, Enrollment } from '@prisma/client';
 import { CourseUpdateDto } from 'src/dtos/course.update.dto';
 import { CourseCreateEnrollmentDto } from 'src/dtos/course.create.enrollment';
 import { CourseUpdateEnrollmentDto } from 'src/dtos/course.update.enrollment';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
+import { EnrollmentResponseDto } from 'src/dtos/enrollments.response';
 
 const MIN_PLACES_LIMIT = 1;
 
@@ -24,6 +26,19 @@ function getResponseDTO(course: Course): CourseResponseDto {
     endDate: course.endDate.toISOString(),
     totalPlaces: course.totalPlaces,
     teacherId: course.teacherId,
+  };
+}
+
+function getEnrollmentResponse(enrollment: EnrollmentWithCourse): EnrollmentResponseDto {
+  const { userId, role, course } = enrollment;
+  const { id, title } = course;
+  return {
+    role,
+    userId,
+    course: {
+      id,
+      title,
+    },
   };
 }
 
@@ -224,6 +239,12 @@ export class CourseService {
     }
 
     return await this.repository.findCourseEnrollments(courseId);
+  }
+
+  async getEnrollments(filters: EnrollmentFilterDto) {
+    return (await this.repository.findEnrollments(filters)).map((enrollment) =>
+      getEnrollmentResponse(enrollment),
+    );
   }
 
   /**
