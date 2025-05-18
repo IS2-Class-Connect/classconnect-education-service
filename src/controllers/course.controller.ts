@@ -11,12 +11,15 @@ import {
   HttpStatus,
   NotFoundException,
   Patch,
+  Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { CourseRequestDto } from '../dtos/course.request.dto';
 import { logger } from '../logger';
 import { CourseUpdateDto } from 'src/dtos/course.update.dto';
 import { CourseCreateEnrollmentDto } from 'src/dtos/course.create.enrollment';
 import { CourseUpdateEnrollmentDto } from 'src/dtos/course.update.enrollment';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
 
 /**
  * Controller class for handling HTTP requests related to courses.
@@ -49,6 +52,14 @@ export class CourseController {
     return this.service.findAllCourses();
   }
 
+  @Get('enrollments')
+  async getEnrollments(@Query() filters: EnrollmentFilterDto) {
+    logger.info(
+      `Getting enrollments${filters.role || filters.userId ? ` matching${filters.role ? ` role "${filters.role}"` : ''}${filters.role && filters.userId ? ' and' : ''}${filters.userId ? ` user "${filters.userId}"` : ''}` : ' with no filters'}.`,
+    );
+    return this.service.getEnrollments(filters);
+  }
+
   /**
    * Retrieves a specific course by ID.
    * @param id - The ID of the course to retrieve.
@@ -56,7 +67,7 @@ export class CourseController {
    * @throws NotFoundError if the course does not exist.
    */
   @Get(':id')
-  async getCourse(@Param('id') id: number) {
+  async getCourse(@Param('id', ParseIntPipe) id: number) {
     logger.info(`Getting course with id ${id}`);
     const course = await this.service.findCourseById(id);
     if (!course) {

@@ -4,8 +4,11 @@ import { Prisma, Course, Enrollment } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { logger } from 'src/logger';
 import { CourseUpdateEnrollmentDto } from 'src/dtos/course.update.enrollment';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
 
 const PRISMA_NOT_FOUND_CODE = 'P2025';
+
+export type EnrollmentWithCourse = Enrollment & { course: Course };
 
 @Injectable()
 export class CourseRepository {
@@ -120,22 +123,19 @@ export class CourseRepository {
   }
 
   // /**
-  //  * Retrieves an enrollment record for a specific course and user.
+  //  * Retrieves the enrollments matching the filters values.
   //  *
-  //  * @param courseId - The unique identifier of the course.
-  //  * @param userId - The unique identifier of the user.
-  //  * @returns A promise that resolves to the enrollment record if found, or `null` if no matching record exists.
+  //  * @param filters - The specified properties values that the enrollment have to match.
+  //  * @returns A promise that resolves to the enrollments.
   //  */
-  // async findCourseEnrollmentByUserId(courseId: number, userId: string): Promise<Enrollment | null> {
-  //   return this.prisma.enrollment.findUnique({
-  //     where: {
-  //       courseId_userId: {
-  //         courseId,
-  //         userId,
-  //       },
-  //     },
-  //   });
-  // }
+  async findEnrollments(filters: EnrollmentFilterDto): Promise<EnrollmentWithCourse[]> {
+    return await this.prisma.enrollment.findMany({
+      where: {
+        ...filters,
+      },
+      include: { course: true },
+    });
+  }
 
   /**
    * Deletes an enrollment for a specific user in a specific course.
