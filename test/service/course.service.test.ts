@@ -5,6 +5,8 @@ import { CourseResponseDto } from 'src/dtos/course.response.dto';
 import { getDatesAfterToday } from 'test/utils';
 import { Enrollment, Prisma, Role } from '@prisma/client';
 import { NotFoundException } from '@nestjs/common';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
+import { EnrollmentResponseDto } from 'src/dtos/enrollments.response';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -20,6 +22,7 @@ describe('CourseService', () => {
       delete: jest.fn(),
       createEnrollment: jest.fn(),
       findCourseEnrollments: jest.fn(),
+      findEnrollments: jest.fn(),
       updateEnrollment: jest.fn(),
       deleteEnrollment: jest.fn(),
     } as any;
@@ -328,6 +331,85 @@ describe('CourseService', () => {
 
     expect(mockRepository.findById).toHaveBeenCalledWith(courseId);
     expect(mockRepository.findCourseEnrollments).toHaveBeenCalledWith(courseId);
+    expect(result).toEqual(expected);
+  });
+
+  test('Should retrieve the existing enrollments matching the values of a specific filter', async () => {
+    const courseId1 = 1;
+    const courseId2 = 2;
+    const userId = '123e4567-e89b-12d3-a456-426614174001';
+
+    const enrollment1 = {
+      courseId: courseId1,
+      userId,
+      role: Role.STUDENT,
+      favorite: false,
+    };
+    const enrollment2 = {
+      courseId: courseId2,
+      userId,
+      role: Role.ASSISTANT,
+      favorite: false,
+    };
+
+    const mockedCourse1 = {
+      id: courseId1,
+      title: 'Course 1',
+      description: 'This is a mock of course 1',
+      totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174010',
+      startDate: new Date(),
+      endDate: new Date(),
+      registrationDeadline: new Date(),
+      createdAt: new Date(),
+    };
+    const mockedCourse2 = {
+      id: courseId1,
+      title: 'Course 2',
+      description: 'This is a mock of course 2',
+      totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174010',
+      startDate: new Date(),
+      endDate: new Date(),
+      registrationDeadline: new Date(),
+      createdAt: new Date(),
+    };
+
+    const filter: EnrollmentFilterDto = { userId };
+
+    (mockRepository.findEnrollments as jest.Mock).mockResolvedValue([
+      {
+        ...enrollment1,
+        course: mockedCourse1,
+      },
+      {
+        ...enrollment2,
+        course: mockedCourse2,
+      },
+    ]);
+
+    const expected: EnrollmentResponseDto[] = [
+      {
+        userId,
+        role: enrollment1.role,
+        course: {
+          id: mockedCourse1.id,
+          title: mockedCourse1.title,
+        },
+      },
+      {
+        userId,
+        role: enrollment2.role,
+        course: {
+          id: mockedCourse2.id,
+          title: mockedCourse2.title,
+        },
+      },
+    ];
+
+    const result = await service.getEnrollments(filter);
+
+    expect(mockRepository.findEnrollments).toHaveBeenCalledWith(filter);
     expect(result).toEqual(expected);
   });
 

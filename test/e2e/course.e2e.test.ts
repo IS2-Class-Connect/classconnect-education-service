@@ -8,6 +8,7 @@ import { ResponseInterceptor } from '../../src/middleware/response.interceptor';
 import { cleanDataBase, getDatesAfterToday } from 'test/utils';
 import { PrismaService } from 'src/prisma.service';
 import { Role } from '@prisma/client';
+import { title } from 'process';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
@@ -290,6 +291,92 @@ describe('Course e2e', () => {
     expect(Array.isArray(res.body.data)).toBe(true);
     expect(res.body.data.length).toBeGreaterThan(0);
     expect(res.body.data).toEqual(expected);
+  });
+
+  test('GET /courses/enrollments should retrieve enrollments matching a specific filter', async () => {
+    const courseTitle = 'Ingeniería del Software 2';
+    const courseData = {
+      title: courseTitle,
+      description: 'Curso de Ingeniería del Software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
+    };
+    const courseId = (await request(app.getHttpServer()).post('/courses').send(courseData)).body
+      .data.id;
+
+    const userId = '456e7890-e89b-12d3-a456-426614174001';
+
+    const enrollmentData = {
+      userId,
+      role: 'STUDENT',
+    };
+
+    const expected = [
+      {
+        ...enrollmentData,
+        course: {
+          id: courseId,
+          title: courseTitle,
+        },
+      },
+    ];
+
+    await request(app.getHttpServer())
+      .post(`/courses/${courseId}/enrollments`)
+      .send(enrollmentData);
+
+    const res1 = await request(app.getHttpServer()).get(`/courses/enrollments?userId=${userId}`);
+
+    expect(res1.status).toBe(200);
+    expect(Array.isArray(res1.body.data)).toBe(true);
+    expect(res1.body.data.length).toBeGreaterThan(0);
+    expect(res1.body.data).toEqual(expected);
+
+    const res2 = await request(app.getHttpServer()).get(
+      `/courses/enrollments?userId=${userId}&role=ASSISTANT`,
+    );
+
+    expect(res2.status).toBe(200);
+    expect(Array.isArray(res2.body.data)).toBe(true);
+    expect(res2.body.data.length).toBe(0);
+  });
+
+  test('GET /courses/enrollments should thrown Bad Request Exception when non existing properties are passed in filter', async () => {
+    const courseTitle = 'Ingeniería del Software 2';
+    const courseData = {
+      title: courseTitle,
+      description: 'Curso de Ingeniería del Software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+      teacherId: '123e4567-e89b-12d3-a456-426614174000',
+    };
+    const courseId = (await request(app.getHttpServer()).post('/courses').send(courseData)).body
+      .data.id;
+
+    const userId = '456e7890-e89b-12d3-a456-426614174001';
+
+    const enrollmentData = {
+      userId,
+      role: 'STUDENT',
+    };
+
+    await request(app.getHttpServer())
+      .post(`/courses/${courseId}/enrollments`)
+      .send(enrollmentData);
+
+    const res = await request(app.getHttpServer()).get('/courses/enrollments?isVirtual=true');
+
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty('type');
+    expect(res.body).toHaveProperty('title', 'BadRequestException');
+    expect(res.body).toHaveProperty('status', 400);
+    expect(res.body).toHaveProperty('detail');
+    expect(res.body).toHaveProperty('instance', '/courses/enrollments?isVirtual=true');
   });
 
   test('GET /courses/:id/enrollments for non-existing course should return Not Found Error', async () => {

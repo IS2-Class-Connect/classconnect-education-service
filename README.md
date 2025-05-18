@@ -87,6 +87,18 @@ curl -X DELETE 'https://<host_url>/courses/{id}'
 curl -X GET 'https://<host_url>/courses/{course_id}/enrollments'
 ```
 
+- To get enrollments matching a specific filter:
+
+```bash
+curl -X GET 'https://<host_url>/courses/enrollments<filters>'
+```
+
+- To get all enrollments:
+
+```bash
+curl -X GET 'https://<host_url>/courses/enrollments'
+```
+
 - To patch a course enrollment favorite status or role (every property mentioned is optional) using curl:
 
 ```bash
@@ -108,7 +120,8 @@ curl -X DELETE 'https://<host_url>/courses/{course_id}/enrollments/{user_id}'
 
 `<start_date>`, `<end_date>`, and `<registration_date>` are strings of the dates in ISO 8601 format: `YYYY-mm-ddThh:mm:ssZ`. \
 `<teacher_id>` and `<user_id>` must match with the `uuid` used in users service. \
-`<role>` must be `"STUDENT"` or `"ASSISTANT"`.
+`<role>` must be `"STUDENT"` or `"ASSISTANT"`. \
+`<filters>` are _query params_ which can include an enrollment `userId` and/or `role`.
 
 ## Technologies
 

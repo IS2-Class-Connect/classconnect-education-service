@@ -3,6 +3,7 @@ import { CourseController } from '../../src/controllers/course.controller';
 import { CourseService } from '../../src/services/course.service';
 import { getDatesAfterToday } from 'test/utils';
 import { Enrollment, Role } from '@prisma/client';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
 
 describe('CourseController', () => {
   let controller: CourseController;
@@ -18,6 +19,7 @@ describe('CourseController', () => {
       deleteCourse: jest.fn(),
       createEnrollment: jest.fn(),
       getCourseEnrollments: jest.fn(),
+      getEnrollments: jest.fn(),
       updateEnrollment: jest.fn(),
       deleteEnrollment: jest.fn(),
     } as any;
@@ -204,7 +206,41 @@ describe('CourseController', () => {
     expect(mockService.getCourseEnrollments).toHaveBeenCalledWith(courseId);
   });
 
-  test('Shoulde update an enrollment', async () => {
+  test('Should retrieve the enrollments matching a specific filter', async () => {
+    const courseId1 = 1;
+    const courseId2 = 2;
+    const userId = '123e4567-e89b-12d3-a456-426614174001';
+
+    const expected = [
+      {
+        userId,
+        role: Role.STUDENT,
+        course: {
+          id: courseId1,
+          title: 'Course 1',
+        },
+      },
+      {
+        userId,
+        role: Role.ASSISTANT,
+        course: {
+          id: courseId2,
+          title: 'Course 2',
+        },
+      },
+    ];
+
+    const filter: EnrollmentFilterDto = { userId };
+
+    (mockService.getEnrollments as jest.Mock).mockResolvedValue(expected);
+
+    const result = await controller.getEnrollments(filter);
+
+    expect(result).toEqual(expected);
+    expect(mockService.getEnrollments).toHaveBeenCalledWith(filter);
+  });
+
+  test('Should update an enrollment', async () => {
     const courseId = 1;
     const userId = '123e4567-e89b-12d3-a456-426614174000';
 
