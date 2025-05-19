@@ -420,7 +420,6 @@ describe('Course e2e', () => {
 
     const updateData = {
       favorite: true,
-      role: Role.STUDENT,
     };
 
     const res = await request(app.getHttpServer())
@@ -430,6 +429,7 @@ describe('Course e2e', () => {
     const expected = {
       courseId,
       userId,
+      role: Role.ASSISTANT,
       ...updateData,
     };
 
