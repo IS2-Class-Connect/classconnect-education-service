@@ -1,17 +1,45 @@
-version: '3.8'
-
 services:
-  postgres:
+  db_education:
+    container_name: db_education
     image: postgres:15
     restart: always
+    networks:
+      - my-network
     ports:
-      - "5432:5432"
+      - 54322:54322
     environment:
+      PGPORT: 54322
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
       POSTGRES_DB: classconnect
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "user", "-d", "classconnect"]
+      interval: 10s
+      retries: 10
+      start_period: 20s
+      timeout: 5s
+
+  education:
+    container_name: education
+    build: .
+    networks:
+      - my-network
+    ports:
+      - 3002:3002
+    environment:
+      DATABASE_URL: postgresql://user:pass@db_education:54322/classconnect
+      PORT: 3002
+      JWT_SECRET: your_jwt_secret_here
+    depends_on:
+      db_education:
+        condition: service_healthy
 
 volumes:
   pgdata:
+
+networks:
+  my-network:
+    name: classconnect_net
+    external: true
