@@ -114,35 +114,37 @@ describe('CourseController', () => {
 
   test('Should update an existing course', async () => {
     const id = 1;
+    const userId = '123e4567-e89b-12d3-a456-426614174000';
 
-    const courseUpdateDTO = {
+    const courseUpdateData = {
       title: 'Updated Title',
       description: 'Updated Description',
     };
 
     const expected = {
       id,
-      ...courseUpdateDTO,
+      ...courseUpdateData,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
       totalPlaces: 100,
-      teacherId: '123e4567-e89b-12d3-a456-426614174000',
+      teacherId: userId,
       createdAt: new Date(),
     };
 
     (mockService.updateCourse as jest.Mock).mockResolvedValue(expected);
 
-    const result = await controller.updateCourse(id, courseUpdateDTO);
+    const result = await controller.updateCourse(id, { ...courseUpdateData, userId });
 
     expect(result).toEqual(expected);
-    expect(mockService.updateCourse).toHaveBeenCalledWith(id, courseUpdateDTO);
+    expect(mockService.updateCourse).toHaveBeenCalledWith(id, { ...courseUpdateData, userId });
   });
 
   test('Should throw a NotFoundError when updating a non-existing course', async () => {
     const courseUpdateDTO = {
       title: 'Updated Title',
       description: 'Updated Description',
+      userId: '123e4567-e89b-12d3-a456-426614174000',
     };
 
     (mockService.updateCourse as jest.Mock).mockResolvedValue(undefined);

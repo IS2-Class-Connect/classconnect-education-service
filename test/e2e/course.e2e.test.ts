@@ -149,6 +149,7 @@ describe('Course e2e', () => {
   });
 
   test('PATCH /courses/{id} should retreive the updted course with id', async () => {
+    const userId = '123e4567-e89b-12d3-a456-426614174000';
     const courseData = {
       title: 'Ingeniería del Software 2',
       description: 'Curso de Ingeniería del Software 2',
@@ -156,7 +157,7 @@ describe('Course e2e', () => {
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
       totalPlaces: 100,
-      teacherId: '123e4567-e89b-12d3-a456-426614174000',
+      teacherId: userId,
     };
     const id = (await request(app.getHttpServer()).post('/courses').send(courseData)).body.data.id;
 
@@ -166,7 +167,9 @@ describe('Course e2e', () => {
       totalPlaces: 200,
     };
 
-    const res = await request(app.getHttpServer()).patch(`/courses/${id}`).send(updatedCourseData);
+    const res = await request(app.getHttpServer())
+      .patch(`/courses/${id}`)
+      .send({ ...updatedCourseData, userId });
 
     const responseData = res.body.data;
 
@@ -183,6 +186,7 @@ describe('Course e2e', () => {
   test('PATCH /courses/{id} updating non existing course should retreive a Course Not Found', async () => {
     const res = await request(app.getHttpServer()).patch('/courses/999').send({
       title: 'Titulo actualizado',
+      userId: '123e4567-e89b-12d3-a456-426614174000',
     });
 
     const expectedRes = {
@@ -194,6 +198,39 @@ describe('Course e2e', () => {
     };
 
     expect(res.status).toBe(404);
+    expect(res.body).toEqual(expectedRes);
+  });
+
+  test('PATCH /courses/{id} updating a course with an invalid user should retreive a User Not Valid', async () => {
+    const userId = '123e4567-e89b-12d3-a456-426614174000';
+    const invalidUserId = '123e4567-e89b-12d3-a456-426614174001';
+
+    const courseData = {
+      title: 'Ingeniería del Software 2',
+      description: 'Curso de Ingeniería del Software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+      teacherId: userId,
+    };
+
+    const id = (await request(app.getHttpServer()).post('/courses').send(courseData)).body.data.id;
+
+    const res = await request(app.getHttpServer()).patch(`/courses/${id}`).send({
+      title: 'Titulo actualizado',
+      userId: invalidUserId,
+    });
+
+    const expectedRes = {
+      type: 'about:blank',
+      title: 'ForbiddenUserException',
+      status: 403,
+      detail: `User ${invalidUserId} is not allowed to update the course ${id}. User has to be either the course head teacher or an assistant.`,
+      instance: `/courses/${id}`,
+    };
+
+    expect(res.status).toBe(403);
     expect(res.body).toEqual(expectedRes);
   });
 

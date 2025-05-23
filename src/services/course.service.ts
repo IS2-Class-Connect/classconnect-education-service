@@ -2,12 +2,13 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { CourseRequestDto } from '../dtos/course.request.dto';
 import { CourseResponseDto } from '../dtos/course.response.dto';
 import { CourseRepository, EnrollmentWithCourse } from '../repositories/course.repository';
-import { Course, Enrollment } from '@prisma/client';
+import { Activity, Course, Enrollment, Prisma, Role } from '@prisma/client';
 import { CourseUpdateDto } from 'src/dtos/course.update.dto';
 import { CourseCreateEnrollmentDto } from 'src/dtos/course.create.enrollment';
 import { CourseUpdateEnrollmentDto } from 'src/dtos/course.update.enrollment';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
 import { EnrollmentResponseDto } from 'src/dtos/enrollments.response';
+import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
 
 const MIN_PLACES_LIMIT = 1;
 
@@ -155,7 +156,26 @@ export class CourseService {
 
     validateCourseUpdate(updateDTO, course);
 
-    const updatedCourse = await this.repository.update(id, updateDTO);
+    const { userId, ...updateData } = updateDTO;
+
+    if (userId != course.teacherId) {
+      const userEnrollmentToCourse = await this.repository.findEnrollment(id, userId);
+      if (!(userEnrollmentToCourse && userEnrollmentToCourse.role == Role.ASSISTANT)) {
+        throw new ForbiddenUserException(
+          `User ${userId} is not allowed to update the course ${id}. User has to be either the course head teacher or an assistant.`,
+        );
+      }
+
+      const activity: Prisma.ActivityRegisterUncheckedCreateInput = {
+        courseId: id,
+        userId,
+        activity: Activity.EDIT_COURSE,
+      };
+
+      await this.repository.createActivityRegister(activity);
+    }
+
+    const updatedCourse = await this.repository.update(id, updateData);
 
     return getResponseDTO(updatedCourse);
   }
