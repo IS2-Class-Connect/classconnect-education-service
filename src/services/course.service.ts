@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { CourseRequestDto } from '../dtos/course.request.dto';
 import { CourseResponseDto } from '../dtos/course.response.dto';
 import { CourseRepository, EnrollmentWithCourse } from '../repositories/course.repository';
-import { Activity, Course, Enrollment, Prisma, Role } from '@prisma/client';
+import { Activity, ActivityRegister, Course, Enrollment, Prisma, Role } from '@prisma/client';
 import { CourseUpdateDto } from 'src/dtos/course.update.dto';
 import { CourseCreateEnrollmentDto } from 'src/dtos/course.create.enrollment';
 import { CourseUpdateEnrollmentDto } from 'src/dtos/course.update.enrollment';
@@ -148,7 +148,7 @@ export class CourseService {
    * @returns The newly created course response DTO, or null if non course with the id exist.
    * @throws {NotFoundException} If the course trying to update is not found.
    */
-  async updateCourse(id: number, updateDTO: CourseUpdateDto): Promise<CourseResponseDto | null> {
+  async updateCourse(id: number, updateDTO: CourseUpdateDto): Promise<CourseResponseDto> {
     const course = await this.repository.findById(id);
     if (!course) {
       throw new NotFoundException(`The course with ID ${id} was not found.`);
@@ -288,5 +288,19 @@ export class CourseService {
     }
 
     return await this.repository.deleteEnrollment(courseId, userId);
+  }
+
+  async getActivities(courseId: number, userId: string): Promise<ActivityRegister[]> {
+    const course = await this.repository.findById(courseId);
+    if (!course) {
+      throw new NotFoundException(`Course with ID ${courseId} not found.`);
+    }
+    if (course.teacherId != userId) {
+      throw new ForbiddenUserException(
+        `User ${userId} is not allowed to get the activity register of the course ${courseId}. Only the head teacher is allowed`,
+      );
+    }
+
+    return this.repository.findActivityRegisterByCourse(courseId);
   }
 }

@@ -89,9 +89,6 @@ export class CourseController {
   async updateCourse(@Param('id') id: number, @Body() updateDTO: CourseUpdateDto) {
     logger.info(`Updating course with ID ${id}`);
     const updateCourse = await this.service.updateCourse(id, updateDTO);
-    if (!updateCourse) {
-      throw new NotFoundException(`The course with ID ${id} was not found.`);
-    }
     return updateCourse;
   }
 
@@ -170,5 +167,14 @@ export class CourseController {
   async deleteEnrollment(@Param('courseId') courseId: number, @Param('userId') userId: string) {
     logger.info(`Deleting enrollment for user ${userId} in course ${courseId}`);
     return this.service.deleteEnrollment(courseId, userId);
+  }
+
+  @Get(':courseId/activities')
+  async getCourseActivity(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Query('userId') userId: string,
+  ) {
+    logger.info(`Getting course ${courseId} activity for user ${userId}`);
+    return this.service.getActivities(courseId, userId);
   }
 }

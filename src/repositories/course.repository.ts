@@ -185,4 +185,8 @@ export class CourseRepository {
   ): Promise<ActivityRegister> {
     return this.prisma.activityRegister.create({ data });
   }
+
+  findActivityRegisterByCourse(courseId: number): Promise<ActivityRegister[]> {
+    return this.prisma.activityRegister.findMany({ where: { courseId } });
+  }
 }
