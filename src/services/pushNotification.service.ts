@@ -1,12 +1,13 @@
 import { Injectable } from "@nestjs/common";
-import axios from "axios";
+import { HttpService } from "@nestjs/axios";
+import { firstValueFrom } from "rxjs";
 
 @Injectable()
 export class PushNotificationService {
   gatewayUrl: string = process.env.GATEWAY_URL ?? "http://localhost:3000";
   gatewayToken: string = process.env.GATEWAY_TOKEN ?? "gateway-token";
 
-  constructor() {}
+  constructor(private readonly httpService: HttpService) {}
 
   /**
    * Sends a push notification to a specific user.
@@ -19,12 +20,24 @@ export class PushNotificationService {
    */
   async notifyUser(uuid: string, title: string, body: string): Promise<boolean> {
     const url = `${this.gatewayUrl}/notifications`;
-    const data = { uuid: uuid, title: title, body: body};
+    const data = { uuid, title, body };
+    const headers = {
+      headers: {
+        Authorization: `Bearer ${this.gatewayToken}`
+      }
+    };
+
     try {
-      const res = await axios.post(url, data);
-      const status = res.status.valueOf();
+      const res = await firstValueFrom(this.httpService.post(url, data, headers));
+      const status = res.status;
       return 200 <= status && status < 300;
-    } catch (e) {
+    } catch (error) {
+      console.error("Faild to send push notification", {
+        error: error,
+        uuid: uuid,
+        title: title,
+        body: body,
+      })
       return false;
     }
   }
