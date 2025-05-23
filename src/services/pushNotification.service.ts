@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { firstValueFrom } from "rxjs";
 
@@ -15,10 +15,10 @@ export class PushNotificationService {
    * @param uuid - The ID of the user to send a push notification
    * @param title - The title that'll be shown in the notification.
    * @param body - The body of the notification.
-   * 
-   * @returns true if the user was successfully notified else returns false.
+   *
+   * @throws {InternalServerErrorException} If there's an error trying to communicate with the gateway or it had trouble sending the notification to the user
    */
-  async notifyUser(uuid: string, title: string, body: string): Promise<boolean> {
+  async notifyUser(uuid: string, title: string, body: string): Promise<void> {
     const url = `${this.gatewayUrl}/notifications`;
     const data = { uuid, title, body };
     const headers = {
@@ -30,15 +30,11 @@ export class PushNotificationService {
     try {
       const res = await firstValueFrom(this.httpService.post(url, data, headers));
       const status = res.status;
-      return 200 <= status && status < 300;
+      if (status < 200 || 300 <= status) {
+        throw new InternalServerErrorException('Gateway failed to resolve push notification');
+      }
     } catch (error) {
-      console.error("Faild to send push notification", {
-        error: error,
-        uuid: uuid,
-        title: title,
-        body: body,
-      })
-      return false;
+      throw new InternalServerErrorException('Failed to send push notification');
     }
   }
 }
