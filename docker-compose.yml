@@ -32,6 +32,8 @@ services:
       DATABASE_URL: postgresql://user:pass@db_education:54322/classconnect
       PORT: 3002
       JWT_SECRET: your_jwt_secret_here
+      GATEWAY_URL: http://gateway:3000
+      GATEWAY_TOKEN: gateway-token
     depends_on:
       db_education:
         condition: service_healthy
