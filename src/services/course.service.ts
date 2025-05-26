@@ -1,14 +1,16 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { CourseRequestDto } from '../dtos/course.request.dto';
-import { CourseResponseDto } from '../dtos/course.response.dto';
+import { CourseRequestDto } from '../dtos/course_dtos/course.request.dto';
+import { CourseResponseDto } from '../dtos/course_dtos/course.response.dto';
 import { CourseRepository, EnrollmentWithCourse } from '../repositories/course.repository';
 import { Activity, ActivityRegister, Course, Enrollment, Prisma, Role } from '@prisma/client';
-import { CourseUpdateDto } from 'src/dtos/course.update.dto';
-import { CourseCreateEnrollmentDto } from 'src/dtos/course.create.enrollment';
-import { CourseUpdateEnrollmentDto } from 'src/dtos/course.update.enrollment';
-import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
-import { EnrollmentResponseDto } from 'src/dtos/enrollments.response';
+import { CourseUpdateDto } from 'src/dtos/course_dtos/course.update.dto';
+import { CourseCreateEnrollmentDto } from 'src/dtos/enrollment_dtos/course.create.enrollment';
+import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment_dtos/course.update.enrollment';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment_dtos/enrollment.filter';
+import { EnrollmentResponseDto } from 'src/dtos/enrollment_dtos/enrollments.response';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
+import { CourseModuleCreateDto } from 'src/dtos/module_dtos/course.module.create';
+import { logger } from 'src/logger';
 
 const MIN_PLACES_LIMIT = 1;
 
@@ -130,6 +132,15 @@ function validateCourseUpdate(updateData: CourseUpdateDto, course: Course) {
 export class CourseService {
   constructor(private readonly repository: CourseRepository) {}
 
+  private async getCourse(id: number) {
+    const course = await this.repository.findById(id);
+    if (!course) {
+      logger.error(`The course with Id ${id} was not found`);
+      throw new NotFoundException(`Course with ID ${id} not found.`);
+    }
+    return course;
+  }
+
   /**
    * Creates a new course.
    * @param requestDTO - The data transfer object containing course data.
@@ -149,10 +160,7 @@ export class CourseService {
    * @throws {NotFoundException} If the course trying to update is not found.
    */
   async updateCourse(id: number, updateDTO: CourseUpdateDto): Promise<CourseResponseDto> {
-    const course = await this.repository.findById(id);
-    if (!course) {
-      throw new NotFoundException(`The course with ID ${id} was not found.`);
-    }
+    const course = await this.getCourse(id);
 
     validateCourseUpdate(updateDTO, course);
 
@@ -254,9 +262,7 @@ export class CourseService {
       throw new BadRequestException('Invalid course ID.');
     }
 
-    if (!(await this.repository.findById(courseId))) {
-      throw new NotFoundException(`Course with ID ${courseId} not found.`);
-    }
+    await this.getCourse(courseId);
 
     return await this.repository.findCourseEnrollments(courseId);
   }
@@ -283,18 +289,13 @@ export class CourseService {
       throw new BadRequestException('Invalid course ID.');
     }
 
-    if (!(await this.repository.findById(courseId))) {
-      throw new NotFoundException(`Course with ID ${courseId} not found.`);
-    }
+    await this.getCourse(courseId);
 
     return await this.repository.deleteEnrollment(courseId, userId);
   }
 
   async getActivities(courseId: number, userId: string): Promise<ActivityRegister[]> {
-    const course = await this.repository.findById(courseId);
-    if (!course) {
-      throw new NotFoundException(`Course with ID ${courseId} not found.`);
-    }
+    const course = await this.getCourse(courseId);
     if (course.teacherId != userId) {
       throw new ForbiddenUserException(
         `User ${userId} is not allowed to get the activity register of the course ${courseId}. Only the head teacher is allowed.`,
@@ -302,5 +303,29 @@ export class CourseService {
     }
 
     return this.repository.findActivityRegisterByCourse(courseId);
+  }
+
+  async createModule(courseId: number, createDto: CourseModuleCreateDto) {
+    const course = await this.getCourse(courseId);
+
+    const { userId, ...createData } = createDto;
+
+    if (userId != course.teacherId) {
+      const userEnrollmentToCourse = await this.repository.findEnrollment(courseId, userId);
+      if (!(userEnrollmentToCourse && userEnrollmentToCourse.role == Role.ASSISTANT)) {
+        throw new ForbiddenUserException(
+          `User ${userId} is not allowed to update the course ${courseId}. User has to be either the course head teacher or an assistant.`,
+        );
+      }
+
+      const activity: Prisma.ActivityRegisterUncheckedCreateInput = {
+        courseId,
+        userId,
+        activity: Activity.ADD_MODULE,
+      };
+
+      await this.repository.createActivityRegister(activity);
+    }
+    return this.repository.createModule({ courseId, ...createData });
   }
 }

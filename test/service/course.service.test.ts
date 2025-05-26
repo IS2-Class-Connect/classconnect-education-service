@@ -1,13 +1,14 @@
 import { CourseService } from '../../src/services/course.service';
-import { CourseRequestDto } from '../../src/dtos/course.request.dto';
+import { CourseRequestDto } from '../../src/dtos/course_dtos/course.request.dto';
 import { CourseRepository } from 'src/repositories/course.repository';
-import { CourseResponseDto } from 'src/dtos/course.response.dto';
+import { CourseResponseDto } from 'src/dtos/course_dtos/course.response.dto';
 import { getDatesAfterToday } from 'test/utils';
 import { Activity, Enrollment, Prisma, Role } from '@prisma/client';
 import { NotFoundException } from '@nestjs/common';
-import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
-import { EnrollmentResponseDto } from 'src/dtos/enrollments.response';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment_dtos/enrollment.filter';
+import { EnrollmentResponseDto } from 'src/dtos/enrollment_dtos/enrollments.response';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
+import { title } from 'process';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -29,6 +30,7 @@ describe('CourseService', () => {
       findEnrollment: jest.fn(),
       createActivityRegister: jest.fn(),
       findActivityRegisterByCourse: jest.fn(),
+      createModule: jest.fn(),
     } as any;
     service = new CourseService(mockRepository);
   });
@@ -595,5 +597,50 @@ describe('CourseService', () => {
     (mockRepository.findById as jest.Mock).mockResolvedValue(course);
 
     await expect(service.getActivities(courseId, userId)).rejects.toThrow(ForbiddenUserException);
+  });
+
+  test('Should create a course module', async () => {
+    const courseId = 1;
+    const userId = '123e4567-e89b-12d3-a456-426614174000';
+    const createDto = {
+      userId,
+      title: 'Module 1',
+      description: 'Description of module 1',
+      order: 0,
+    };
+
+    const course = {
+      id: courseId,
+      title: 'Ingeniería del software 2',
+      description: 'Curso de Ingeniería del software 2',
+      startDate: startDate,
+      endDate: endDate,
+      registrationDeadline: registrationDeadline,
+      totalPlaces: 100,
+      teacherId: userId,
+      createdAt: new Date(),
+    };
+
+    const expected = {
+      id: '111e4585-e89b-12d3-a456-426614173512',
+      courseId,
+      title: createDto.title,
+      description: createDto.description,
+      order: createDto.order,
+    };
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue(course);
+    (mockRepository.createModule as jest.Mock).mockResolvedValue(expected);
+
+    const result = await service.createModule(courseId, createDto);
+
+    expect(mockRepository.findById).toHaveBeenCalledWith(courseId);
+    expect(mockRepository.createModule).toHaveBeenCalledWith({
+      courseId,
+      title: createDto.title,
+      description: createDto.description,
+      order: createDto.order,
+    });
+    expect(result).toBe(expected);
   });
 });

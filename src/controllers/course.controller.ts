@@ -14,12 +14,13 @@ import {
   Query,
   ParseIntPipe,
 } from '@nestjs/common';
-import { CourseRequestDto } from '../dtos/course.request.dto';
+import { CourseRequestDto } from '../dtos/course_dtos/course.request.dto';
 import { logger } from '../logger';
-import { CourseUpdateDto } from 'src/dtos/course.update.dto';
-import { CourseCreateEnrollmentDto } from 'src/dtos/course.create.enrollment';
-import { CourseUpdateEnrollmentDto } from 'src/dtos/course.update.enrollment';
-import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
+import { CourseUpdateDto } from 'src/dtos/course_dtos/course.update.dto';
+import { CourseCreateEnrollmentDto } from 'src/dtos/enrollment_dtos/course.create.enrollment';
+import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment_dtos/course.update.enrollment';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment_dtos/enrollment.filter';
+import { CourseModuleCreateDto } from 'src/dtos/module_dtos/course.module.create';
 
 /**
  * Controller class for handling HTTP requests related to courses.
@@ -176,5 +177,13 @@ export class CourseController {
   ) {
     logger.info(`Getting course ${courseId} activity for user ${userId}`);
     return this.service.getActivities(courseId, userId);
+  }
+
+  @Post(':courseId/modules')
+  async createModule(
+    @Param('courseId') courseId: number,
+    @Body() requestDto: CourseModuleCreateDto,
+  ) {
+    return this.service.createModule(courseId, requestDto);
   }
 }

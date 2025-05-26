@@ -3,8 +3,9 @@ import { PrismaService } from 'src/prisma.service';
 import { Prisma, Course, Enrollment, ActivityRegister } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { logger } from 'src/logger';
-import { CourseUpdateEnrollmentDto } from 'src/dtos/course.update.enrollment';
-import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
+import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment_dtos/course.update.enrollment';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment_dtos/enrollment.filter';
+import { CourseModuleCreateDto } from 'src/dtos/module_dtos/course.module.create';
 
 const PRISMA_NOT_FOUND_CODE = 'P2025';
 
@@ -188,5 +189,9 @@ export class CourseRepository {
 
   findActivityRegisterByCourse(courseId: number): Promise<ActivityRegister[]> {
     return this.prisma.activityRegister.findMany({ where: { courseId } });
+  }
+
+  createModule(data: Prisma.ModuleUncheckedCreateInput) {
+    return this.prisma.module.create({ data });
   }
 }

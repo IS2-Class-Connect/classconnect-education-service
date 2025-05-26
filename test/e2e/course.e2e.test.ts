@@ -193,7 +193,7 @@ describe('Course e2e', () => {
       type: 'about:blank',
       title: 'NotFoundException',
       status: 404,
-      detail: 'The course with ID 999 was not found.',
+      detail: 'Course with ID 999 not found.',
       instance: '/courses/999',
     };
 
@@ -201,7 +201,7 @@ describe('Course e2e', () => {
     expect(res.body).toEqual(expectedRes);
   });
 
-  test('PATCH /courses/{id} updating a course with an invalid user should retreive a User Not Valid', async () => {
+  test('PATCH /courses/{id} updating a course with an invalid user should retreive a Forbidden User Exception', async () => {
     const userId = '123e4567-e89b-12d3-a456-426614174000';
     const invalidUserId = '123e4567-e89b-12d3-a456-426614174001';
 
@@ -635,5 +635,43 @@ describe('Course e2e', () => {
 
     expect(res.status).toBe(403);
     expect(res.body).toEqual(expectedRes);
+  });
+
+  test('POST /courses/:courseId/modules should create a new module for the course by the teacher', async () => {
+    const teacherId = '123e4567-e89b-12d3-a456-426614174000';
+    const courseData = {
+      title: 'Ingeniería del Software 2',
+      description: 'Curso de Ingeniería del Software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+      teacherId,
+    };
+    const courseRes = await request(app.getHttpServer()).post('/courses').send(courseData);
+    const courseId = courseRes.body.data.id;
+
+    const createDto = {
+      title: 'Módulo 1: Introducción',
+      description: 'Este módulo cubre los conceptos básicos.',
+      userId: teacherId,
+      order: 0,
+    };
+    const { userId, ...moduleData } = createDto;
+
+    const res = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules`)
+      .send(createDto);
+
+    expect(res.status).toBe(201);
+    expect(res.body).toHaveProperty('data');
+
+    const data = res.body.data;
+    expect(data).toHaveProperty('id');
+    expect(data).toMatchObject({
+      id: data.id,
+      courseId,
+      ...moduleData,
+    });
   });
 });

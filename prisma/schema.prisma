@@ -30,6 +30,7 @@ model Course {
   createdAt            DateTime @default(now())
 
   enrollments          Enrollment[]
+  Module               Module[]
 }
 
 model Enrollment {
@@ -66,4 +67,14 @@ model ActivityRegister {
   createdAt  DateTime   @default(now())
 
   enrollment Enrollment @relation(fields: [courseId, userId], references: [courseId, userId])
+}
+
+model Module {
+  id            String    @id @default(uuid())
+  courseId      Int       @map("course_id")
+  title         String
+  description   String
+  order         Int
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }

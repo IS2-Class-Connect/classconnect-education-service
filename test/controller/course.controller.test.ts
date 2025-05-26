@@ -3,7 +3,7 @@ import { CourseController } from '../../src/controllers/course.controller';
 import { CourseService } from '../../src/services/course.service';
 import { getDatesAfterToday } from 'test/utils';
 import { Activity, Enrollment, Role } from '@prisma/client';
-import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment_dtos/enrollment.filter';
 
 describe('CourseController', () => {
   let controller: CourseController;
