@@ -297,7 +297,7 @@ export class CourseService {
     }
     if (course.teacherId != userId) {
       throw new ForbiddenUserException(
-        `User ${userId} is not allowed to get the activity register of the course ${courseId}. Only the head teacher is allowed`,
+        `User ${userId} is not allowed to get the activity register of the course ${courseId}. Only the head teacher is allowed.`,
       );
     }
 

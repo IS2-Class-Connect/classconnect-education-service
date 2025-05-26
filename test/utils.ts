@@ -21,6 +21,7 @@ export function getDatesAfterToday(): {
 export async function cleanDataBase(prisma: PrismaClient) {
   await prisma.$transaction([
     // IMPORTANT: respect order by FK relation in case it dont't use 'CASCADE'
+    prisma.activityRegister.deleteMany(),
     prisma.course.deleteMany(),
   ]);
 }

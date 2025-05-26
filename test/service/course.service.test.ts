@@ -3,7 +3,7 @@ import { CourseRequestDto } from '../../src/dtos/course.request.dto';
 import { CourseRepository } from 'src/repositories/course.repository';
 import { CourseResponseDto } from 'src/dtos/course.response.dto';
 import { getDatesAfterToday } from 'test/utils';
-import { Enrollment, Prisma, Role } from '@prisma/client';
+import { Activity, Enrollment, Prisma, Role } from '@prisma/client';
 import { NotFoundException } from '@nestjs/common';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
 import { EnrollmentResponseDto } from 'src/dtos/enrollments.response';
@@ -28,6 +28,7 @@ describe('CourseService', () => {
       deleteEnrollment: jest.fn(),
       findEnrollment: jest.fn(),
       createActivityRegister: jest.fn(),
+      findActivityRegisterByCourse: jest.fn(),
     } as any;
     service = new CourseService(mockRepository);
   });
@@ -527,5 +528,72 @@ describe('CourseService', () => {
 
     await expect(service.deleteEnrollment(courseIdExt, userIdExt)).rejects.toThrow();
     expect(mockRepository.deleteEnrollment).toHaveBeenCalledWith(courseIdExt, userIdExt);
+  });
+
+  test('Should get the activity register of an specified course', async () => {
+    const courseId = 1;
+    const userId = '123e4567-e89b-12d3-a456-426614174000';
+
+    const course = {
+      id: courseId,
+      title: 'Ingeniería del software 2',
+      description: 'Curso de Ingeniería del software 2',
+      startDate: startDate,
+      endDate: endDate,
+      registrationDeadline: registrationDeadline,
+      totalPlaces: 100,
+      teacherId: userId,
+      createdAt: new Date(),
+    };
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const expected = [
+      {
+        courseId,
+        userId: '123e4567-e89b-12d3-a456-426614174001',
+        id: '123e4567-e89b-12d3-a456-426614175555',
+        activity: Activity.EDIT_COURSE,
+        createdAt: yesterday,
+      },
+      {
+        courseId,
+        userId: '123e4567-e89b-12d3-a456-426614174001',
+        id: '123e4567-e89b-12d3-a456-426614175556',
+        activity: Activity.ADD_EXAM,
+        createdAt: yesterday,
+      },
+    ];
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue(course);
+    (mockRepository.findActivityRegisterByCourse as jest.Mock).mockResolvedValue(expected);
+
+    const result = await service.getActivities(courseId, userId);
+
+    expect(mockRepository.findActivityRegisterByCourse).toHaveBeenCalledWith(courseId);
+    expect(result).toBe(expected);
+  });
+
+  test('Should throw an exception when a forbidden user tries to get the register activity of a course', async () => {
+    const courseId = 1;
+    const teacherId = '123e4567-e89b-12d3-a456-426614174000';
+    const userId = '123e4567-e89b-12d3-a456-426614174001';
+
+    const course = {
+      id: courseId,
+      title: 'Ingeniería del software 2',
+      description: 'Curso de Ingeniería del software 2',
+      startDate: startDate,
+      endDate: endDate,
+      registrationDeadline: registrationDeadline,
+      totalPlaces: 100,
+      teacherId,
+      createdAt: new Date(),
+    };
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue(course);
+
+    await expect(service.getActivities(courseId, userId)).rejects.toThrow(ForbiddenUserException);
   });
 });
