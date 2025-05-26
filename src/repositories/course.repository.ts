@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
-import { Prisma, Course, Enrollment } from '@prisma/client';
+import { Prisma, Course, Enrollment, ActivityRegister } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { logger } from 'src/logger';
 import { CourseUpdateEnrollmentDto } from 'src/dtos/course.update.enrollment';
@@ -8,6 +8,7 @@ import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
 
 const PRISMA_NOT_FOUND_CODE = 'P2025';
 
+export type CourseWithEnrollments = Course & { enrollments: Enrollment[] };
 export type EnrollmentWithCourse = Enrollment & { course: Course };
 
 @Injectable()
@@ -38,8 +39,14 @@ export class CourseRepository {
   /**
    * Finds a course by its ID.
    */
-  findById(id: number): Promise<Course | null> {
-    return this.prisma.course.findUnique({ where: { id } });
+  findById(
+    id: number,
+    withEnrollments: boolean = false,
+  ): Promise<Course | CourseWithEnrollments | null> {
+    return this.prisma.course.findUnique({
+      where: { id },
+      include: { enrollments: withEnrollments },
+    });
   }
 
   /**
@@ -86,6 +93,12 @@ export class CourseRepository {
     }
   }
 
+  findEnrollment(courseId: number, userId: string): Promise<Enrollment | null> {
+    return this.prisma.enrollment.findUnique({
+      where: { courseId_userId: { courseId, userId } },
+    });
+  }
+
   /**
    * Retrieves a list of enrollments for a specific course.
    *
@@ -93,7 +106,7 @@ export class CourseRepository {
    * @returns A promise that resolves to an array of `Enrollment` objects associated with the course,
    *          or `null` if no enrollments are found.
    */
-  async findCourseEnrollments(id: number): Promise<Enrollment[] | null> {
+  findCourseEnrollments(id: number): Promise<Enrollment[] | null> {
     return this.prisma.enrollment.findMany({
       where: { courseId: id },
     });
@@ -165,5 +178,15 @@ export class CourseRepository {
       }
       throw error;
     }
+  }
+
+  createActivityRegister(
+    data: Prisma.ActivityRegisterUncheckedCreateInput,
+  ): Promise<ActivityRegister> {
+    return this.prisma.activityRegister.create({ data });
+  }
+
+  findActivityRegisterByCourse(courseId: number): Promise<ActivityRegister[]> {
+    return this.prisma.activityRegister.findMany({ where: { courseId } });
   }
 }

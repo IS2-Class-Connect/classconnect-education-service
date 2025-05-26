@@ -60,6 +60,7 @@ curl -X PATCH 'http://<host_url>/courses/{id}' \
   "title": "Updated title",
   "description": "Updated description",
   "totalPlaces": 200,
+  "userId": <user_id>,
   ...
 }'
 ```
@@ -76,7 +77,7 @@ curl -X DELETE 'https://<host_url>/courses/{id}'
     curl -X POST 'https://<host_url>/courses/{course_id}/enrollments' \
     -H 'Content-Type: application/json' \
     -d '{
-    "userId": <userId>,
+    "userId": <user_id>,
     "role": <role>,
     }'
 ```
@@ -120,6 +121,7 @@ curl -X DELETE 'https://<host_url>/courses/{course_id}/enrollments/{user_id}'
 
 `<start_date>`, `<end_date>`, and `<registration_date>` are strings of the dates in ISO 8601 format: `YYYY-mm-ddThh:mm:ssZ`. \
 `<teacher_id>` and `<user_id>` must match with the `uuid` used in users service. \
+`<user_id>` is required when requesting a `PATCH` for a course.
 `<role>` must be `"STUDENT"` or `"ASSISTANT"`. \
 `<filters>` are _query params_ which can include an enrollment `userId` and/or `role`.
 

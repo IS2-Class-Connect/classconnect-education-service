@@ -2,7 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { CourseController } from '../../src/controllers/course.controller';
 import { CourseService } from '../../src/services/course.service';
 import { getDatesAfterToday } from 'test/utils';
-import { Enrollment, Role } from '@prisma/client';
+import { Activity, Enrollment, Role } from '@prisma/client';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
 
 describe('CourseController', () => {
@@ -22,6 +22,7 @@ describe('CourseController', () => {
       getEnrollments: jest.fn(),
       updateEnrollment: jest.fn(),
       deleteEnrollment: jest.fn(),
+      getActivities: jest.fn(),
     } as any;
     controller = new CourseController(mockService);
   });
@@ -114,40 +115,30 @@ describe('CourseController', () => {
 
   test('Should update an existing course', async () => {
     const id = 1;
+    const userId = '123e4567-e89b-12d3-a456-426614174000';
 
-    const courseUpdateDTO = {
+    const courseUpdateData = {
       title: 'Updated Title',
       description: 'Updated Description',
     };
 
     const expected = {
       id,
-      ...courseUpdateDTO,
+      ...courseUpdateData,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
       totalPlaces: 100,
-      teacherId: '123e4567-e89b-12d3-a456-426614174000',
+      teacherId: userId,
       createdAt: new Date(),
     };
 
     (mockService.updateCourse as jest.Mock).mockResolvedValue(expected);
 
-    const result = await controller.updateCourse(id, courseUpdateDTO);
+    const result = await controller.updateCourse(id, { ...courseUpdateData, userId });
 
     expect(result).toEqual(expected);
-    expect(mockService.updateCourse).toHaveBeenCalledWith(id, courseUpdateDTO);
-  });
-
-  test('Should throw a NotFoundError when updating a non-existing course', async () => {
-    const courseUpdateDTO = {
-      title: 'Updated Title',
-      description: 'Updated Description',
-    };
-
-    (mockService.updateCourse as jest.Mock).mockResolvedValue(undefined);
-
-    await expect(controller.updateCourse(999, courseUpdateDTO)).rejects.toThrow(NotFoundException);
+    expect(mockService.updateCourse).toHaveBeenCalledWith(id, { ...courseUpdateData, userId });
   });
 
   test('Should retrieve an enrollment to a course', async () => {
@@ -280,5 +271,36 @@ describe('CourseController', () => {
 
     expect(result).toEqual(expected);
     expect(mockService.deleteEnrollment).toHaveBeenCalledWith(courseId, userId);
+  });
+
+  test('Should get the activity register of an specified course', async () => {
+    const courseId = 1;
+    const userId = '123e4567-e89b-12d3-a456-426614174000';
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const expected = [
+      {
+        courseId,
+        userId: '123e4567-e89b-12d3-a456-426614174001',
+        id: '123e4567-e89b-12d3-a456-426614175555',
+        activity: Activity.EDIT_COURSE,
+        createdAt: yesterday,
+      },
+      {
+        courseId,
+        userId: '123e4567-e89b-12d3-a456-426614174001',
+        id: '123e4567-e89b-12d3-a456-426614175556',
+        activity: Activity.ADD_EXAM,
+        createdAt: yesterday,
+      },
+    ];
+
+    (mockService.getActivities as jest.Mock).mockResolvedValue(expected);
+
+    const result = await controller.getCourseActivity(courseId, userId);
+
+    expect(mockService.getActivities).toHaveBeenCalledWith(courseId, userId);
+    expect(result).toBe(expected);
   });
 });

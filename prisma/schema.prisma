@@ -40,4 +40,30 @@ model Enrollment {
 
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   @@id([courseId, userId])
+
+  activityRegister ActivityRegister[]
+}
+
+enum Activity {
+  EDIT_COURSE
+  ADD_MODULE
+  DELETE_MODULE
+  ADD_EXAM
+  EDIT_EXAM
+  DELETE_EXAM
+  GRADE_EXAM
+  ADD_TASK
+  EDIT_TASK
+  DELETE_TASK
+  GRADE_TASK
+}
+
+model ActivityRegister {
+  id         String     @id @default(uuid())
+  courseId   Int        @map("course_id")
+  userId     String     @map("user_id")
+  activity   Activity
+  createdAt  DateTime   @default(now())
+
+  enrollment Enrollment @relation(fields: [courseId, userId], references: [courseId, userId])
 }

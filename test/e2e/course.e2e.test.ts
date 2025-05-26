@@ -7,7 +7,7 @@ import { BaseExceptionFilter } from '../../src/middleware/exception.filter';
 import { ResponseInterceptor } from '../../src/middleware/response.interceptor';
 import { cleanDataBase, getDatesAfterToday } from 'test/utils';
 import { PrismaService } from 'src/prisma.service';
-import { Role } from '@prisma/client';
+import { Activity, Role } from '@prisma/client';
 import { title } from 'process';
 
 describe('Course e2e', () => {
@@ -149,6 +149,7 @@ describe('Course e2e', () => {
   });
 
   test('PATCH /courses/{id} should retreive the updted course with id', async () => {
+    const userId = '123e4567-e89b-12d3-a456-426614174000';
     const courseData = {
       title: 'Ingeniería del Software 2',
       description: 'Curso de Ingeniería del Software 2',
@@ -156,7 +157,7 @@ describe('Course e2e', () => {
       endDate: endDate.toISOString(),
       registrationDeadline: registrationDeadline.toISOString(),
       totalPlaces: 100,
-      teacherId: '123e4567-e89b-12d3-a456-426614174000',
+      teacherId: userId,
     };
     const id = (await request(app.getHttpServer()).post('/courses').send(courseData)).body.data.id;
 
@@ -166,7 +167,9 @@ describe('Course e2e', () => {
       totalPlaces: 200,
     };
 
-    const res = await request(app.getHttpServer()).patch(`/courses/${id}`).send(updatedCourseData);
+    const res = await request(app.getHttpServer())
+      .patch(`/courses/${id}`)
+      .send({ ...updatedCourseData, userId });
 
     const responseData = res.body.data;
 
@@ -183,6 +186,7 @@ describe('Course e2e', () => {
   test('PATCH /courses/{id} updating non existing course should retreive a Course Not Found', async () => {
     const res = await request(app.getHttpServer()).patch('/courses/999').send({
       title: 'Titulo actualizado',
+      userId: '123e4567-e89b-12d3-a456-426614174000',
     });
 
     const expectedRes = {
@@ -194,6 +198,39 @@ describe('Course e2e', () => {
     };
 
     expect(res.status).toBe(404);
+    expect(res.body).toEqual(expectedRes);
+  });
+
+  test('PATCH /courses/{id} updating a course with an invalid user should retreive a User Not Valid', async () => {
+    const userId = '123e4567-e89b-12d3-a456-426614174000';
+    const invalidUserId = '123e4567-e89b-12d3-a456-426614174001';
+
+    const courseData = {
+      title: 'Ingeniería del Software 2',
+      description: 'Curso de Ingeniería del Software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+      teacherId: userId,
+    };
+
+    const id = (await request(app.getHttpServer()).post('/courses').send(courseData)).body.data.id;
+
+    const res = await request(app.getHttpServer()).patch(`/courses/${id}`).send({
+      title: 'Titulo actualizado',
+      userId: invalidUserId,
+    });
+
+    const expectedRes = {
+      type: 'about:blank',
+      title: 'ForbiddenUserException',
+      status: 403,
+      detail: `User ${invalidUserId} is not allowed to update the course ${id}. User has to be either the course head teacher or an assistant.`,
+      instance: `/courses/${id}`,
+    };
+
+    expect(res.status).toBe(403);
     expect(res.body).toEqual(expectedRes);
   });
 
@@ -476,7 +513,7 @@ describe('Course e2e', () => {
     expect(res.body).toEqual(expectedRes);
   });
 
-  test('DELETE /courses/:id/enrollments/:enrollmentId should delete an enrollment', async () => {
+  test('DELETE /courses/{id}/enrollments/{enrollmentId} should delete an enrollment', async () => {
     const courseData = {
       title: 'Ingeniería del Software 2',
       description: 'Curso de Ingeniería del Software 2',
@@ -511,5 +548,92 @@ describe('Course e2e', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('data');
     expect(res.body.data).toEqual(expected);
+  });
+
+  test('GET /courses/{courseId}/activities?userId={userId} should retreive the register activity of the specified course', async () => {
+    const teacherId = '123e4567-e89b-12d3-a456-426614174000';
+    const assistantId = '123e4567-e89b-12d3-a456-426614174001';
+
+    const courseData = {
+      title: 'Ingeniería del Software 2',
+      description: 'Curso de Ingeniería del Software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+      teacherId,
+    };
+    const courseRes = await request(app.getHttpServer()).post('/courses').send(courseData);
+    const courseId = courseRes.body.data.id;
+
+    await request(app.getHttpServer())
+      .post(`/courses/${courseId}/enrollments`)
+      .send({ userId: assistantId, role: 'ASSISTANT' });
+
+    const updatedTitle = 'Ingeniería del Software 2 - Modificado por Asistente';
+    await request(app.getHttpServer())
+      .patch(`/courses/${courseId}`)
+      .send({ title: updatedTitle, userId: assistantId });
+
+    const res = await request(app.getHttpServer()).get(
+      `/courses/${courseId}/activities?userId=${teacherId}`,
+    );
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.data)).toBe(true);
+
+    const activity = res.body.data.find(
+      (a: any) =>
+        a.userId === assistantId && a.activity === 'EDIT_COURSE' && a.courseId === courseId,
+    );
+
+    expect(activity).toBeDefined();
+    expect(activity.id).toBeDefined();
+    expect(activity.createdAt).toBeDefined();
+  });
+
+  test('GET /courses/{courseId}/activities?userId={userId} with a userId which not match with teacher id should throw ForbiddenUserException', async () => {
+    const teacherId = '123e4567-e89b-12d3-a456-426614174000';
+    const assistantId = '123e4567-e89b-12d3-a456-426614174001';
+    const otherUserId = '123e4567-e89b-12d3-a456-426614174002';
+
+    const courseData = {
+      title: 'Ingeniería del Software 2',
+      description: 'Curso de Ingeniería del Software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+      teacherId,
+    };
+    const courseRes = await request(app.getHttpServer()).post('/courses').send(courseData);
+    const courseId = courseRes.body.data.id;
+
+    // El maestro agrega a un usuario como asistente
+    await request(app.getHttpServer())
+      .post(`/courses/${courseId}/enrollments`)
+      .send({ userId: assistantId, role: 'ASSISTANT' });
+
+    // El asistente hace una modificación
+    const updatedTitle = 'Ingeniería del Software 2 - Modificado por Asistente';
+    await request(app.getHttpServer())
+      .patch(`/courses/${courseId}`)
+      .send({ title: updatedTitle, userId: assistantId });
+
+    // Un usuario que no es el profesor intenta consultar el register activity
+    const res = await request(app.getHttpServer()).get(
+      `/courses/${courseId}/activities?userId=${otherUserId}`,
+    );
+
+    const expectedRes = {
+      type: 'about:blank',
+      title: 'ForbiddenUserException',
+      status: 403,
+      detail: `User ${otherUserId} is not allowed to get the activity register of the course ${courseId}. Only the head teacher is allowed.`,
+      instance: `/courses/${courseId}/activities?userId=${otherUserId}`,
+    };
+
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual(expectedRes);
   });
 });
