@@ -48,6 +48,7 @@ model Enrollment {
 enum Activity {
   EDIT_COURSE
   ADD_MODULE
+  EDIT_MODULE
   DELETE_MODULE
   ADD_EXAM
   EDIT_EXAM

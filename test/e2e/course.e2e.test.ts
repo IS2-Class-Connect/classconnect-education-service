@@ -652,8 +652,8 @@ describe('Course e2e', () => {
     const courseId = courseRes.body.data.id;
 
     const createDto = {
-      title: 'Módulo 1: Introducción',
-      description: 'Este módulo cubre los conceptos básicos.',
+      title: 'Module 1: Introduction',
+      description: 'This module covers the basic concepts.',
       userId: teacherId,
       order: 0,
     };
