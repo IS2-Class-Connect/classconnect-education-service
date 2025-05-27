@@ -15,6 +15,21 @@ describe('Course e2e', () => {
 
   const { startDate, endDate, registrationDeadline } = getDatesAfterToday();
 
+  async function createCourse() {
+    const teacherId = '123e4567-e89b-12d3-a456-426614174000';
+    const courseData = {
+      title: 'Ingeniería del Software 2',
+      description: 'Curso de Ingeniería del Software 2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+      teacherId,
+    };
+    const courseRes = await request(app.getHttpServer()).post('/courses').send(courseData);
+    return courseRes.body.data;
+  }
+
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -182,7 +197,7 @@ describe('Course e2e', () => {
     expect(responseData).toEqual(expected);
   });
 
-  test('PATCH /courses/{id} updating non existing course should retreive a Course Not Found', async () => {
+  test('PATCH /courses/{id} updating non existing course should throw a Not Found Error', async () => {
     const res = await request(app.getHttpServer()).patch('/courses/999').send({
       title: 'Titulo actualizado',
       userId: '123e4567-e89b-12d3-a456-426614174000',
@@ -200,7 +215,7 @@ describe('Course e2e', () => {
     expect(res.body).toEqual(expectedRes);
   });
 
-  test('PATCH /courses/{id} updating a course with an invalid user should retreive a Forbidden User Exception', async () => {
+  test('PATCH /courses/{id} updating a course with an invalid user should retreive a Forbidden User Error', async () => {
     const userId = '123e4567-e89b-12d3-a456-426614174000';
     const invalidUserId = '123e4567-e89b-12d3-a456-426614174001';
 
@@ -380,7 +395,7 @@ describe('Course e2e', () => {
     expect(res2.body.data.length).toBe(0);
   });
 
-  test('GET /courses/enrollments should thrown Bad Request Exception when non existing properties are passed in filter', async () => {
+  test('GET /courses/enrollments should throw Bad Request Error when non existing properties are passed in filter', async () => {
     const courseTitle = 'Ingeniería del Software 2';
     const courseData = {
       title: courseTitle,
@@ -475,7 +490,7 @@ describe('Course e2e', () => {
     expect(response).toEqual(expected);
   });
 
-  test('PATCH /courses/{courseId}/enrollments/{userId} updating non existing enrollment should throw NotFoundException', async () => {
+  test('PATCH /courses/{courseId}/enrollments/{userId} updating non existing enrollment should throw Not Found Error', async () => {
     const courseData = {
       title: 'Ingeniería del Software 2',
       description: 'Curso de Ingeniería del Software 2',
@@ -591,7 +606,7 @@ describe('Course e2e', () => {
     expect(activity.createdAt).toBeDefined();
   });
 
-  test('GET /courses/{courseId}/activities?userId={userId} with a userId which not match with teacher id should throw ForbiddenUserException', async () => {
+  test('GET /courses/{courseId}/activities?userId={userId} with a userId which not match with teacher id should throw Forbidden User Error', async () => {
     const teacherId = '123e4567-e89b-12d3-a456-426614174000';
     const assistantId = '123e4567-e89b-12d3-a456-426614174001';
     const otherUserId = '123e4567-e89b-12d3-a456-426614174002';
@@ -636,19 +651,10 @@ describe('Course e2e', () => {
     expect(res.body).toEqual(expectedRes);
   });
 
-  test('POST /courses/:courseId/modules should create a new module for the course by the teacher', async () => {
-    const teacherId = '123e4567-e89b-12d3-a456-426614174000';
-    const courseData = {
-      title: 'Ingeniería del Software 2',
-      description: 'Curso de Ingeniería del Software 2',
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      registrationDeadline: registrationDeadline.toISOString(),
-      totalPlaces: 100,
-      teacherId,
-    };
-    const courseRes = await request(app.getHttpServer()).post('/courses').send(courseData);
-    const courseId = courseRes.body.data.id;
+  test('POST /courses/{courseId}/modules should create a new module for the course by the teacher', async () => {
+    const course = await createCourse();
+    const { teacherId } = course;
+    const courseId = course.id;
 
     const createDto = {
       title: 'Module 1: Introduction',
@@ -672,5 +678,153 @@ describe('Course e2e', () => {
       courseId,
       ...moduleData,
     });
+  });
+
+  test('GET /courses/{courseId}/modules/{moduleId} should retreive the specified course module', async () => {
+    const course = await createCourse();
+    const { teacherId } = course;
+    const courseId = course.id;
+
+    const createDto = {
+      title: 'Module 1: Introduction',
+      description: 'This module covers the basic concepts.',
+      userId: teacherId,
+      order: 0,
+    };
+    const { userId, ...moduleData } = createDto;
+
+    const moduleRes = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules`)
+      .send(createDto);
+    const id = moduleRes.body.data.id;
+
+    const res = await request(app.getHttpServer()).get(`/courses/${courseId}/modules/${id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('data');
+
+    const data = res.body.data;
+    expect(data).toHaveProperty('id');
+    expect(data).toMatchObject({
+      id,
+      courseId,
+      ...moduleData,
+    });
+  });
+
+  test('GET /courses/{courseId}/modules/{moduleId} for a non existing module should throw a Not Found Error', async () => {
+    const course = await createCourse();
+    const courseId = course.id;
+
+    const res = await request(app.getHttpServer()).get(`/courses/${courseId}/modules/999`).send();
+
+    const expectedRes = {
+      type: 'about:blank',
+      title: 'NotFoundException',
+      status: 404,
+      detail: 'Module with ID 999 not found.',
+      instance: `/courses/${courseId}/modules/999`,
+    };
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual(expectedRes);
+  });
+
+  test('GET /courses/{courseId}/modules should retreive the modules of a specified course', async () => {
+    const course = await createCourse();
+    const { teacherId } = course;
+    const courseId = course.id;
+
+    const createDto = {
+      title: 'Module 1: Introduction',
+      description: 'This module covers the basic concepts.',
+      userId: teacherId,
+      order: 0,
+    };
+    const { userId, ...moduleData } = createDto;
+
+    const moduleRes = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules`)
+      .send(createDto);
+    const { id } = moduleRes.body.data;
+
+    const res = await request(app.getHttpServer()).get(`/courses/${courseId}/modules/`).send();
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('data');
+
+    const { data } = res.body;
+    expect(Array.isArray(data)).toBe(true);
+    expect(data).toMatchObject([
+      {
+        id,
+        courseId,
+        ...moduleData,
+      },
+    ]);
+  });
+
+  test('PATCH /courses/{courseId}/modules/{moduleId} should retreive the updated module of a specified course', async () => {
+    const course = await createCourse();
+    const { teacherId } = course;
+    const courseId = course.id;
+
+    const createDto = {
+      title: 'Module 1: Introduction',
+      description: 'This module covers the basic concepts.',
+      userId: teacherId,
+      order: 0,
+    };
+
+    const moduleRes = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules`)
+      .send(createDto);
+    const { id } = moduleRes.body.data;
+
+    const updateDto = {
+      title: 'Module 1: Introduction Updated',
+      userId: teacherId,
+    };
+    const expected = {
+      ...moduleRes.body.data,
+      title: updateDto.title,
+    };
+    const res = await request(app.getHttpServer())
+      .patch(`/courses/${courseId}/modules/${id}`)
+      .send(updateDto);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('data');
+
+    const { data } = res.body;
+    expect(data).toMatchObject(expected);
+  });
+
+  test('PATCH /courses/{courseId}/modules/{moduleId} should retreive the updated module of a specified course', async () => {
+    const course = await createCourse();
+    const { teacherId } = course;
+    const courseId = course.id;
+
+    const createDto = {
+      title: 'Module 1: Introduction',
+      description: 'This module covers the basic concepts.',
+      userId: teacherId,
+      order: 0,
+    };
+
+    const moduleRes = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules`)
+      .send(createDto);
+    const { id } = moduleRes.body.data;
+
+    const res = await request(app.getHttpServer())
+      .delete(`/courses/${courseId}/modules/${id}?userId=${teacherId}`)
+      .send();
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('data');
+
+    const { data } = res.body;
+    expect(data).toMatchObject(moduleRes.body.data);
   });
 });
