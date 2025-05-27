@@ -225,7 +225,7 @@ describe('Course e2e', () => {
       type: 'about:blank',
       title: 'ForbiddenUserException',
       status: 403,
-      detail: `User ${invalidUserId} is not allowed to update the course ${id}. User has to be either the course head teacher or an assistant.`,
+      detail: `User ${invalidUserId} is not authorized to edit course ${id}. User has to be either the course head teacher or an assistant.`,
       instance: `/courses/${id}`,
     };
 
