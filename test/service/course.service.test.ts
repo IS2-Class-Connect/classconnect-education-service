@@ -1,14 +1,13 @@
 import { CourseService } from '../../src/services/course.service';
-import { CourseRequestDto } from '../../src/dtos/course_dtos/course.request.dto';
+import { CourseRequestDto } from '../../src/dtos/course/course.request.dto';
 import { CourseRepository } from 'src/repositories/course.repository';
-import { CourseResponseDto } from 'src/dtos/course_dtos/course.response.dto';
+import { CourseResponseDto } from 'src/dtos/course/course.response.dto';
 import { getDatesAfterToday } from 'test/utils';
 import { Activity, Enrollment, Prisma, Role } from '@prisma/client';
 import { NotFoundException } from '@nestjs/common';
-import { EnrollmentFilterDto } from 'src/dtos/enrollment_dtos/enrollment.filter';
-import { EnrollmentResponseDto } from 'src/dtos/enrollment_dtos/enrollments.response';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
+import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollments.response.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
-import { title } from 'process';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -31,6 +30,10 @@ describe('CourseService', () => {
       createActivityRegister: jest.fn(),
       findActivityRegisterByCourse: jest.fn(),
       createModule: jest.fn(),
+      findModulesByCourse: jest.fn(),
+      findModule: jest.fn(),
+      updateModule: jest.fn(),
+      deleteModule: jest.fn(),
     } as any;
     service = new CourseService(mockRepository);
   });
@@ -642,5 +645,91 @@ describe('CourseService', () => {
       order: createDto.order,
     });
     expect(result).toBe(expected);
+  });
+
+  test('Should get all modules of a course', async () => {
+    const courseId = 1;
+    const expected = [
+      {
+        id: '111e4585-e89b-12d3-a456-426614173512',
+        courseId,
+        title: 'Module 1',
+        description: 'Description of module 1',
+        order: 0,
+      },
+      {
+        id: '111e4585-e89b-12d3-a456-426614173513',
+        courseId,
+        title: 'Module 2',
+        description: 'Description of module 2',
+        order: 100,
+      },
+    ];
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue({ id: courseId });
+    (mockRepository.findModulesByCourse as jest.Mock).mockResolvedValue(expected);
+
+    expect(await service.getAllCourseModules(courseId)).toBe(expected);
+    expect(mockRepository.findModulesByCourse).toHaveBeenCalledWith(courseId);
+  });
+
+  test('Should get a specified module of a course', async () => {
+    const courseId = 1;
+    const id = '111e4585-e89b-12d3-a456-426614173512';
+    const expected = {
+      id,
+      courseId,
+      title: 'Module 1',
+      description: 'Description of module 1',
+      order: 0,
+    };
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue({ id: courseId });
+    (mockRepository.findModule as jest.Mock).mockResolvedValue(expected);
+
+    expect(await service.getCourseModule(courseId, id)).toBe(expected);
+    expect(mockRepository.findModule).toHaveBeenCalledWith(id);
+  });
+
+  test('Should update a specified module of a course', async () => {
+    const courseId = 1;
+    const id = '111e4585-e89b-12d3-a456-426614173512';
+    const updateDto = {
+      title: 'Module updated',
+      order: 200,
+      userId: '123e4567-e89b-12d3-a456-426614174000',
+    };
+    const { userId, ...updateData } = updateDto;
+    const expected = {
+      id,
+      courseId,
+      description: 'Description of module 1',
+      ...updateDto,
+    };
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue({ teacherId: userId });
+    (mockRepository.updateModule as jest.Mock).mockResolvedValue(expected);
+
+    expect(await service.updateCourseModule(courseId, id, updateDto)).toBe(expected);
+    expect(mockRepository.updateModule).toHaveBeenCalledWith(id, updateData);
+  });
+
+  test('Should delete a specified module of a course', async () => {
+    const courseId = 1;
+    const id = '111e4585-e89b-12d3-a456-426614173512';
+    const userId = '123e4567-e89b-12d3-a456-426614174000';
+    const expected = {
+      id,
+      courseId,
+      title: 'Module 1',
+      description: 'Description of module 1',
+      order: 0,
+    };
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue({ teacherId: userId });
+    (mockRepository.deleteModule as jest.Mock).mockResolvedValue(expected);
+
+    expect(await service.deleteCourseModule(courseId, userId, id)).toBe(expected);
+    expect(mockRepository.deleteModule).toHaveBeenCalledWith(id);
   });
 });

@@ -3,7 +3,7 @@ import { CourseController } from '../../src/controllers/course.controller';
 import { CourseService } from '../../src/services/course.service';
 import { getDatesAfterToday } from 'test/utils';
 import { Activity, Enrollment, Role } from '@prisma/client';
-import { EnrollmentFilterDto } from 'src/dtos/enrollment_dtos/enrollment.filter';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
 
 describe('CourseController', () => {
   let controller: CourseController;
@@ -23,6 +23,7 @@ describe('CourseController', () => {
       updateEnrollment: jest.fn(),
       deleteEnrollment: jest.fn(),
       getActivities: jest.fn(),
+      getCourseModule: jest.fn(),
     } as any;
     controller = new CourseController(mockService);
   });
@@ -107,7 +108,7 @@ describe('CourseController', () => {
     expect(mockService.findCourseById).toHaveBeenCalledWith(1);
   });
 
-  test('Should throw a NotFoundError for looking for a non existing course', async () => {
+  test('Should throw a Not Found Exception for looking for a non existing course', async () => {
     (mockService.findCourseById as jest.Mock).mockResolvedValue(undefined);
 
     await expect(controller.getCourse(999)).rejects.toThrow(NotFoundException);
@@ -302,5 +303,15 @@ describe('CourseController', () => {
 
     expect(mockService.getActivities).toHaveBeenCalledWith(courseId, userId);
     expect(result).toBe(expected);
+  });
+
+  test('Should throw a Not Found Exception for looking for a non existing module', async () => {
+    const courseId = 1;
+    const moduleId = '111e4585-e89b-12d3-a456-426614173512';
+
+    (mockService.getCourseModule as jest.Mock).mockResolvedValue(null);
+
+    await expect(controller.getCourseModule(courseId, moduleId)).rejects.toThrow(NotFoundException);
+    expect(mockService.getCourseModule).toHaveBeenCalledWith(courseId, moduleId);
   });
 });

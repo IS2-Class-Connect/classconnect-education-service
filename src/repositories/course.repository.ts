@@ -3,9 +3,8 @@ import { PrismaService } from 'src/prisma.service';
 import { Prisma, Course, Enrollment, ActivityRegister } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { logger } from 'src/logger';
-import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment_dtos/course.update.enrollment';
-import { EnrollmentFilterDto } from 'src/dtos/enrollment_dtos/enrollment.filter';
-import { CourseModuleCreateDto } from 'src/dtos/module_dtos/course.module.create';
+import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment/course.update.enrollment.dto';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
 
 const PRISMA_NOT_FOUND_CODE = 'P2025';
 
@@ -193,5 +192,46 @@ export class CourseRepository {
 
   createModule(data: Prisma.ModuleUncheckedCreateInput) {
     return this.prisma.module.create({ data });
+  }
+
+  findModule(id: string) {
+    return this.prisma.module.findUnique({ where: { id } });
+  }
+
+  findModulesByCourse(courseId: number) {
+    return this.prisma.module.findMany({
+      where: { courseId },
+    });
+  }
+
+  async updateModule(id: string, data: Prisma.ModuleUpdateInput) {
+    try {
+      return await this.prisma.module.update({
+        where: { id },
+        data,
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError && error.code === PRISMA_NOT_FOUND_CODE) {
+        logger.error(`The module with ID ${id} was not found.`);
+        throw new NotFoundException(`Module ${id} not found.`);
+      }
+      throw error;
+    }
+  }
+
+  async deleteModule(id: string) {
+    try {
+      return await this.prisma.module.delete({
+        where: {
+          id,
+        },
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError && error.code === PRISMA_NOT_FOUND_CODE) {
+        logger.error(`The module with ID ${id} was not found.`);
+        throw new NotFoundException(`Module ${id} not found.`);
+      }
+      throw error;
+    }
   }
 }

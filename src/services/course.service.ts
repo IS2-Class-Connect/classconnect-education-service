@@ -1,16 +1,17 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { CourseRequestDto } from '../dtos/course_dtos/course.request.dto';
-import { CourseResponseDto } from '../dtos/course_dtos/course.response.dto';
+import { CourseRequestDto } from '../dtos/course/course.request.dto';
+import { CourseResponseDto } from '../dtos/course/course.response.dto';
 import { CourseRepository, EnrollmentWithCourse } from '../repositories/course.repository';
 import { Activity, ActivityRegister, Course, Enrollment, Prisma, Role } from '@prisma/client';
-import { CourseUpdateDto } from 'src/dtos/course_dtos/course.update.dto';
-import { CourseCreateEnrollmentDto } from 'src/dtos/enrollment_dtos/course.create.enrollment';
-import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment_dtos/course.update.enrollment';
-import { EnrollmentFilterDto } from 'src/dtos/enrollment_dtos/enrollment.filter';
-import { EnrollmentResponseDto } from 'src/dtos/enrollment_dtos/enrollments.response';
+import { CourseUpdateDto } from 'src/dtos/course/course.update.dto';
+import { CourseCreateEnrollmentDto } from 'src/dtos/enrollment/course.create.enrollment.dto';
+import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment/course.update.enrollment.dto';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
+import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollments.response.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
-import { CourseModuleCreateDto } from 'src/dtos/module_dtos/course.module.create';
+import { CourseModuleCreateDto } from 'src/dtos/module/course.module.create.dto';
 import { logger } from 'src/logger';
+import { CourseModuleUpdateDto } from 'src/dtos/module/course.module.update.dto';
 
 const MIN_PLACES_LIMIT = 1;
 
@@ -222,7 +223,7 @@ export class CourseService {
 
     const { userId, ...updateData } = updateDTO;
 
-    this.registerActivity(id, course.teacherId, userId, Activity.EDIT_COURSE);
+    await this.registerActivity(id, course.teacherId, userId, Activity.EDIT_COURSE);
 
     const updatedCourse = await this.repository.update(id, updateData);
 
@@ -351,8 +352,31 @@ export class CourseService {
 
     const { userId, ...createData } = createDto;
 
-    this.registerActivity(courseId, course.teacherId, userId, Activity.ADD_MODULE);
+    await this.registerActivity(courseId, course.teacherId, userId, Activity.ADD_MODULE);
 
     return this.repository.createModule({ courseId, ...createData });
+  }
+
+  async getAllCourseModules(courseId: number) {
+    await this.getCourse(courseId);
+    return this.repository.findModulesByCourse(courseId);
+  }
+
+  async getCourseModule(courseId: number, moduleId: string) {
+    await this.getCourse(courseId);
+    return await this.repository.findModule(moduleId);
+  }
+
+  async updateCourseModule(courseId: number, moduleId: string, updateDto: CourseModuleUpdateDto) {
+    const course = await this.getCourse(courseId);
+    const { userId, ...updateData } = updateDto;
+    await this.registerActivity(courseId, course.teacherId, userId, Activity.EDIT_MODULE);
+    return this.repository.updateModule(moduleId, updateData);
+  }
+
+  async deleteCourseModule(courseId: number, userId: string, moduleId: string) {
+    const course = await this.getCourse(courseId);
+    await this.registerActivity(courseId, course.teacherId, userId, Activity.DELETE_MODULE);
+    return this.repository.deleteModule(moduleId);
   }
 }

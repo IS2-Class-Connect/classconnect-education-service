@@ -7,8 +7,7 @@ import { BaseExceptionFilter } from '../../src/middleware/exception.filter';
 import { ResponseInterceptor } from '../../src/middleware/response.interceptor';
 import { cleanDataBase, getDatesAfterToday } from 'test/utils';
 import { PrismaService } from 'src/prisma.service';
-import { Activity, Role } from '@prisma/client';
-import { title } from 'process';
+import { Role } from '@prisma/client';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
