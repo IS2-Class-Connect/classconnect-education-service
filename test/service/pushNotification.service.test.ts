@@ -42,12 +42,12 @@ describe('PushNotificationService', () => {
     (httpService.post as jest.Mock).mockReturnValueOnce(of(mockResponse));
 
     await expect(
-      service.notifyUser('123', 'Test Title', 'Test Body')
+      service.notifyTaskAssignment('123', 'Test Title', 'Test Body')
     ).resolves.toBeUndefined();
 
     expect(httpService.post).toHaveBeenCalledWith(
       expect.stringContaining('/notifications'),
-      { uuid: '123', title: 'Test Title', body: 'Test Body' },
+      { uuid: '123', title: 'Test Title', body: 'Test Body', topic: "task-assignment" },
       expect.objectContaining({
         headers: expect.objectContaining({
           Authorization: expect.stringContaining('Bearer'),
@@ -70,8 +70,18 @@ describe('PushNotificationService', () => {
     (httpService.post as jest.Mock).mockReturnValueOnce(of(mockResponse));
 
     await expect(
-      service.notifyUser('123', 'Test Title', 'Test Body')
+      service.notifyMessageReceived('123', 'Test Title', 'Test Body')
     ).rejects.toThrow(InternalServerErrorException);
+
+    expect(httpService.post).toHaveBeenCalledWith(
+      expect.stringContaining('/notifications'),
+      { uuid: '123', title: 'Test Title', body: 'Test Body', topic: "message-received" },
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: expect.stringContaining('Bearer'),
+        }),
+      }),
+    );
   });
 
   it('should throw InternalServerErrorException when HttpService throws an error', async () => {
@@ -80,7 +90,17 @@ describe('PushNotificationService', () => {
     );
 
     await expect(
-      service.notifyUser('123', 'Test Title', 'Test Body')
+      service.notifyDeadlineReminder('123', 'Test Title', 'Test Body')
     ).rejects.toThrow(InternalServerErrorException);
+
+    expect(httpService.post).toHaveBeenCalledWith(
+      expect.stringContaining('/notifications'),
+      { uuid: '123', title: 'Test Title', body: 'Test Body', topic: "deadline-reminder" },
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: expect.stringContaining('Bearer'),
+        }),
+      }),
+    );
   });
 });
