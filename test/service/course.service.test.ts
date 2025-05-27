@@ -602,7 +602,7 @@ describe('CourseService', () => {
     await expect(service.getActivities(courseId, userId)).rejects.toThrow(ForbiddenUserException);
   });
 
-  test('Should create a course module', async () => {
+  test('Should create a course module with user being the teacher or an assistant (not any user)', async () => {
     const courseId = 1;
     const userId = '123e4567-e89b-12d3-a456-426614174000';
     const createDto = {
@@ -645,6 +645,15 @@ describe('CourseService', () => {
       order: createDto.order,
     });
     expect(result).toBe(expected);
+
+    const otherDto = {
+      userId: '123e4567-e89b-12d3-a456-426614174001',
+      title: 'Module 2',
+      description: 'Description of module 2',
+      order: 0,
+    };
+
+    await expect(service.createModule(courseId, otherDto)).rejects.toThrow(ForbiddenUserException);
   });
 
   test('Should get all modules of a course', async () => {
@@ -691,7 +700,7 @@ describe('CourseService', () => {
     expect(mockRepository.findModule).toHaveBeenCalledWith(id);
   });
 
-  test('Should update a specified module of a course', async () => {
+  test('Should update a specified module of a course with user being the teacher or an assistant (not any user)', async () => {
     const courseId = 1;
     const id = '111e4585-e89b-12d3-a456-426614173512';
     const updateDto = {
@@ -712,9 +721,18 @@ describe('CourseService', () => {
 
     expect(await service.updateCourseModule(courseId, id, updateDto)).toBe(expected);
     expect(mockRepository.updateModule).toHaveBeenCalledWith(id, updateData);
+
+    const otherDto = {
+      userId: '123e4567-e89b-12d3-a456-426614174001',
+      title: 'Module second update',
+    };
+
+    await expect(service.updateCourseModule(courseId, id, otherDto)).rejects.toThrow(
+      ForbiddenUserException,
+    );
   });
 
-  test('Should delete a specified module of a course', async () => {
+  test('Should delete a specified module of a course with user being the teacher or an assistant (not any user)', async () => {
     const courseId = 1;
     const id = '111e4585-e89b-12d3-a456-426614173512';
     const userId = '123e4567-e89b-12d3-a456-426614174000';
@@ -731,5 +749,10 @@ describe('CourseService', () => {
 
     expect(await service.deleteCourseModule(courseId, userId, id)).toBe(expected);
     expect(mockRepository.deleteModule).toHaveBeenCalledWith(id);
+
+    const forbiddenUserId = '123e4567-e89b-12d3-a456-426614174001';
+    await expect(service.deleteCourseModule(courseId, forbiddenUserId, id)).rejects.toThrow(
+      ForbiddenUserException,
+    );
   });
 });
