@@ -1,16 +1,50 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { CourseRequestDto } from '../dtos/course.request.dto';
-import { CourseResponseDto } from '../dtos/course.response.dto';
+import { CourseRequestDto } from '../dtos/course/course.request.dto';
+import { CourseResponseDto } from '../dtos/course/course.response.dto';
 import { CourseRepository, EnrollmentWithCourse } from '../repositories/course.repository';
 import { Activity, ActivityRegister, Course, Enrollment, Prisma, Role } from '@prisma/client';
-import { CourseUpdateDto } from 'src/dtos/course.update.dto';
-import { CourseCreateEnrollmentDto } from 'src/dtos/course.create.enrollment';
-import { CourseUpdateEnrollmentDto } from 'src/dtos/course.update.enrollment';
-import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
-import { EnrollmentResponseDto } from 'src/dtos/enrollments.response';
+import { CourseUpdateDto } from 'src/dtos/course/course.update.dto';
+import { CourseCreateEnrollmentDto } from 'src/dtos/enrollment/course.create.enrollment.dto';
+import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment/course.update.enrollment.dto';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
+import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollments.response.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
+import { CourseModuleCreateDto } from 'src/dtos/module/course.module.create.dto';
+import { logger } from 'src/logger';
+import { CourseModuleUpdateDto } from 'src/dtos/module/course.module.update.dto';
 
 const MIN_PLACES_LIMIT = 1;
+
+function getForbiddenExceptionMsg(courseId: number, userId: string, activity: Activity): string {
+  switch (activity) {
+    case Activity.EDIT_COURSE:
+      return `User ${userId} is not authorized to edit course ${courseId}.`;
+    case Activity.ADD_MODULE:
+      return `User ${userId} is not authorized to add a module to course ${courseId}.`;
+    case Activity.EDIT_MODULE:
+      return `User ${userId} is not authorized to edit a module in course ${courseId}.`;
+    case Activity.DELETE_MODULE:
+      return `User ${userId} is not authorized to delete a module from course ${courseId}.`;
+    case Activity.ADD_EXAM:
+      return `User ${userId} is not authorized to add an exam to course ${courseId}.`;
+    case Activity.EDIT_EXAM:
+      return `User ${userId} is not authorized to edit an exam in course ${courseId}.`;
+    case Activity.DELETE_EXAM:
+      return `User ${userId} is not authorized to delete an exam from course ${courseId}.`;
+    case Activity.GRADE_EXAM:
+      return `User ${userId} is not authorized to grade an exam in course ${courseId}.`;
+    case Activity.ADD_TASK:
+      return `User ${userId} is not authorized to add a task to course ${courseId}.`;
+    case Activity.EDIT_TASK:
+      return `User ${userId} is not authorized to edit a task in course ${courseId}.`;
+    case Activity.DELETE_TASK:
+      return `User ${userId} is not authorized to delete a task from course ${courseId}.`;
+    case Activity.GRADE_TASK:
+      return `User ${userId} is not authorized to grade a task in course ${courseId}.`;
+    default:
+      return `User ${userId} is not authorized to perform this action on course ${courseId}.`;
+  }
+}
 
 /**
  * Generates a CourseResponseDto from a Course object.
@@ -130,6 +164,40 @@ function validateCourseUpdate(updateData: CourseUpdateDto, course: Course) {
 export class CourseService {
   constructor(private readonly repository: CourseRepository) {}
 
+  private async getCourse(id: number) {
+    const course = await this.repository.findById(id);
+    if (!course) {
+      logger.error(`The course with Id ${id} was not found`);
+      throw new NotFoundException(`Course with ID ${id} not found.`);
+    }
+    return course;
+  }
+
+  private async registerActivity(
+    courseId: number,
+    teacherId: string,
+    userId: string,
+    activity: Activity,
+  ) {
+    if (userId != teacherId) {
+      const userEnrollmentToCourse = await this.repository.findEnrollment(courseId, userId);
+      if (!(userEnrollmentToCourse && userEnrollmentToCourse.role == Role.ASSISTANT)) {
+        throw new ForbiddenUserException(
+          getForbiddenExceptionMsg(courseId, userId, activity) +
+            ' User has to be either the course head teacher or an assistant.',
+        );
+      }
+
+      const activityData: Prisma.ActivityRegisterUncheckedCreateInput = {
+        courseId,
+        userId,
+        activity,
+      };
+
+      await this.repository.createActivityRegister(activityData);
+    }
+  }
+
   /**
    * Creates a new course.
    * @param requestDTO - The data transfer object containing course data.
@@ -149,31 +217,13 @@ export class CourseService {
    * @throws {NotFoundException} If the course trying to update is not found.
    */
   async updateCourse(id: number, updateDTO: CourseUpdateDto): Promise<CourseResponseDto> {
-    const course = await this.repository.findById(id);
-    if (!course) {
-      throw new NotFoundException(`The course with ID ${id} was not found.`);
-    }
+    const course = await this.getCourse(id);
 
     validateCourseUpdate(updateDTO, course);
 
     const { userId, ...updateData } = updateDTO;
 
-    if (userId != course.teacherId) {
-      const userEnrollmentToCourse = await this.repository.findEnrollment(id, userId);
-      if (!(userEnrollmentToCourse && userEnrollmentToCourse.role == Role.ASSISTANT)) {
-        throw new ForbiddenUserException(
-          `User ${userId} is not allowed to update the course ${id}. User has to be either the course head teacher or an assistant.`,
-        );
-      }
-
-      const activity: Prisma.ActivityRegisterUncheckedCreateInput = {
-        courseId: id,
-        userId,
-        activity: Activity.EDIT_COURSE,
-      };
-
-      await this.repository.createActivityRegister(activity);
-    }
+    await this.registerActivity(id, course.teacherId, userId, Activity.EDIT_COURSE);
 
     const updatedCourse = await this.repository.update(id, updateData);
 
@@ -254,9 +304,7 @@ export class CourseService {
       throw new BadRequestException('Invalid course ID.');
     }
 
-    if (!(await this.repository.findById(courseId))) {
-      throw new NotFoundException(`Course with ID ${courseId} not found.`);
-    }
+    await this.getCourse(courseId);
 
     return await this.repository.findCourseEnrollments(courseId);
   }
@@ -283,18 +331,13 @@ export class CourseService {
       throw new BadRequestException('Invalid course ID.');
     }
 
-    if (!(await this.repository.findById(courseId))) {
-      throw new NotFoundException(`Course with ID ${courseId} not found.`);
-    }
+    await this.getCourse(courseId);
 
     return await this.repository.deleteEnrollment(courseId, userId);
   }
 
   async getActivities(courseId: number, userId: string): Promise<ActivityRegister[]> {
-    const course = await this.repository.findById(courseId);
-    if (!course) {
-      throw new NotFoundException(`Course with ID ${courseId} not found.`);
-    }
+    const course = await this.getCourse(courseId);
     if (course.teacherId != userId) {
       throw new ForbiddenUserException(
         `User ${userId} is not allowed to get the activity register of the course ${courseId}. Only the head teacher is allowed.`,
@@ -302,5 +345,38 @@ export class CourseService {
     }
 
     return this.repository.findActivityRegisterByCourse(courseId);
+  }
+
+  async createModule(courseId: number, createDto: CourseModuleCreateDto) {
+    const course = await this.getCourse(courseId);
+
+    const { userId, ...createData } = createDto;
+
+    await this.registerActivity(courseId, course.teacherId, userId, Activity.ADD_MODULE);
+
+    return this.repository.createModule({ courseId, ...createData });
+  }
+
+  async getAllCourseModules(courseId: number) {
+    await this.getCourse(courseId);
+    return this.repository.findModulesByCourse(courseId);
+  }
+
+  async getCourseModule(courseId: number, moduleId: string) {
+    await this.getCourse(courseId);
+    return await this.repository.findModule(moduleId);
+  }
+
+  async updateCourseModule(courseId: number, moduleId: string, updateDto: CourseModuleUpdateDto) {
+    const course = await this.getCourse(courseId);
+    const { userId, ...updateData } = updateDto;
+    await this.registerActivity(courseId, course.teacherId, userId, Activity.EDIT_MODULE);
+    return this.repository.updateModule(moduleId, updateData);
+  }
+
+  async deleteCourseModule(courseId: number, userId: string, moduleId: string) {
+    const course = await this.getCourse(courseId);
+    await this.registerActivity(courseId, course.teacherId, userId, Activity.DELETE_MODULE);
+    return this.repository.deleteModule(moduleId);
   }
 }

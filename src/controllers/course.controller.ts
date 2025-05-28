@@ -14,12 +14,14 @@ import {
   Query,
   ParseIntPipe,
 } from '@nestjs/common';
-import { CourseRequestDto } from '../dtos/course.request.dto';
+import { CourseRequestDto } from '../dtos/course/course.request.dto';
 import { logger } from '../logger';
-import { CourseUpdateDto } from 'src/dtos/course.update.dto';
-import { CourseCreateEnrollmentDto } from 'src/dtos/course.create.enrollment';
-import { CourseUpdateEnrollmentDto } from 'src/dtos/course.update.enrollment';
-import { EnrollmentFilterDto } from 'src/dtos/enrollment.filter';
+import { CourseUpdateDto } from 'src/dtos/course/course.update.dto';
+import { CourseCreateEnrollmentDto } from 'src/dtos/enrollment/course.create.enrollment.dto';
+import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment/course.update.enrollment.dto';
+import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
+import { CourseModuleCreateDto } from 'src/dtos/module/course.module.create.dto';
+import { CourseModuleUpdateDto } from 'src/dtos/module/course.module.update.dto';
 
 /**
  * Controller class for handling HTTP requests related to courses.
@@ -176,5 +178,46 @@ export class CourseController {
   ) {
     logger.info(`Getting course ${courseId} activity for user ${userId}`);
     return this.service.getActivities(courseId, userId);
+  }
+
+  @Post(':courseId/modules')
+  async createModule(
+    @Param('courseId') courseId: number,
+    @Body() requestDto: CourseModuleCreateDto,
+  ) {
+    return await this.service.createModule(courseId, requestDto);
+  }
+
+  @Get(':courseId/modules/:moduleId')
+  async getCourseModule(@Param('courseId') courseId: number, @Param('moduleId') moduleId: string) {
+    const module = await this.service.getCourseModule(courseId, moduleId);
+    if (!module) {
+      logger.warn(`The module with ID ${moduleId} was not found.`);
+      throw new NotFoundException(`Module with ID ${moduleId} not found.`);
+    }
+    return module;
+  }
+
+  @Get(':courseId/modules')
+  async getAllCourseModules(@Param('courseId') courseId: number) {
+    return await this.service.getAllCourseModules(courseId);
+  }
+
+  @Patch(':courseId/modules/:moduleId')
+  async updateModule(
+    @Param('courseId') courseId: number,
+    @Param('moduleId') moduleId: string,
+    @Body() updateDto: CourseModuleUpdateDto,
+  ) {
+    return await this.service.updateCourseModule(courseId, moduleId, updateDto);
+  }
+
+  @Delete(':courseId/modules/:moduleId')
+  async deleteModule(
+    @Param('courseId') courseId: number,
+    @Param('moduleId') moduleId: string,
+    @Query('userId') userId: string,
+  ) {
+    return await this.service.deleteCourseModule(courseId, userId, moduleId);
   }
 }
