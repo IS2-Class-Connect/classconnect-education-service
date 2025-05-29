@@ -1,8 +1,7 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { Prisma, Course, Enrollment, ActivityRegister } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { logger } from 'src/logger';
 import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment/course.update.enrollment.dto';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
 
@@ -234,4 +233,51 @@ export class CourseRepository {
       throw error;
     }
   }
+
+  createResource(data: Prisma.ResourceUncheckedCreateInput) {
+    return this.prisma.resource.create({ data });
+  }
+
+  findResource(link: string) {
+    return this.prisma.resource.findUnique({ where: { link } });
+  }
+
+  findResourcesByModule(moduleId: string) {
+    return this.prisma.resource.findMany({
+      where: { moduleId },
+    });
+  }
+
+  async updateResource(link: string, data: Prisma.ResourceUpdateInput) {
+    try {
+      return await this.prisma.resource.update({
+        where: { link },
+        data,
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError && error.code === PRISMA_NOT_FOUND_CODE) {
+        logger.error(`The resource ${link} was not found.`);
+        throw new NotFoundException(`Resource ${link} not found.`);
+      }
+      throw error;
+    }
+  }
+
+  async deleteResource(link: string) {
+    try {
+      return await this.prisma.resource.delete({
+        where: {
+          link,
+        },
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError && error.code === PRISMA_NOT_FOUND_CODE) {
+        logger.error(`The resource ${link} was not found.`);
+        throw new NotFoundException(`Resource ${link} not found.`);
+      }
+      throw error;
+    }
+  }
 }
+
+const logger = new Logger(CourseRepository.name);

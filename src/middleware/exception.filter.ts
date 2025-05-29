@@ -5,11 +5,11 @@ import {
   HttpException,
   HttpStatus,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { isString } from 'class-validator';
 import { Request, Response } from 'express';
 import { ExceptionResponse } from 'src/exceptions/exception.response';
-import { logger } from 'src/logger';
 
 function getBadRequestMessage(exception: BadRequestException): string {
   const response = exception.getResponse();
@@ -51,3 +51,5 @@ export class BaseExceptionFilter implements ExceptionFilter {
     response.status(status).json(exceptionResponse);
   }
 }
+
+const logger = new Logger(BaseExceptionFilter.name);

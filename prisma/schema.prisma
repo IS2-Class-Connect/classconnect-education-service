@@ -30,7 +30,7 @@ model Course {
   createdAt            DateTime @default(now())
 
   enrollments          Enrollment[]
-  Module               Module[]
+  modules              Module[]
 }
 
 model Enrollment {
@@ -77,5 +77,21 @@ model Module {
   description   String
   order         Int
 
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course        Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  resourcess    Resource[]
+}
+
+enum DataType {
+  IMAGE
+  VIDEO
+  LINK
+}
+
+model Resource {
+  link          String    @id
+  dataType      DataType  @map("data_type")
+  order         Int
+  moduleId      String    @map("module_id")
+
+  module        Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 }

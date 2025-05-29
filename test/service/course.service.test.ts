@@ -719,7 +719,7 @@ describe('CourseService', () => {
     (mockRepository.findById as jest.Mock).mockResolvedValue({ teacherId: userId });
     (mockRepository.updateModule as jest.Mock).mockResolvedValue(expected);
 
-    expect(await service.updateCourseModule(courseId, id, updateDto)).toBe(expected);
+    expect(await service.updateModule(courseId, id, updateDto)).toBe(expected);
     expect(mockRepository.updateModule).toHaveBeenCalledWith(id, updateData);
 
     const otherDto = {
@@ -727,7 +727,7 @@ describe('CourseService', () => {
       title: 'Module second update',
     };
 
-    await expect(service.updateCourseModule(courseId, id, otherDto)).rejects.toThrow(
+    await expect(service.updateModule(courseId, id, otherDto)).rejects.toThrow(
       ForbiddenUserException,
     );
   });
@@ -747,11 +747,11 @@ describe('CourseService', () => {
     (mockRepository.findById as jest.Mock).mockResolvedValue({ teacherId: userId });
     (mockRepository.deleteModule as jest.Mock).mockResolvedValue(expected);
 
-    expect(await service.deleteCourseModule(courseId, userId, id)).toBe(expected);
+    expect(await service.deleteModule(courseId, userId, id)).toBe(expected);
     expect(mockRepository.deleteModule).toHaveBeenCalledWith(id);
 
     const forbiddenUserId = '123e4567-e89b-12d3-a456-426614174001';
-    await expect(service.deleteCourseModule(courseId, forbiddenUserId, id)).rejects.toThrow(
+    await expect(service.deleteModule(courseId, forbiddenUserId, id)).rejects.toThrow(
       ForbiddenUserException,
     );
   });

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CourseRequestDto } from '../dtos/course/course.request.dto';
 import { CourseResponseDto } from '../dtos/course/course.response.dto';
 import { CourseRepository, EnrollmentWithCourse } from '../repositories/course.repository';
@@ -10,8 +10,9 @@ import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
 import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollments.response.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
 import { CourseModuleCreateDto } from 'src/dtos/module/course.module.create.dto';
-import { logger } from 'src/logger';
 import { CourseModuleUpdateDto } from 'src/dtos/module/course.module.update.dto';
+import { CourseResourceCreateDto } from 'src/dtos/resources/course.resource.create.dto';
+import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
 
 const MIN_PLACES_LIMIT = 1;
 
@@ -367,16 +368,57 @@ export class CourseService {
     return await this.repository.findModule(moduleId);
   }
 
-  async updateCourseModule(courseId: number, moduleId: string, updateDto: CourseModuleUpdateDto) {
+  async updateModule(courseId: number, moduleId: string, updateDto: CourseModuleUpdateDto) {
     const course = await this.getCourse(courseId);
     const { userId, ...updateData } = updateDto;
     await this.registerActivity(courseId, course.teacherId, userId, Activity.EDIT_MODULE);
     return this.repository.updateModule(moduleId, updateData);
   }
 
-  async deleteCourseModule(courseId: number, userId: string, moduleId: string) {
+  async deleteModule(courseId: number, userId: string, moduleId: string) {
     const course = await this.getCourse(courseId);
     await this.registerActivity(courseId, course.teacherId, userId, Activity.DELETE_MODULE);
     return this.repository.deleteModule(moduleId);
   }
+
+  async createResource(courseId: number, moduleId: string, createDto: CourseResourceCreateDto) {
+    const course = await this.getCourse(courseId);
+    const module = await this.repository.findModule(moduleId);
+    if (!module || module.courseId != courseId) {
+      throw new NotFoundException(`Module ${moduleId} from course ${courseId} not found.`);
+    }
+    const { userId, ...createData } = createDto;
+    this.registerActivity(courseId, course.teacherId, userId, Activity.EDIT_MODULE);
+    return this.repository.createResource({ moduleId, ...createData });
+  }
+
+  async getAllModuleResources(courseId: number, moduleId: string) {
+    await this.getCourse(courseId);
+    return this.repository.findModulesByCourse(courseId);
+  }
+
+  async getModuleResource(courseId: number, moduleId: string, resourceId: string) {
+    await this.getCourse(courseId);
+    return await this.repository.findModule(moduleId);
+  }
+
+  async updateResource(
+    courseId: number,
+    moduleId: string,
+    resourceId: string,
+    updateDto: CourseResourceUpdateDto,
+  ) {
+    const course = await this.getCourse(courseId);
+    const { userId, ...updateData } = updateDto;
+    await this.registerActivity(courseId, course.teacherId, userId, Activity.EDIT_MODULE);
+    return this.repository.updateResource(moduleId, updateData);
+  }
+
+  async deleteResource(courseId: number, moduleId: string, userId: string, resourceId: string) {
+    const course = await this.getCourse(courseId);
+    await this.registerActivity(courseId, course.teacherId, userId, Activity.EDIT_MODULE);
+    return this.repository.deleteResource(moduleId);
+  }
 }
+
+const logger = new Logger(CourseService.name);
