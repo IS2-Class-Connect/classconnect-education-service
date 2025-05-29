@@ -88,10 +88,11 @@ enum DataType {
 }
 
 model Resource {
-  link          String    @id
+  link          String
   dataType      DataType  @map("data_type")
   order         Int
   moduleId      String    @map("module_id")
 
   module        Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  @@id([link, moduleId])
 }

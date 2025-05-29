@@ -8,6 +8,7 @@ import { NotFoundException } from '@nestjs/common';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
 import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollments.response.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
+import { link } from 'fs';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -755,4 +756,157 @@ describe('CourseService', () => {
       ForbiddenUserException,
     );
   });
+
+  // test('Should create a module resource with user being the teacher or an assistant (not any user)', async () => {
+  //   const courseId = 1;
+  //   const userId = '123e4567-e89b-12d3-a456-426614174000';
+  //   const moduleId = '111e4585-e89b-12d3-a456-426614173512';
+  //   const createDto = {
+  //     userId,
+  //     moduleId,
+  //     link: 'https://example.com/resource',
+  //     order: 0,
+  //   };
+
+  //   const course = {
+  //     id: courseId,
+  //     title: 'Ingeniería del software 2',
+  //     description: 'Curso de Ingeniería del software 2',
+  //     startDate: startDate,
+  //     endDate: endDate,
+  //     registrationDeadline: registrationDeadline,
+  //     totalPlaces: 100,
+  //     teacherId: userId,
+  //     createdAt: new Date(),
+  //   };
+
+  //   const expected = {
+  //     moduleId,
+  //     link: createDto.link,
+  //     order: createDto.order,
+  //   };
+
+  //   (mockRepository.findById as jest.Mock).mockResolvedValue(course);
+  //   (mockRepository.createModule as jest.Mock).mockResolvedValue(expected);
+
+  //   const result = await service.createModule(courseId, createDto);
+
+  //   expect(mockRepository.findById).toHaveBeenCalledWith(courseId);
+  //   expect(mockRepository.createModule).toHaveBeenCalledWith({
+  //     courseId,
+  //     title: createDto.title,
+  //     description: createDto.description,
+  //     order: createDto.order,
+  //   });
+  //   expect(result).toBe(expected);
+
+  //   const otherDto = {
+  //     userId: '123e4567-e89b-12d3-a456-426614174001',
+  //     title: 'Module 2',
+  //     description: 'Description of module 2',
+  //     order: 0,
+  //   };
+
+  //   await expect(service.createModule(courseId, otherDto)).rejects.toThrow(ForbiddenUserException);
+  // });
+
+  // test('Should get all modules of a course', async () => {
+  //   const courseId = 1;
+  //   const expected = [
+  //     {
+  //       id: '111e4585-e89b-12d3-a456-426614173512',
+  //       courseId,
+  //       title: 'Module 1',
+  //       description: 'Description of module 1',
+  //       order: 0,
+  //     },
+  //     {
+  //       id: '111e4585-e89b-12d3-a456-426614173513',
+  //       courseId,
+  //       title: 'Module 2',
+  //       description: 'Description of module 2',
+  //       order: 100,
+  //     },
+  //   ];
+
+  //   (mockRepository.findById as jest.Mock).mockResolvedValue({ id: courseId });
+  //   (mockRepository.findModulesByCourse as jest.Mock).mockResolvedValue(expected);
+
+  //   expect(await service.getAllCourseModules(courseId)).toBe(expected);
+  //   expect(mockRepository.findModulesByCourse).toHaveBeenCalledWith(courseId);
+  // });
+
+  // test('Should get a specified module of a course', async () => {
+  //   const courseId = 1;
+  //   const id = '111e4585-e89b-12d3-a456-426614173512';
+  //   const expected = {
+  //     id,
+  //     courseId,
+  //     title: 'Module 1',
+  //     description: 'Description of module 1',
+  //     order: 0,
+  //   };
+
+  //   (mockRepository.findById as jest.Mock).mockResolvedValue({ id: courseId });
+  //   (mockRepository.findModule as jest.Mock).mockResolvedValue(expected);
+
+  //   expect(await service.getCourseModule(courseId, id)).toBe(expected);
+  //   expect(mockRepository.findModule).toHaveBeenCalledWith(id);
+  // });
+
+  // test('Should update a specified module of a course with user being the teacher or an assistant (not any user)', async () => {
+  //   const courseId = 1;
+  //   const id = '111e4585-e89b-12d3-a456-426614173512';
+  //   const updateDto = {
+  //     title: 'Module updated',
+  //     order: 200,
+  //     userId: '123e4567-e89b-12d3-a456-426614174000',
+  //   };
+  //   const { userId, ...updateData } = updateDto;
+  //   const expected = {
+  //     id,
+  //     courseId,
+  //     description: 'Description of module 1',
+  //     ...updateDto,
+  //   };
+
+  //   (mockRepository.findById as jest.Mock).mockResolvedValue({ teacherId: userId });
+  //   (mockRepository.updateModule as jest.Mock).mockResolvedValue(expected);
+
+  //   expect(await service.updateModule(courseId, id, updateDto)).toBe(expected);
+  //   expect(mockRepository.updateModule).toHaveBeenCalledWith(id, updateData);
+
+  //   const otherDto = {
+  //     userId: '123e4567-e89b-12d3-a456-426614174001',
+  //     title: 'Module second update',
+  //   };
+
+  //   await expect(service.updateModule(courseId, id, otherDto)).rejects.toThrow(
+  //     ForbiddenUserException,
+  //   );
+  // });
+
+  // test('Should delete a specified module of a course with user being the teacher or an assistant (not any user)', async () => {
+  //   const courseId = 1;
+  //   const id = '111e4585-e89b-12d3-a456-426614173512';
+  //   const userId = '123e4567-e89b-12d3-a456-426614174000';
+  //   const expected = {
+  //     id,
+  //     courseId,
+  //     title: 'Module 1',
+  //     description: 'Description of module 1',
+  //     order: 0,
+  //   };
+
+  //   (mockRepository.findById as jest.Mock).mockResolvedValue({ teacherId: userId });
+  //   (mockRepository.deleteModule as jest.Mock).mockResolvedValue(expected);
+
+  //   expect(await service.deleteModule(courseId, userId, id)).toBe(expected);
+  //   expect(mockRepository.deleteModule).toHaveBeenCalledWith(id);
+
+  //   const forbiddenUserId = '123e4567-e89b-12d3-a456-426614174001';
+  //   await expect(service.deleteModule(courseId, forbiddenUserId, id)).rejects.toThrow(
+  //     ForbiddenUserException,
+  //   );
+  // });
 });

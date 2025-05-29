@@ -158,6 +158,13 @@ function validateCourseUpdate(updateData: CourseUpdateDto, course: Course) {
   }
 }
 
+async function moduleBelongsToCourse(moduleId: string, courseId: number) {
+  const module = await this.repository.findModule(moduleId);
+  if (!module || module.courseId != courseId) {
+    throw new NotFoundException(`Module ${moduleId} from course ${courseId} not found.`);
+  }
+}
+
 /**
  * Service class responsible for business logic related to Courses.
  */
@@ -383,10 +390,7 @@ export class CourseService {
 
   async createResource(courseId: number, moduleId: string, createDto: CourseResourceCreateDto) {
     const course = await this.getCourse(courseId);
-    const module = await this.repository.findModule(moduleId);
-    if (!module || module.courseId != courseId) {
-      throw new NotFoundException(`Module ${moduleId} from course ${courseId} not found.`);
-    }
+    await moduleBelongsToCourse(moduleId, courseId);
     const { userId, ...createData } = createDto;
     this.registerActivity(courseId, course.teacherId, userId, Activity.EDIT_MODULE);
     return this.repository.createResource({ moduleId, ...createData });
@@ -394,30 +398,34 @@ export class CourseService {
 
   async getAllModuleResources(courseId: number, moduleId: string) {
     await this.getCourse(courseId);
-    return this.repository.findModulesByCourse(courseId);
+    await moduleBelongsToCourse(moduleId, courseId);
+    return this.repository.findResourcesByModule(moduleId);
   }
 
-  async getModuleResource(courseId: number, moduleId: string, resourceId: string) {
+  async getModuleResource(courseId: number, moduleId: string, link: string) {
     await this.getCourse(courseId);
-    return await this.repository.findModule(moduleId);
+    await moduleBelongsToCourse(moduleId, courseId);
+    return await this.repository.findResource(moduleId, link);
   }
 
   async updateResource(
     courseId: number,
     moduleId: string,
-    resourceId: string,
+    link: string,
     updateDto: CourseResourceUpdateDto,
   ) {
     const course = await this.getCourse(courseId);
+    await moduleBelongsToCourse(moduleId, courseId);
     const { userId, ...updateData } = updateDto;
     await this.registerActivity(courseId, course.teacherId, userId, Activity.EDIT_MODULE);
-    return this.repository.updateResource(moduleId, updateData);
+    return this.repository.updateResource(moduleId, link, updateData);
   }
 
-  async deleteResource(courseId: number, moduleId: string, userId: string, resourceId: string) {
+  async deleteResource(courseId: number, userId: string, moduleId: string, link: string) {
     const course = await this.getCourse(courseId);
+    await moduleBelongsToCourse(moduleId, courseId);
     await this.registerActivity(courseId, course.teacherId, userId, Activity.EDIT_MODULE);
-    return this.repository.deleteResource(moduleId);
+    return this.repository.deleteResource(moduleId, link);
   }
 }
 
