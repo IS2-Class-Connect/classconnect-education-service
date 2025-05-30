@@ -1,5 +1,5 @@
 import { DataType } from '@prisma/client';
-import { IsInt, IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum, IsInt, IsNotEmpty, IsString } from 'class-validator';
 
 export class CourseResourceCreateDto {
   @IsNotEmpty()
@@ -7,6 +7,9 @@ export class CourseResourceCreateDto {
   link: string;
 
   @IsNotEmpty()
+  @IsEnum(DataType, {
+    message: `Data type must be one of the following values: ${Object.values(DataType).join(', ')}.`,
+  })
   dataType: DataType;
 
   @IsNotEmpty()

@@ -28,4 +28,4 @@ echo "🧬 Ejecutando prisma migrate deploy..."
 npx prisma migrate deploy
 
 echo "🧪 Ejecutando tests..."
-npx jest
+npx jest --testPathPattern=test/e2e

@@ -24,6 +24,7 @@ describe('CourseController', () => {
       deleteEnrollment: jest.fn(),
       getActivities: jest.fn(),
       getCourseModule: jest.fn(),
+      getModuleResource: jest.fn(),
     } as any;
     controller = new CourseController(mockService);
   });
@@ -313,5 +314,18 @@ describe('CourseController', () => {
 
     await expect(controller.getCourseModule(courseId, moduleId)).rejects.toThrow(NotFoundException);
     expect(mockService.getCourseModule).toHaveBeenCalledWith(courseId, moduleId);
+  });
+
+  test('Should throw a Not Found Exception for looking for a non existing resource', async () => {
+    const courseId = 1;
+    const moduleId = '111e4585-e89b-12d3-a456-426614173512';
+    const link = 'https://example.com/resource.pdf';
+
+    (mockService.getModuleResource as jest.Mock).mockResolvedValue(null);
+
+    await expect(
+      controller.getModuleResource(courseId, moduleId, encodeURIComponent(link)),
+    ).rejects.toThrow(NotFoundException);
+    expect(mockService.getModuleResource).toHaveBeenCalledWith(courseId, moduleId, link);
   });
 });

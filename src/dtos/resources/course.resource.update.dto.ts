@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty } from 'class-validator';
+import { IsInt, IsNotEmpty, IsString } from 'class-validator';
 
 export class CourseResourceUpdateDto {
   @IsNotEmpty()
@@ -6,5 +6,6 @@ export class CourseResourceUpdateDto {
   order: number;
 
   @IsNotEmpty()
+  @IsString()
   userId: string;
 }

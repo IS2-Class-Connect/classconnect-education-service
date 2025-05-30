@@ -232,16 +232,20 @@ export class CourseController {
     return await this.service.createResource(courseId, moduleId, requestDto);
   }
 
-  @Get(':courseId/modules/:moduleId/resources/:resourceId')
+  @Get(':courseId/modules/:moduleId/resources/:link')
   async getModuleResource(
     @Param('courseId') courseId: number,
     @Param('moduleId') moduleId: string,
-    @Param('resourceId') resourceId: string,
+    @Param('link') link: string,
   ) {
-    const resource = await this.service.getModuleResource(courseId, moduleId, resourceId);
+    const resource = await this.service.getModuleResource(
+      courseId,
+      moduleId,
+      decodeURIComponent(link),
+    );
     if (!resource) {
-      logger.warn(`The resource with ID ${resourceId} was not found.`);
-      throw new NotFoundException(`Resource with ID ${resourceId} not found.`);
+      logger.warn(`The resource with ID ${link} was not found.`);
+      throw new NotFoundException(`Resource with ID ${link} not found.`);
     }
     return resource;
   }
@@ -254,24 +258,29 @@ export class CourseController {
     return await this.service.getAllModuleResources(courseId, moduleId);
   }
 
-  @Patch(':courseId/modules/:moduleId/resources/:resourceId')
+  @Patch(':courseId/modules/:moduleId/resources/:link')
   async updateResource(
     @Param('courseId') courseId: number,
     @Param('moduleId') moduleId: string,
-    @Param('resourceId') resourceId: string,
+    @Param('link') link: string,
     @Body() updateDto: CourseResourceUpdateDto,
   ) {
-    return await this.service.updateResource(courseId, moduleId, resourceId, updateDto);
+    return await this.service.updateResource(
+      courseId,
+      moduleId,
+      decodeURIComponent(link),
+      updateDto,
+    );
   }
 
-  @Delete(':courseId/modules/:moduleId/resources/:resourceId')
+  @Delete(':courseId/modules/:moduleId/resources/:link')
   async deleteResource(
     @Param('courseId') courseId: number,
     @Param('moduleId') moduleId: string,
-    @Param('resourceId') resourceId: string,
+    @Param('link') link: string,
     @Query('userId') userId: string,
   ) {
-    return await this.service.deleteResource(courseId, moduleId, userId, resourceId);
+    return await this.service.deleteResource(courseId, userId, moduleId, decodeURIComponent(link));
   }
 }
 
