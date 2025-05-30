@@ -7,7 +7,8 @@ import { BaseExceptionFilter } from '../../src/middleware/exception.filter';
 import { ResponseInterceptor } from '../../src/middleware/response.interceptor';
 import { cleanDataBase, getDatesAfterToday } from 'test/utils';
 import { PrismaService } from 'src/prisma.service';
-import { Role } from '@prisma/client';
+import { DataType, Role } from '@prisma/client';
+import { link } from 'fs';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
@@ -651,7 +652,7 @@ describe('Course e2e', () => {
     expect(res.body).toEqual(expectedRes);
   });
 
-  test('POST /courses/{courseId}/modules should create a new module for the course by the teacher', async () => {
+  test('POST /courses/{courseId}/modules should create a new module for the course', async () => {
     const course = await createCourse();
     const { teacherId } = course;
     const courseId = course.id;
@@ -800,7 +801,7 @@ describe('Course e2e', () => {
     expect(data).toMatchObject(expected);
   });
 
-  test('PATCH /courses/{courseId}/modules/{moduleId} should retreive the updated module of a specified course', async () => {
+  test('DELETE /courses/{courseId}/modules/{moduleId} should retreive the deleted module of a specified course', async () => {
     const course = await createCourse();
     const { teacherId } = course;
     const courseId = course.id;
@@ -826,5 +827,265 @@ describe('Course e2e', () => {
 
     const { data } = res.body;
     expect(data).toMatchObject(moduleRes.body.data);
+  });
+
+  test('POST /courses/{courseId}/modules/{moduelId}/resources should create a new resource for the course module', async () => {
+    const course = await createCourse();
+    const { teacherId } = course;
+    const courseId = course.id;
+
+    const moduleCreateDto = {
+      title: 'Module 1: Introduction',
+      description: 'This module covers the basic concepts.',
+      userId: teacherId,
+      order: 0,
+    };
+
+    const moduleRes = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules`)
+      .send(moduleCreateDto);
+    const moduleId = moduleRes.body.data.id;
+
+    const createDto = {
+      link: 'https://example.com/resource',
+      dataType: 'LINK',
+      order: 0,
+      userId: teacherId,
+    };
+
+    const res = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules/${moduleId}/resources`)
+      .send(createDto);
+
+    expect(res.status).toBe(201);
+    expect(res.body).toHaveProperty('data');
+
+    const data = res.body.data;
+    expect(data).toHaveProperty('link');
+    expect(data).toMatchObject({
+      link: createDto.link,
+      dataType: createDto.dataType,
+      order: createDto.order,
+      moduleId,
+    });
+  });
+
+  test('GET /courses/{courseId}/modules/{moduleId}/resources/{link} should retreive the specified module resource', async () => {
+    const course = await createCourse();
+    const { teacherId } = course;
+    const courseId = course.id;
+
+    const moduleCreateDto = {
+      title: 'Module 1: Introduction',
+      description: 'This module covers the basic concepts.',
+      userId: teacherId,
+      order: 0,
+    };
+
+    const moduleRes = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules`)
+      .send(moduleCreateDto);
+    const moduleId = moduleRes.body.data.id;
+
+    const createDto = {
+      link: 'https://example.com/resource',
+      dataType: 'LINK',
+      order: 0,
+      userId: teacherId,
+    };
+
+    const resourceRes = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules/${moduleId}/resources`)
+      .send(createDto);
+    const link = resourceRes.body.data.link;
+
+    const res = await request(app.getHttpServer()).get(
+      `/courses/${courseId}/modules/${moduleId}/resources/${encodeURIComponent(link)}`,
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('data');
+
+    const data = res.body.data;
+    expect(data).toHaveProperty('link');
+    expect(data).toMatchObject({
+      link: createDto.link,
+      dataType: createDto.dataType,
+      order: createDto.order,
+      moduleId,
+    });
+  });
+
+  test('GET /courses/{courseId}/modules/{moduleId}/resources/{link} for a non existing resource should throw a Not Found Error', async () => {
+    const course = await createCourse();
+    const courseId = course.id;
+    const { teacherId } = course;
+
+    const moduleCreateDto = {
+      title: 'Module 1: Introduction',
+      description: 'This module covers the basic concepts.',
+      userId: teacherId,
+      order: 0,
+    };
+
+    const moduleRes = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules`)
+      .send(moduleCreateDto);
+    const moduleId = moduleRes.body.data.id;
+
+    const link = 'https://example.com/resource';
+    const res = await request(app.getHttpServer())
+      .get(`/courses/${courseId}/modules/${moduleId}/resources/${encodeURIComponent(link)}`)
+      .send();
+
+    const expectedRes = {
+      type: 'about:blank',
+      title: 'NotFoundException',
+      status: 404,
+      detail: `Resource with ID ${link} not found.`,
+      instance: `/courses/${courseId}/modules/${moduleId}/resources/${encodeURIComponent(link)}`,
+    };
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual(expectedRes);
+  });
+
+  test('GET /courses/{courseId}/modules/resources should retreive the resources of a specified module', async () => {
+    const course = await createCourse();
+    const courseId = course.id;
+    const { teacherId } = course;
+
+    const moduleCreateDto = {
+      title: 'Module 1: Introduction',
+      description: 'This module covers the basic concepts.',
+      userId: teacherId,
+      order: 0,
+    };
+
+    const moduleRes = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules`)
+      .send(moduleCreateDto);
+    const moduleId = moduleRes.body.data.id;
+
+    const createDto = {
+      link: 'https://example.com/resource',
+      dataType: 'LINK',
+      order: 0,
+      userId: teacherId,
+    };
+
+    await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules/${moduleId}/resources`)
+      .send(createDto);
+
+    const res = await request(app.getHttpServer())
+      .get(`/courses/${courseId}/modules/${moduleId}/resources`)
+      .send();
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('data');
+
+    const { data } = res.body;
+    expect(Array.isArray(data)).toBe(true);
+    expect(data).toMatchObject([
+      {
+        link: createDto.link,
+        dataType: createDto.dataType,
+        order: createDto.order,
+        moduleId,
+      },
+    ]);
+  });
+
+  test('PATCH /courses/{courseId}/modules/{moduleId}/resources/{link} should retreive the updated resource of a specified module', async () => {
+    const course = await createCourse();
+    const { teacherId } = course;
+    const courseId = course.id;
+
+    const moduleCreateDto = {
+      title: 'Module 1: Introduction',
+      description: 'This module covers the basic concepts.',
+      userId: teacherId,
+      order: 0,
+    };
+
+    const moduleRes = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules`)
+      .send(moduleCreateDto);
+    const { id } = moduleRes.body.data;
+
+    const createDto = {
+      link: 'https://example.com/resource',
+      dataType: 'LINK',
+      order: 0,
+      userId: teacherId,
+    };
+
+    const resourceRes = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules/${id}/resources`)
+      .send(createDto);
+    const link = resourceRes.body.data.link;
+
+    const updateResourceDto = {
+      order: 100,
+      userId: teacherId,
+    };
+
+    const expected = {
+      ...resourceRes.body.data,
+      order: updateResourceDto.order,
+    };
+
+    const res = await request(app.getHttpServer())
+      .patch(`/courses/${courseId}/modules/${id}/resources/${encodeURIComponent(link)}`)
+      .send(updateResourceDto);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('data');
+
+    const { data } = res.body;
+    expect(data).toMatchObject(expected);
+  });
+
+  test('DELETE /courses/{courseId}/modules/{moduleId}/resources/{link} should retreive the deleted resource of a specified module', async () => {
+    const course = await createCourse();
+    const { teacherId } = course;
+    const courseId = course.id;
+
+    const moduleCreateDto = {
+      title: 'Module 1: Introduction',
+      description: 'This module covers the basic concepts.',
+      userId: teacherId,
+      order: 0,
+    };
+
+    const moduleRes = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules`)
+      .send(moduleCreateDto);
+    const { id } = moduleRes.body.data;
+
+    const createDto = {
+      link: 'https://example.com/resource',
+      dataType: 'LINK',
+      order: 0,
+      userId: teacherId,
+    };
+
+    const resourceRes = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/modules/${id}/resources`)
+      .send(createDto);
+    const link = resourceRes.body.data.link;
+
+    const res = await request(app.getHttpServer())
+      .delete(
+        `/courses/${courseId}/modules/${id}/resources/${encodeURIComponent(link)}?userId=${teacherId}`,
+      )
+      .send();
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('data');
+
+    const { data } = res.body;
+    expect(data).toMatchObject(resourceRes.body.data);
   });
 });
