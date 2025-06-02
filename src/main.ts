@@ -4,7 +4,27 @@ import { ValidationPipe } from '@nestjs/common';
 import { ResponseInterceptor } from './middleware/response.interceptor';
 import { BaseExceptionFilter } from './middleware/exception.filter';
 import { Request, Response, NextFunction } from 'express';
-import { requestCounter, responseTimeHistogram } from './controllers/metrics.controller';
+import { cpuUsageGauge, memoryUsageGauge, requestCounter, responseTimeHistogram } from './controllers/metrics.controller';
+
+// Resource fetching for metrics
+let prevCpuUsage = process.cpuUsage();
+let prevHrTime = process.hrtime();
+setInterval(() => {
+  const currCpuUsage = process.cpuUsage(prevCpuUsage);
+  const currHrTime = process.hrtime(prevHrTime);
+
+  prevCpuUsage = process.cpuUsage();
+  prevHrTime = process.hrtime();
+
+  const elapsedHrTimeSeconds = currHrTime[0] + currHrTime[1] / 1e9;
+  const totalCpuMicros = currCpuUsage.user + currCpuUsage.system;
+
+  const cpuPercent = (totalCpuMicros / 1e6 / elapsedHrTimeSeconds) * 100;
+  cpuUsageGauge.set(cpuPercent);
+
+  const memoryUsage = process.memoryUsage();
+  memoryUsageGauge.set(memoryUsage.rss);
+}, 5000);
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
