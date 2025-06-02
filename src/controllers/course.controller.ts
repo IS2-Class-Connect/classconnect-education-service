@@ -13,15 +13,17 @@ import {
   Patch,
   Query,
   ParseIntPipe,
+  Logger,
 } from '@nestjs/common';
 import { CourseRequestDto } from '../dtos/course/course.request.dto';
-import { logger } from '../logger';
 import { CourseUpdateDto } from 'src/dtos/course/course.update.dto';
 import { CourseCreateEnrollmentDto } from 'src/dtos/enrollment/course.create.enrollment.dto';
 import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment/course.update.enrollment.dto';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
 import { CourseModuleCreateDto } from 'src/dtos/module/course.module.create.dto';
 import { CourseModuleUpdateDto } from 'src/dtos/module/course.module.update.dto';
+import { CourseResourceCreateDto } from 'src/dtos/resources/course.resource.create.dto';
+import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
 
 /**
  * Controller class for handling HTTP requests related to courses.
@@ -38,7 +40,7 @@ export class CourseController {
   @HttpCode(HttpStatus.CREATED)
   @Post()
   createCourse(@Body() requestDTO: CourseRequestDto) {
-    logger.info(
+    logger.log(
       `Creating a new course with title ${requestDTO.title} and description ${requestDTO.description}`,
     );
     return this.service.createCourse(requestDTO);
@@ -50,13 +52,13 @@ export class CourseController {
    */
   @Get()
   getAllCourses() {
-    logger.info('Getting all courses');
+    logger.log('Getting all courses');
     return this.service.findAllCourses();
   }
 
   @Get('enrollments')
   async getEnrollments(@Query() filters: EnrollmentFilterDto) {
-    logger.info(
+    logger.log(
       `Getting enrollments${filters.role || filters.userId ? ` matching${filters.role ? ` role "${filters.role}"` : ''}${filters.role && filters.userId ? ' and' : ''}${filters.userId ? ` user "${filters.userId}"` : ''}` : ' with no filters'}.`,
     );
     return this.service.getEnrollments(filters);
@@ -70,7 +72,7 @@ export class CourseController {
    */
   @Get(':id')
   async getCourse(@Param('id', ParseIntPipe) id: number) {
-    logger.info(`Getting course with id ${id}`);
+    logger.log(`Getting course with id ${id}`);
     const course = await this.service.findCourseById(id);
     if (!course) {
       logger.warn(`Course with ID ${id} not found.`);
@@ -89,7 +91,7 @@ export class CourseController {
    * @returns The updated course data.
    */
   async updateCourse(@Param('id') id: number, @Body() updateDTO: CourseUpdateDto) {
-    logger.info(`Updating course with ID ${id}`);
+    logger.log(`Updating course with ID ${id}`);
     const updateCourse = await this.service.updateCourse(id, updateDTO);
     return updateCourse;
   }
@@ -102,7 +104,7 @@ export class CourseController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteCourse(@Param('id') id: number) {
-    logger.info(`Deleting course with ID ${id}`);
+    logger.log(`Deleting course with ID ${id}`);
     if (!(await this.service.deleteCourse(id))) {
       logger.warn(`Course with ID ${id} not found.`);
       throw new NotFoundException(`Course with ID ${id} does not exist.`);
@@ -134,7 +136,7 @@ export class CourseController {
    */
   @Get(':courseId/enrollments')
   async getCourseEnrollments(@Param('courseId') courseId: number) {
-    logger.info(`Getting enrollments for course with ID ${courseId}`);
+    logger.log(`Getting enrollments for course with ID ${courseId}`);
     return await this.service.getCourseEnrollments(courseId);
   }
 
@@ -167,7 +169,7 @@ export class CourseController {
    * @returns A promise that resolves when the enrollment is successfully deleted.
    */
   async deleteEnrollment(@Param('courseId') courseId: number, @Param('userId') userId: string) {
-    logger.info(`Deleting enrollment for user ${userId} in course ${courseId}`);
+    logger.log(`Deleting enrollment for user ${userId} in course ${courseId}`);
     return this.service.deleteEnrollment(courseId, userId);
   }
 
@@ -176,7 +178,7 @@ export class CourseController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Query('userId') userId: string,
   ) {
-    logger.info(`Getting course ${courseId} activity for user ${userId}`);
+    logger.log(`Getting course ${courseId} activity for user ${userId}`);
     return this.service.getActivities(courseId, userId);
   }
 
@@ -209,7 +211,7 @@ export class CourseController {
     @Param('moduleId') moduleId: string,
     @Body() updateDto: CourseModuleUpdateDto,
   ) {
-    return await this.service.updateCourseModule(courseId, moduleId, updateDto);
+    return await this.service.updateModule(courseId, moduleId, updateDto);
   }
 
   @Delete(':courseId/modules/:moduleId')
@@ -218,6 +220,68 @@ export class CourseController {
     @Param('moduleId') moduleId: string,
     @Query('userId') userId: string,
   ) {
-    return await this.service.deleteCourseModule(courseId, userId, moduleId);
+    return await this.service.deleteModule(courseId, userId, moduleId);
+  }
+
+  @Post(':courseId/modules/:moduleId/resources')
+  async createResource(
+    @Param('courseId') courseId: number,
+    @Param('moduleId') moduleId: string,
+    @Body() requestDto: CourseResourceCreateDto,
+  ) {
+    return await this.service.createResource(courseId, moduleId, requestDto);
+  }
+
+  @Get(':courseId/modules/:moduleId/resources/:link')
+  async getModuleResource(
+    @Param('courseId') courseId: number,
+    @Param('moduleId') moduleId: string,
+    @Param('link') link: string,
+  ) {
+    const resource = await this.service.getModuleResource(
+      courseId,
+      moduleId,
+      decodeURIComponent(link),
+    );
+    if (!resource) {
+      logger.warn(`The resource with ID ${link} was not found.`);
+      throw new NotFoundException(`Resource with ID ${link} not found.`);
+    }
+    return resource;
+  }
+
+  @Get(':courseId/modules/:moduleId/resources')
+  async getAllModuleResources(
+    @Param('courseId') courseId: number,
+    @Param('moduleId') moduleId: string,
+  ) {
+    return await this.service.getAllModuleResources(courseId, moduleId);
+  }
+
+  @Patch(':courseId/modules/:moduleId/resources/:link')
+  async updateResource(
+    @Param('courseId') courseId: number,
+    @Param('moduleId') moduleId: string,
+    @Param('link') link: string,
+    @Body() updateDto: CourseResourceUpdateDto,
+  ) {
+    return await this.service.updateResource(
+      courseId,
+      moduleId,
+      decodeURIComponent(link),
+      updateDto,
+    );
+  }
+
+  @Delete(':courseId/modules/:moduleId/resources/:link')
+  async deleteResource(
+    @Param('courseId') courseId: number,
+    @Param('moduleId') moduleId: string,
+    @Param('link') link: string,
+    @Query('userId') userId: string,
+  ) {
+    return await this.service.deleteResource(courseId, userId, moduleId, decodeURIComponent(link));
   }
 }
+
+const logger = new Logger(CourseController.name);

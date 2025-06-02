@@ -1,10 +1,10 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { Prisma, Course, Enrollment, ActivityRegister } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { logger } from 'src/logger';
 import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment/course.update.enrollment.dto';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
+import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
 
 const PRISMA_NOT_FOUND_CODE = 'P2025';
 
@@ -234,4 +234,49 @@ export class CourseRepository {
       throw error;
     }
   }
+
+  createResource(data: Prisma.ResourceUncheckedCreateInput) {
+    return this.prisma.resource.create({ data });
+  }
+
+  findResource(moduleId: string, link: string) {
+    return this.prisma.resource.findUnique({ where: { link_moduleId: { link, moduleId } } });
+  }
+
+  findResourcesByModule(moduleId: string) {
+    return this.prisma.resource.findMany({
+      where: { moduleId },
+    });
+  }
+
+  async updateResource(moduleId: string, link: string, data: Prisma.ResourceUpdateInput) {
+    try {
+      return await this.prisma.resource.update({
+        where: { link_moduleId: { link, moduleId } },
+        data,
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError && error.code === PRISMA_NOT_FOUND_CODE) {
+        logger.error(`The resource ${link} was not found in module ${moduleId}.`);
+        throw new NotFoundException(`Resource ${link} in module ${moduleId} not found.`);
+      }
+      throw error;
+    }
+  }
+
+  async deleteResource(moduleId: string, link: string) {
+    try {
+      return await this.prisma.resource.delete({
+        where: { link_moduleId: { link, moduleId } },
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError && error.code === PRISMA_NOT_FOUND_CODE) {
+        logger.error(`The resource ${link} was not found in module ${moduleId}.`);
+        throw new NotFoundException(`Resource ${link} in module ${moduleId} not found.`);
+      }
+      throw error;
+    }
+  }
 }
+
+const logger = new Logger(CourseRepository.name);
