@@ -16,9 +16,9 @@ describe('MetricsController', () => {
     await app.init();
   });
 
-  it('GET /users/metrics should return status code 200', async () => {
+  it('GET /education/metrics should return status code 200', async () => {
     const response = await request(app.getHttpServer() as Express)
-      .get('/users/metrics')
+      .get('/education/metrics')
       .send();
 
     expect(response.status).toEqual(200);

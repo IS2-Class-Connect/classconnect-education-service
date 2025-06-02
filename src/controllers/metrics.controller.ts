@@ -53,7 +53,7 @@ setInterval(() => {
   memoryUsageGauge.set(memoryUsage.rss);
 }, 5000);
 
-@Controller('users')
+@Controller('education')
 export class MetricsController {
 
   // Returns the metrics for this service.
