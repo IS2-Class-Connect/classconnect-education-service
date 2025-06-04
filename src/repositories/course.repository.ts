@@ -5,6 +5,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment/course.update.enrollment.dto';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
 import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
+import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
 
 const PRISMA_NOT_FOUND_CODE = 'P2025';
 
@@ -34,6 +35,19 @@ export class CourseRepository {
    */
   findAll(): Promise<Course[]> {
     return this.prisma.course.findMany();
+  }
+
+  /**
+   * Retrieves courses based on the provided filters.
+   * @param filters - The specified properties values that the course have to match.
+   * @returns A promise that resolves to the courses matching the filters.
+   */
+  findCourses(filters: CourseFilterDto): Promise<Course[]> {
+    return this.prisma.course.findMany({
+      where: {
+        ...filters,
+      },
+    });
   }
 
   /**
