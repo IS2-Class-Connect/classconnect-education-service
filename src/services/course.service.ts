@@ -13,6 +13,8 @@ import { CourseModuleCreateDto } from 'src/dtos/module/course.module.create.dto'
 import { CourseModuleUpdateDto } from 'src/dtos/module/course.module.update.dto';
 import { CourseResourceCreateDto } from 'src/dtos/resources/course.resource.create.dto';
 import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
+import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
+import { get } from 'http';
 
 const MIN_PLACES_LIMIT = 1;
 
@@ -239,11 +241,15 @@ export class CourseService {
   }
 
   /**
-   * Retrieves all courses.
+   * Retrieves all courses matching the filters.
+   * @param filter - The filter criteria for retrieving courses.
    * @returns An array of all courses.
    */
-  async findAllCourses(): Promise<CourseResponseDto[]> {
-    const courses: CourseResponseDto[] = (await this.repository.findAll())
+  async findCourses(filters: CourseFilterDto): Promise<CourseResponseDto[]> {
+    const isEmpty = !filters || Object.keys(filters).length === 0;
+    const courses = (
+      await (isEmpty ? this.repository.findAll() : this.repository.findCourses(filters))
+    )
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .map((course) => getResponseDTO(course));
     return courses;

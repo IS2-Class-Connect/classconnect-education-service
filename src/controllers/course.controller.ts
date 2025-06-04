@@ -24,6 +24,7 @@ import { CourseModuleCreateDto } from 'src/dtos/module/course.module.create.dto'
 import { CourseModuleUpdateDto } from 'src/dtos/module/course.module.update.dto';
 import { CourseResourceCreateDto } from 'src/dtos/resources/course.resource.create.dto';
 import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
+import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
 
 /**
  * Controller class for handling HTTP requests related to courses.
@@ -51,9 +52,9 @@ export class CourseController {
    * @returns An array of all courses.
    */
   @Get()
-  getAllCourses() {
-    logger.log('Getting all courses');
-    return this.service.findAllCourses();
+  getCourses(@Query() filters: CourseFilterDto) {
+    logger.log(`Getting all courses matching: ${JSON.stringify(filters)}`);
+    return this.service.findCourses(filters);
   }
 
   @Get('enrollments')
