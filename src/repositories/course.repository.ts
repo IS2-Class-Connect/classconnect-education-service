@@ -106,7 +106,7 @@ export class CourseRepository {
    * @returns A promise that resolves to an array of `Enrollment` objects associated with the course,
    *          or `null` if no enrollments are found.
    */
-  findCourseEnrollments(id: number): Promise<Enrollment[] | null> {
+  findCourseEnrollments(id: number): Promise<Enrollment[]> {
     return this.prisma.enrollment.findMany({
       where: { courseId: id },
     });
@@ -115,7 +115,7 @@ export class CourseRepository {
   async updateEnrollment(
     courseId: number,
     userId: string,
-    data: CourseUpdateEnrollmentDto,
+    data: Prisma.EnrollmentUpdateInput,
   ): Promise<Enrollment | null> {
     try {
       return await this.prisma.enrollment.update({

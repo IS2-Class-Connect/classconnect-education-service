@@ -7,12 +7,15 @@ import { CourseUpdateDto } from 'src/dtos/course/course.update.dto';
 import { CourseCreateEnrollmentDto } from 'src/dtos/enrollment/course.create.enrollment.dto';
 import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment/course.update.enrollment.dto';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
-import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollments.response.dto';
+import { CourseEnrollmentDto } from 'src/dtos/enrollment/course.enrollment.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
 import { CourseModuleCreateDto } from 'src/dtos/module/course.module.create.dto';
 import { CourseModuleUpdateDto } from 'src/dtos/module/course.module.update.dto';
 import { CourseResourceCreateDto } from 'src/dtos/resources/course.resource.create.dto';
 import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
+import { CourseFeedbackDto } from 'src/dtos/feedback/course.feedback.dto';
+import { StudentFeedbackDto } from 'src/dtos/feedback/student.feedback.dto';
+import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.dto';
 
 const MIN_PLACES_LIMIT = 1;
 
@@ -65,7 +68,7 @@ function getResponseDTO(course: Course): CourseResponseDto {
   };
 }
 
-function getEnrollmentResponse(enrollment: EnrollmentWithCourse): EnrollmentResponseDto {
+function getEnrollmentResponse(enrollment: EnrollmentWithCourse): CourseEnrollmentDto {
   const { userId, role, course } = enrollment;
   const { id, title } = course;
   return {
@@ -280,22 +283,38 @@ export class CourseService {
   async createEnrollment(
     courseId: number,
     userEnrollment: CourseCreateEnrollmentDto,
-  ): Promise<Enrollment | null> {
+  ): Promise<EnrollmentResponseDto | null> {
     if (!Number.isInteger(courseId) || courseId <= 0) {
       throw new BadRequestException('Invalid course ID.');
     }
-    return await this.repository.createEnrollment({ courseId, ...userEnrollment });
+    const enrollment = await this.repository.createEnrollment({ courseId, ...userEnrollment });
+    if (!enrollment) {
+      return null;
+    }
+    return (({ courseId, role, userId, favorite }) => ({ courseId, role, userId, favorite }))(
+      enrollment,
+    );
   }
 
   async updateEnrollment(
     courseId: number,
     userId: string,
     enrollmentUpdateDto: CourseUpdateEnrollmentDto,
-  ): Promise<Enrollment | null> {
+  ): Promise<EnrollmentResponseDto | null> {
     if (!Number.isInteger(courseId) || courseId <= 0) {
       throw new BadRequestException('Invalid course ID.');
     }
-    return await this.repository.updateEnrollment(courseId, userId, enrollmentUpdateDto);
+    const enrollment = await this.repository.updateEnrollment(
+      courseId,
+      userId,
+      enrollmentUpdateDto,
+    );
+    if (!enrollment) {
+      return null;
+    }
+    return (({ courseId, role, userId, favorite }) => ({ courseId, role, userId, favorite }))(
+      enrollment,
+    );
   }
 
   /**
@@ -307,14 +326,20 @@ export class CourseService {
    * @throws {BadRequestException} If the provided course ID is not a valid positive integer.
    * @throws {NotFoundException} If no course is found with the specified ID.
    */
-  async getCourseEnrollments(courseId: number): Promise<Enrollment[] | null> {
+  async getCourseEnrollments(courseId: number): Promise<EnrollmentResponseDto[] | null> {
     if (!Number.isInteger(courseId) || courseId <= 0) {
       throw new BadRequestException('Invalid course ID.');
     }
 
     await this.getCourse(courseId);
 
-    return await this.repository.findCourseEnrollments(courseId);
+    const enrollments = await this.repository.findCourseEnrollments(courseId);
+
+    return enrollments.map((enrollment) =>
+      (({ courseId, role, userId, favorite }) => ({ courseId, role, userId, favorite }))(
+        enrollment,
+      ),
+    );
   }
 
   async getEnrollments(filters: EnrollmentFilterDto) {
@@ -334,14 +359,36 @@ export class CourseService {
    * @throws {BadRequestException} If the provided `courseId` is not a valid positive integer.
    * @throws {NotFoundException} If the course with the specified `courseId` does not exist.
    */
-  async deleteEnrollment(courseId: number, userId: string): Promise<Enrollment | null> {
+  async deleteEnrollment(courseId: number, userId: string): Promise<EnrollmentResponseDto | null> {
     if (!Number.isInteger(courseId) || courseId <= 0) {
       throw new BadRequestException('Invalid course ID.');
     }
 
     await this.getCourse(courseId);
+    const enrollment = await this.repository.deleteEnrollment(courseId, userId);
 
-    return await this.repository.deleteEnrollment(courseId, userId);
+    if (!enrollment) {
+      return null;
+    }
+
+    return (({ courseId, role, userId, favorite }) => ({ courseId, role, userId, favorite }))(
+      enrollment,
+    );
+  }
+
+  async createCourseFeedback(courseId: number, userId: string, feedback: CourseFeedbackDto) {
+    await this.repository.updateEnrollment(courseId, userId, feedback);
+  }
+
+  async createStudentFeedback(courseId: number, userId: string, feedback: StudentFeedbackDto) {
+    const course = await this.getCourse(courseId);
+    const { teacherId, ...updateData } = feedback;
+    if (course.teacherId != teacherId) {
+      throw new ForbiddenUserException(
+        `User ${userId} is not allowed to create feedback for course ${courseId}. Only the head teacher is allowed.`,
+      );
+    }
+    await this.repository.updateEnrollment(courseId, userId, updateData);
   }
 
   async getActivities(courseId: number, userId: string): Promise<ActivityRegister[]> {

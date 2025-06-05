@@ -4,6 +4,7 @@ import { CourseService } from '../../src/services/course.service';
 import { getDatesAfterToday } from 'test/utils';
 import { Activity, Enrollment, Role } from '@prisma/client';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
+import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.dto';
 
 describe('CourseController', () => {
   let controller: CourseController;
@@ -187,7 +188,7 @@ describe('CourseController', () => {
       },
     ];
 
-    const expected: Enrollment[] = [enrollments[0], enrollments[1]];
+    const expected: EnrollmentResponseDto[] = [enrollments[0], enrollments[1]];
 
     (mockService.getCourseEnrollments as jest.Mock).mockImplementation((id: number) =>
       enrollments.filter((enrollment) => enrollment.courseId === id),

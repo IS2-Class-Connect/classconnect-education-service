@@ -34,10 +34,14 @@ model Course {
 }
 
 model Enrollment {
-  courseId Int @map("course_id")
-  userId   String @map("user_id")
-  favorite Boolean @default(false)
-  role     Role
+  courseId         Int @map("course_id")
+  userId           String @map("user_id")
+  favorite         Boolean @default(false)
+  role             Role
+  studentFeedback  String? @map("student_feedback")
+  studentNote      Int?    @map("student_note")
+  courseFeedback   String? @map("course_feedback")
+  courseNote       Int?    @map("course_note")
 
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   @@id([courseId, userId])

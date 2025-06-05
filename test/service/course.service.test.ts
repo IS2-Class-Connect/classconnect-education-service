@@ -6,9 +6,10 @@ import { getDatesAfterToday } from 'test/utils';
 import { Activity, DataType, Enrollment, Prisma, Role } from '@prisma/client';
 import { NotFoundException } from '@nestjs/common';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
-import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollments.response.dto';
+import { CourseEnrollmentDto } from 'src/dtos/enrollment/course.enrollment.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
 import { link } from 'fs';
+import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.dto';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -298,7 +299,7 @@ describe('CourseService', () => {
       role: Role.STUDENT,
     };
 
-    const expected: Enrollment = {
+    const expected: EnrollmentResponseDto = {
       ...courseCreateEnrollment,
       courseId,
       favorite: false,
@@ -355,7 +356,7 @@ describe('CourseService', () => {
       },
     ];
 
-    const expected: Enrollment[] = [enrollments[0], enrollments[1]];
+    const expected: EnrollmentResponseDto[] = [enrollments[0], enrollments[1]];
 
     const mockedCourse = {
       courseId,
@@ -436,7 +437,7 @@ describe('CourseService', () => {
       },
     ]);
 
-    const expected: EnrollmentResponseDto[] = [
+    const expected: CourseEnrollmentDto[] = [
       {
         userId,
         role: enrollment1.role,

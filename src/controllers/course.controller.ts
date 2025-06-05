@@ -24,6 +24,7 @@ import { CourseModuleCreateDto } from 'src/dtos/module/course.module.create.dto'
 import { CourseModuleUpdateDto } from 'src/dtos/module/course.module.update.dto';
 import { CourseResourceCreateDto } from 'src/dtos/resources/course.resource.create.dto';
 import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
+import { CourseFeedbackDto } from 'src/dtos/feedback/course.feedback.dto';
 
 /**
  * Controller class for handling HTTP requests related to courses.
@@ -125,6 +126,7 @@ export class CourseController {
     @Param('courseId') courseId: number,
     @Body() dto: CourseCreateEnrollmentDto,
   ) {
+    logger.log(`Creating enrollment for user ${dto.userId} in course ${courseId}`);
     return this.service.createEnrollment(courseId, dto);
   }
 
@@ -281,6 +283,16 @@ export class CourseController {
     @Query('userId') userId: string,
   ) {
     return await this.service.deleteResource(courseId, userId, moduleId, decodeURIComponent(link));
+  }
+
+  @Post(':courseId/enrollments/:userId/feedback')
+  async createCourseFeedback(
+    @Param('courseId') courseId: number,
+    @Param('userId') userId: string,
+    @Body() feedback: CourseFeedbackDto,
+  ) {
+    logger.log(`Creating feedback for course ${courseId} by user ${userId}`);
+    return this.service.createCourseFeedback(courseId, userId, feedback);
   }
 }
 
