@@ -2,7 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { CourseController } from '../../src/controllers/course.controller';
 import { CourseService } from '../../src/services/course.service';
 import { getDatesAfterToday } from 'test/utils';
-import { Activity, Enrollment, Role } from '@prisma/client';
+import { Activity, Role } from '@prisma/client';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
 import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.dto';
 
