@@ -911,4 +911,55 @@ describe('CourseService', () => {
     expect(await service.deleteResource(courseId, userId, moduleId, link)).toBe(expected);
     expect(mockRepository.deleteResource).toHaveBeenCalledWith(moduleId, link);
   });
+
+  test('Should add the feedback made by a student to a course', async () => {
+    const courseId = 1;
+    const userId = 'a1';
+    const feedback = {
+      courseFeedback: 'This course was very helpful',
+      courseNote: 4,
+    };
+
+    await service.createCourseFeedback(courseId, userId, feedback);
+    expect(mockRepository.updateEnrollment).toHaveBeenCalledWith(courseId, userId, feedback);
+  });
+
+  test('Should add the feedback of student in a course', async () => {
+    const courseId = 1;
+    const userId = 'a1';
+    const teacherId = 'a2';
+    const feedback = {
+      studentFeedback: 'He worked very hard',
+      studentNote: 8,
+      teacherId,
+    };
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue({
+      id: courseId,
+      teacherId,
+    });
+
+    await service.createStudentFeedback(courseId, userId, feedback);
+    const { teacherId: _, ...feedbackData } = feedback;
+    expect(mockRepository.updateEnrollment).toHaveBeenCalledWith(courseId, userId, feedbackData);
+  });
+
+  test('Should throw an exception when a forbidden user tries to add a feedback of a student in a course', async () => {
+    const courseId = 1;
+    const userId = 'a1';
+    const teacherId = 'a2';
+    const feedback = {
+      studentFeedback: 'He worked very hard',
+      studentNote: 8,
+      teacherId: userId,
+    };
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue({
+      id: courseId,
+      teacherId,
+    });
+    await expect(service.createStudentFeedback(courseId, userId, feedback)).rejects.toThrow(
+      ForbiddenUserException,
+    );
+  });
 });
