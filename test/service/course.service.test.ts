@@ -10,6 +10,8 @@ import { CourseEnrollmentDto } from 'src/dtos/enrollment/course.enrollment.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
 import { link } from 'fs';
 import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.dto';
+import { CourseFeedbackResponseDto } from 'src/dtos/feedback/course.feedback.response.dto';
+import { StudentFeedbackResponseDto } from 'src/dtos/feedback/student.feedback.response.dto';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -1008,11 +1010,13 @@ describe('CourseService', () => {
     const expectedCourseFeedback = {
       courseFeedback,
       courseNote,
+      studentId: userId,
     };
 
     const expectedStudentFeedback = {
       studentFeedback,
       studentNote,
+      courseId,
     };
 
     (mockRepository.findEnrollment as jest.Mock).mockResolvedValue({
@@ -1041,5 +1045,47 @@ describe('CourseService', () => {
     await expect(service.getCourseFeedback(courseId, userId)).rejects.toThrow(NotFoundException);
 
     await expect(service.getStudentFeedback(courseId, userId)).rejects.toThrow(NotFoundException);
+  });
+
+  test('Should get all feedbacks made to a particular course', async () => {
+    const courseId = 1;
+
+    const userId = 'a1';
+    const courseFeedback = 'This course was very helpful';
+    const courseNote = 4;
+
+    const enrollments = [
+      { courseId, userId, courseFeedback, courseNote },
+      { courseId, userId: 'a2', courseFeedback: null, courseNote: null },
+    ];
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue({ courseId });
+    (mockRepository.findCourseEnrollments as jest.Mock).mockResolvedValue(enrollments);
+
+    const expected: CourseFeedbackResponseDto[] = [
+      { studentId: userId, courseFeedback, courseNote },
+    ];
+
+    expect(await service.getCourseFeedbacks(courseId)).toEqual(expected);
+    expect(mockRepository.findCourseEnrollments).toHaveBeenCalledWith(courseId);
+  });
+
+  test('Should get all feedbacks made to a particular student', async () => {
+    const courseId = 1;
+    const userId = 'a1';
+    const studentFeedback = 'He worked very hard';
+    const studentNote = 4;
+
+    const enrollments = [
+      { courseId, userId, studentFeedback, studentNote },
+      { courseId, userId, studentFeedback: null, studentNote: null },
+    ];
+
+    (mockRepository.findEnrollments as jest.Mock).mockResolvedValue(enrollments);
+
+    const expected: StudentFeedbackResponseDto[] = [{ courseId, studentFeedback, studentNote }];
+
+    expect(await service.getStudentFeedbacks(userId)).toEqual(expected);
+    expect(mockRepository.findEnrollments).toHaveBeenCalledWith({ userId });
   });
 });
