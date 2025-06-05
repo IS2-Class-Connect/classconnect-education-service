@@ -963,7 +963,7 @@ describe('CourseService', () => {
     const teacherId = 'a2';
     const feedback = {
       studentFeedback: 'He worked very hard',
-      studentNote: 8,
+      studentNote: 4,
       teacherId,
     };
 
@@ -983,7 +983,7 @@ describe('CourseService', () => {
     const teacherId = 'a2';
     const feedback = {
       studentFeedback: 'He worked very hard',
-      studentNote: 8,
+      studentNote: 4,
       teacherId: userId,
     };
 
@@ -1003,7 +1003,7 @@ describe('CourseService', () => {
     const courseFeedback = 'This course was very helpful';
     const courseNote = 4;
     const studentFeedback = 'He worked very hard';
-    const studentNote = 8;
+    const studentNote = 4;
 
     const expectedCourseFeedback = {
       courseFeedback,

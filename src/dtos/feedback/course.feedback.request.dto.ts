@@ -1,6 +1,6 @@
 import { IsInt, IsNotEmpty, IsString, Max, Min } from 'class-validator';
 
-export class CourseFeedbackDto {
+export class CourseFeedbackRequestDto {
   @IsNotEmpty()
   @IsString()
   courseFeedback: string;

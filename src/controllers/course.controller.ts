@@ -24,8 +24,8 @@ import { CourseModuleCreateDto } from 'src/dtos/module/course.module.create.dto'
 import { CourseModuleUpdateDto } from 'src/dtos/module/course.module.update.dto';
 import { CourseResourceCreateDto } from 'src/dtos/resources/course.resource.create.dto';
 import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
-import { CourseFeedbackDto } from 'src/dtos/feedback/course.feedback.dto';
-import { StudentFeedbackDto } from 'src/dtos/feedback/student.feedback.dto';
+import { CourseFeedbackRequestDto } from 'src/dtos/feedback/course.feedback.request.dto';
+import { StudentFeedbackRequestDto } from 'src/dtos/feedback/student.feedback.request.dto';
 import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
 
 /**
@@ -291,7 +291,7 @@ export class CourseController {
   async createCourseFeedback(
     @Param('courseId') courseId: number,
     @Param('userId') userId: string,
-    @Body() feedback: CourseFeedbackDto,
+    @Body() feedback: CourseFeedbackRequestDto,
   ) {
     logger.log(`Creating feedback for course ${courseId} by user ${userId}`);
     return this.service.createCourseFeedback(courseId, userId, feedback);
@@ -301,7 +301,7 @@ export class CourseController {
   async createStudentFeedback(
     @Param('courseId') courseId: number,
     @Param('userId') userId: string,
-    @Body() feedback: StudentFeedbackDto,
+    @Body() feedback: StudentFeedbackRequestDto,
   ) {
     logger.log(`Creating feedback for user ${userId} in course ${courseId}`);
     return this.service.createStudentFeedback(courseId, userId, feedback);
@@ -317,6 +317,18 @@ export class CourseController {
   async getStudentFeedback(@Param('courseId') courseId: number, @Param('userId') userId: string) {
     logger.log(`Getting feedback for user ${userId} in course ${courseId}`);
     return this.service.getStudentFeedback(courseId, userId);
+  }
+
+  @Get(':courseId/feedbacks')
+  async getCourseFeedbacks(@Param('courseId') courseId: number) {
+    logger.log(`Getting all feedbacks for course ${courseId}`);
+    return this.service.getCourseFeedbacks(courseId);
+  }
+
+  @Get('studentFeedbacks/:studentId')
+  async getStudentFeedbacks(@Param('studentId') studentId: string) {
+    logger.log(`Getting all feedbacks for student with ID ${studentId}`);
+    return this.service.getStudentFeedbacks(studentId);
   }
 }
 

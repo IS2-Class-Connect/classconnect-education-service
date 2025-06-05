@@ -7,8 +7,7 @@ import { BaseExceptionFilter } from '../../src/middleware/exception.filter';
 import { ResponseInterceptor } from '../../src/middleware/response.interceptor';
 import { cleanDataBase, getDatesAfterToday } from 'test/utils';
 import { PrismaService } from 'src/prisma.service';
-import { DataType, Role } from '@prisma/client';
-import { link } from 'fs';
+import { Role } from '@prisma/client';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
@@ -1110,7 +1109,7 @@ describe('Course e2e', () => {
 
     const studentFeedback = {
       studentFeedback: 'He learned a lot!',
-      studentNote: 20, // out of range
+      studentNote: -1, // out of range
       teacherId,
     };
 

@@ -2,9 +2,7 @@ import { ConflictException, Injectable, Logger, NotFoundException } from '@nestj
 import { PrismaService } from 'src/prisma.service';
 import { Prisma, Course, Enrollment, ActivityRegister } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment/course.update.enrollment.dto';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
-import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
 import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
 
 const PRISMA_NOT_FOUND_CODE = 'P2025';

@@ -1,6 +1,6 @@
 import { IsInt, IsNotEmpty, IsString, Max, Min } from 'class-validator';
 
-export class StudentFeedbackDto {
+export class StudentFeedbackRequestDto {
   @IsNotEmpty()
   @IsString()
   studentFeedback: string;
@@ -8,7 +8,7 @@ export class StudentFeedbackDto {
   @IsNotEmpty()
   @IsInt()
   @Min(1)
-  @Max(10)
+  @Max(5)
   studentNote: number;
 
   @IsNotEmpty()

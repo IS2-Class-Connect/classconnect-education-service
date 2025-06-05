@@ -13,10 +13,12 @@ import { CourseModuleCreateDto } from 'src/dtos/module/course.module.create.dto'
 import { CourseModuleUpdateDto } from 'src/dtos/module/course.module.update.dto';
 import { CourseResourceCreateDto } from 'src/dtos/resources/course.resource.create.dto';
 import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
-import { CourseFeedbackDto } from 'src/dtos/feedback/course.feedback.dto';
-import { StudentFeedbackDto } from 'src/dtos/feedback/student.feedback.dto';
+import { CourseFeedbackRequestDto } from 'src/dtos/feedback/course.feedback.request.dto';
+import { StudentFeedbackRequestDto } from 'src/dtos/feedback/student.feedback.request.dto';
 import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.dto';
 import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
+import { StudentFeedbackResponseDto } from 'src/dtos/feedback/student.feedback.response.dto';
+import { CourseFeedbackResponseDto } from 'src/dtos/feedback/course.feedback.response.dto';
 
 const MIN_PLACES_LIMIT = 1;
 
@@ -381,11 +383,15 @@ export class CourseService {
     );
   }
 
-  async createCourseFeedback(courseId: number, userId: string, feedback: CourseFeedbackDto) {
+  async createCourseFeedback(courseId: number, userId: string, feedback: CourseFeedbackRequestDto) {
     await this.repository.updateEnrollment(courseId, userId, feedback);
   }
 
-  async createStudentFeedback(courseId: number, userId: string, feedback: StudentFeedbackDto) {
+  async createStudentFeedback(
+    courseId: number,
+    userId: string,
+    feedback: StudentFeedbackRequestDto,
+  ) {
     const course = await this.getCourse(courseId);
     const { teacherId, ...updateData } = feedback;
     if (course.teacherId != teacherId) {
@@ -396,7 +402,7 @@ export class CourseService {
     await this.repository.updateEnrollment(courseId, userId, updateData);
   }
 
-  async getCourseFeedback(courseId: number, userId: string): Promise<CourseFeedbackDto> {
+  async getCourseFeedback(courseId: number, userId: string): Promise<CourseFeedbackResponseDto> {
     const enrollment = await this.repository.findEnrollment(courseId, userId);
     if (!enrollment || !(enrollment.courseFeedback && enrollment.courseNote)) {
       throw new NotFoundException(
@@ -407,16 +413,46 @@ export class CourseService {
     return {
       courseFeedback,
       courseNote,
+      studentId: userId,
     };
   }
 
-  async getStudentFeedback(courseId: number, userId: string): Promise<StudentFeedbackDto> {
+  async getStudentFeedback(courseId: number, userId: string): Promise<StudentFeedbackResponseDto> {
     const enrollment = await this.repository.findEnrollment(courseId, userId);
     if (!enrollment || !(enrollment.studentFeedback && enrollment.studentNote)) {
       throw new NotFoundException(`Feedback for user ${userId} in course ${courseId} not found.`);
     }
     const { studentFeedback, studentNote } = enrollment;
-    return { studentFeedback, studentNote };
+    return { studentFeedback, studentNote, courseId };
+  }
+
+  async getCourseFeedbacks(courseId: number): Promise<CourseFeedbackResponseDto[]> {
+    await this.getCourse(courseId);
+    const enrollments = await this.repository.findCourseEnrollments(courseId);
+    return enrollments.flatMap(({ courseFeedback, courseNote, userId }) => {
+      if (courseFeedback && courseNote) {
+        return {
+          courseFeedback,
+          courseNote,
+          studentId: userId,
+        };
+      }
+      return [];
+    }) as CourseFeedbackResponseDto[];
+  }
+
+  async getStudentFeedbacks(studentId: string): Promise<StudentFeedbackResponseDto[]> {
+    const enrollments = await this.repository.findEnrollments({ userId: studentId });
+    return enrollments.flatMap(({ studentFeedback, studentNote, courseId }) => {
+      if (studentFeedback && studentNote) {
+        return {
+          studentFeedback,
+          studentNote,
+          courseId,
+        };
+      }
+      return [];
+    }) as StudentFeedbackResponseDto[];
   }
 
   async getActivities(courseId: number, userId: string): Promise<ActivityRegister[]> {
