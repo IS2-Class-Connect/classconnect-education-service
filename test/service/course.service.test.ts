@@ -19,6 +19,7 @@ describe('CourseService', () => {
   beforeEach(() => {
     mockRepository = {
       findAll: jest.fn(),
+      findCourses: jest.fn(),
       findById: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
@@ -75,7 +76,7 @@ describe('CourseService', () => {
     expect(foundResponseDTO).toEqual(expectedResponseDTO);
   });
 
-  test('Should retrieve courses currently existing', async () => {
+  test('Should retrieve all courses currently existing', async () => {
     const expectedResponseDTO1 = {
       id: 1,
       title: 'Ingeniería del software 1',
@@ -115,13 +116,45 @@ describe('CourseService', () => {
       },
     ]);
 
-    const foundResponseDTO = await service.findAllCourses();
+    const foundResponseDTO = await service.findCourses({});
 
+    expect(mockRepository.findAll).toHaveBeenCalledWith();
     expect(foundResponseDTO).toBeDefined();
     expect(foundResponseDTO.length).toEqual(2);
     // check to be ordered by createdAt
     expect(foundResponseDTO[0]).toEqual(expectedResponseDTO1);
     expect(foundResponseDTO[1]).toEqual(expectedResponseDTO2);
+  });
+
+  test('Should retrieve all courses matching the filters passed', async () => {
+    const teacherId = '123e4567-e89b-12d3-a456-426614174000';
+    const expectedResponseDTO = {
+      id: 1,
+      title: 'Ingeniería del software 1',
+      description: 'Curso de Ingeniería del software 1, es correlativa a IS2',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      registrationDeadline: registrationDeadline.toISOString(),
+      totalPlaces: 100,
+      teacherId,
+    };
+
+    (mockRepository.findCourses as jest.Mock).mockResolvedValue([
+      {
+        ...expectedResponseDTO,
+        startDate,
+        endDate,
+        registrationDeadline,
+        createdAt: new Date(Date.now()),
+      },
+    ]);
+
+    const foundResponseDTO = await service.findCourses({ teacherId });
+
+    expect(mockRepository.findCourses).toHaveBeenCalledWith({ teacherId });
+    expect(foundResponseDTO).toBeDefined();
+    expect(foundResponseDTO.length).toEqual(1);
+    expect(foundResponseDTO[0]).toEqual(expectedResponseDTO);
   });
 
   test('Should retrieve the course matching the id passed', async () => {

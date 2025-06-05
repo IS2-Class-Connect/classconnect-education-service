@@ -13,7 +13,7 @@ describe('CourseController', () => {
 
   beforeEach(() => {
     mockService = {
-      findAllCourses: jest.fn(),
+      findCourses: jest.fn(),
       findCourseById: jest.fn(),
       createCourse: jest.fn(),
       updateCourse: jest.fn(),
@@ -82,12 +82,12 @@ describe('CourseController', () => {
         createdAt: new Date(),
       },
     ];
-    (mockService.findAllCourses as jest.Mock).mockResolvedValue(mockCourses);
+    (mockService.findCourses as jest.Mock).mockResolvedValue(mockCourses);
 
-    const result = await controller.getAllCourses();
+    const result = await controller.getCourses({});
 
     expect(result).toEqual(mockCourses);
-    expect(mockService.findAllCourses).toHaveBeenCalled();
+    expect(mockService.findCourses).toHaveBeenCalled();
   });
 
   test('Should retreive an existing course', async () => {
