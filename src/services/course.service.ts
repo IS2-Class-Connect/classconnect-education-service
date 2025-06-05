@@ -396,6 +396,29 @@ export class CourseService {
     await this.repository.updateEnrollment(courseId, userId, updateData);
   }
 
+  async getCourseFeedback(courseId: number, userId: string): Promise<CourseFeedbackDto> {
+    const enrollment = await this.repository.findEnrollment(courseId, userId);
+    if (!enrollment || !(enrollment.courseFeedback && enrollment.courseNote)) {
+      throw new NotFoundException(
+        `Feedback for course ${courseId} made by user ${userId} not found.`,
+      );
+    }
+    const { courseFeedback, courseNote } = enrollment;
+    return {
+      courseFeedback,
+      courseNote,
+    };
+  }
+
+  async getStudentFeedback(courseId: number, userId: string): Promise<StudentFeedbackDto> {
+    const enrollment = await this.repository.findEnrollment(courseId, userId);
+    if (!enrollment || !(enrollment.studentFeedback && enrollment.studentNote)) {
+      throw new NotFoundException(`Feedback for user ${userId} in course ${courseId} not found.`);
+    }
+    const { studentFeedback, studentNote } = enrollment;
+    return { studentFeedback, studentNote };
+  }
+
   async getActivities(courseId: number, userId: string): Promise<ActivityRegister[]> {
     const course = await this.getCourse(courseId);
     if (course.teacherId != userId) {

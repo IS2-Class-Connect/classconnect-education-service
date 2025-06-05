@@ -995,4 +995,51 @@ describe('CourseService', () => {
       ForbiddenUserException,
     );
   });
+
+  test('Should get both feedback related to a particular course and student', async () => {
+    const courseId = 1;
+    const userId = 'a1';
+
+    const courseFeedback = 'This course was very helpful';
+    const courseNote = 4;
+    const studentFeedback = 'He worked very hard';
+    const studentNote = 8;
+
+    const expectedCourseFeedback = {
+      courseFeedback,
+      courseNote,
+    };
+
+    const expectedStudentFeedback = {
+      studentFeedback,
+      studentNote,
+    };
+
+    (mockRepository.findEnrollment as jest.Mock).mockResolvedValue({
+      ...expectedCourseFeedback,
+      ...expectedStudentFeedback,
+    });
+
+    expect(await service.getCourseFeedback(courseId, userId)).toEqual(expectedCourseFeedback);
+    expect(mockRepository.findEnrollment).toHaveBeenCalledWith(courseId, userId);
+
+    expect(await service.getStudentFeedback(courseId, userId)).toEqual(expectedStudentFeedback);
+    expect(mockRepository.findEnrollment).toHaveBeenCalledWith(courseId, userId);
+  });
+
+  test('Should throw an exception when feedback is not found', async () => {
+    const courseId = 1;
+    const userId = 'a1';
+
+    (mockRepository.findEnrollment as jest.Mock).mockResolvedValue({
+      courseFeedback: null,
+      courseNote: null,
+      studentFeedback: null,
+      studentNote: null,
+    });
+
+    await expect(service.getCourseFeedback(courseId, userId)).rejects.toThrow(NotFoundException);
+
+    await expect(service.getStudentFeedback(courseId, userId)).rejects.toThrow(NotFoundException);
+  });
 });

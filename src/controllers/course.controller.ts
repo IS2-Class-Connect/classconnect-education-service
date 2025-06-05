@@ -306,6 +306,18 @@ export class CourseController {
     logger.log(`Creating feedback for user ${userId} in course ${courseId}`);
     return this.service.createStudentFeedback(courseId, userId, feedback);
   }
+
+  @Get(':courseId/enrollments/:userId/courseFeedback')
+  async getCourseFeedback(@Param('courseId') courseId: number, @Param('userId') userId: string) {
+    logger.log(`Getting feedback for course ${courseId} made by user ${userId}`);
+    return this.service.getCourseFeedback(courseId, userId);
+  }
+
+  @Get(':courseId/enrollments/:userId/studentFeedback')
+  async getStudentFeedback(@Param('courseId') courseId: number, @Param('userId') userId: string) {
+    logger.log(`Getting feedback for user ${userId} in course ${courseId}`);
+    return this.service.getStudentFeedback(courseId, userId);
+  }
 }
 
 const logger = new Logger(CourseController.name);

@@ -13,5 +13,5 @@ export class StudentFeedbackDto {
 
   @IsNotEmpty()
   @IsString()
-  teacherId: string;
+  teacherId?: string;
 }

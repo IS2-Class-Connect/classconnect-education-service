@@ -1089,7 +1089,7 @@ describe('Course e2e', () => {
     expect(data).toMatchObject(resourceRes.body.data);
   });
 
-  test('Should throw a Bad Request Exception if feedbacks notes are out of range', async () => {
+  test('POST /courses/{courseId}/enrollments/{userId}/{courseFeedback || studentFeedback} with feedbacks notes are out of range should throw Bad Request Error', async () => {
     const course = await createCourse();
     const userId = '123e4567-e89b-12d3-a456-426614174000';
     const teacherId = '123e4567-e89b-12d3-a456-426614174001';
