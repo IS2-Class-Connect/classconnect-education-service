@@ -1,6 +1,6 @@
 import { Role } from '@prisma/client';
 
-export class EnrollmentResponseDto {
+export interface CourseEnrollmentDto {
   role: Role;
   userId: string;
   course: {

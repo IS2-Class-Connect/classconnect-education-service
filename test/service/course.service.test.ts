@@ -3,19 +3,32 @@ import { CourseRequestDto } from '../../src/dtos/course/course.request.dto';
 import { CourseRepository } from 'src/repositories/course.repository';
 import { CourseResponseDto } from 'src/dtos/course/course.response.dto';
 import { getDatesAfterToday } from 'test/utils';
-import { Activity, DataType, Enrollment, Prisma, Role } from '@prisma/client';
+import { Activity, DataType, Prisma, Role } from '@prisma/client';
 import { NotFoundException } from '@nestjs/common';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
-import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollments.response.dto';
+import { CourseEnrollmentDto } from 'src/dtos/enrollment/course.enrollment.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
-import { link } from 'fs';
+import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.dto';
+import { CourseFeedbackResponseDto } from 'src/dtos/feedback/course.feedback.response.dto';
+import { StudentFeedbackResponseDto } from 'src/dtos/feedback/student.feedback.response.dto';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const MOCK_AI_RESPONSE = 'Mocked AI response';
 
 describe('CourseService', () => {
   let service: CourseService;
   let mockRepository: CourseRepository;
+  let mockGenAI: GoogleGenerativeAI;
   const { startDate, endDate, registrationDeadline } = getDatesAfterToday();
 
   beforeEach(() => {
+    const mockModel = {
+      generateContent: jest.fn().mockResolvedValue({
+        response: {
+          text: () => MOCK_AI_RESPONSE,
+        },
+      }),
+    };
     mockRepository = {
       findAll: jest.fn(),
       findCourses: jest.fn(),
@@ -42,7 +55,11 @@ describe('CourseService', () => {
       updateResource: jest.fn(),
       deleteResource: jest.fn(),
     } as any;
-    service = new CourseService(mockRepository);
+    mockGenAI = {
+      apiKey: 'dummy-api-key',
+      getGenerativeModel: jest.fn().mockReturnValue(mockModel),
+    } as any;
+    service = new CourseService(mockRepository, mockGenAI);
   });
 
   test('Should create a Course', async () => {
@@ -331,7 +348,7 @@ describe('CourseService', () => {
       role: Role.STUDENT,
     };
 
-    const expected: Enrollment = {
+    const expected: EnrollmentResponseDto = {
       ...courseCreateEnrollment,
       courseId,
       favorite: false,
@@ -388,7 +405,7 @@ describe('CourseService', () => {
       },
     ];
 
-    const expected: Enrollment[] = [enrollments[0], enrollments[1]];
+    const expected: EnrollmentResponseDto[] = [enrollments[0], enrollments[1]];
 
     const mockedCourse = {
       courseId,
@@ -469,7 +486,7 @@ describe('CourseService', () => {
       },
     ]);
 
-    const expected: EnrollmentResponseDto[] = [
+    const expected: CourseEnrollmentDto[] = [
       {
         userId,
         role: enrollment1.role,
@@ -942,5 +959,151 @@ describe('CourseService', () => {
 
     expect(await service.deleteResource(courseId, userId, moduleId, link)).toBe(expected);
     expect(mockRepository.deleteResource).toHaveBeenCalledWith(moduleId, link);
+  });
+
+  test('Should add the feedback made by a student to a course', async () => {
+    const courseId = 1;
+    const userId = 'a1';
+    const feedback = {
+      courseFeedback: 'This course was very helpful',
+      courseNote: 4,
+    };
+
+    await service.createCourseFeedback(courseId, userId, feedback);
+    expect(mockRepository.updateEnrollment).toHaveBeenCalledWith(courseId, userId, feedback);
+  });
+
+  test('Should add the feedback of student in a course', async () => {
+    const courseId = 1;
+    const userId = 'a1';
+    const teacherId = 'a2';
+    const feedback = {
+      studentFeedback: 'He worked very hard',
+      studentNote: 4,
+      teacherId,
+    };
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue({
+      id: courseId,
+      teacherId,
+    });
+
+    await service.createStudentFeedback(courseId, userId, feedback);
+    const { teacherId: _, ...feedbackData } = feedback;
+    expect(mockRepository.updateEnrollment).toHaveBeenCalledWith(courseId, userId, feedbackData);
+  });
+
+  test('Should throw an exception when a forbidden user tries to add a feedback of a student in a course', async () => {
+    const courseId = 1;
+    const userId = 'a1';
+    const teacherId = 'a2';
+    const feedback = {
+      studentFeedback: 'He worked very hard',
+      studentNote: 4,
+      teacherId: userId,
+    };
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue({
+      id: courseId,
+      teacherId,
+    });
+    await expect(service.createStudentFeedback(courseId, userId, feedback)).rejects.toThrow(
+      ForbiddenUserException,
+    );
+  });
+
+  test('Should get both feedback related to a particular course and student', async () => {
+    const courseId = 1;
+    const userId = 'a1';
+
+    const courseFeedback = 'This course was very helpful';
+    const courseNote = 4;
+    const studentFeedback = 'He worked very hard';
+    const studentNote = 4;
+
+    const expectedCourseFeedback = {
+      courseFeedback,
+      courseNote,
+      studentId: userId,
+    };
+
+    const expectedStudentFeedback = {
+      studentFeedback,
+      studentNote,
+      courseId,
+    };
+
+    (mockRepository.findEnrollment as jest.Mock).mockResolvedValue({
+      ...expectedCourseFeedback,
+      ...expectedStudentFeedback,
+    });
+
+    expect(await service.getCourseFeedback(courseId, userId)).toEqual(expectedCourseFeedback);
+    expect(mockRepository.findEnrollment).toHaveBeenCalledWith(courseId, userId);
+
+    expect(await service.getStudentFeedback(courseId, userId)).toEqual(expectedStudentFeedback);
+    expect(mockRepository.findEnrollment).toHaveBeenCalledWith(courseId, userId);
+  });
+
+  test('Should throw an exception when feedback is not found', async () => {
+    const courseId = 1;
+    const userId = 'a1';
+
+    (mockRepository.findEnrollment as jest.Mock).mockResolvedValue({
+      courseFeedback: null,
+      courseNote: null,
+      studentFeedback: null,
+      studentNote: null,
+    });
+
+    await expect(service.getCourseFeedback(courseId, userId)).rejects.toThrow(NotFoundException);
+
+    await expect(service.getStudentFeedback(courseId, userId)).rejects.toThrow(NotFoundException);
+  });
+
+  test('Should get all feedbacks made to a particular course', async () => {
+    const courseId = 1;
+
+    const userId = 'a1';
+    const courseFeedback = 'This course was very helpful';
+    const courseNote = 4;
+
+    const enrollments = [
+      { courseId, userId, courseFeedback, courseNote },
+      { courseId, userId: 'a2', courseFeedback: null, courseNote: null },
+    ];
+
+    (mockRepository.findById as jest.Mock).mockResolvedValue({ courseId });
+    (mockRepository.findCourseEnrollments as jest.Mock).mockResolvedValue(enrollments);
+
+    const expected: { feedbacks: CourseFeedbackResponseDto[]; summary: string } = {
+      feedbacks: [{ studentId: userId, courseFeedback, courseNote }],
+      summary: MOCK_AI_RESPONSE,
+    };
+
+    expect(await service.getCourseFeedbacks(courseId)).toEqual(expected);
+    expect(mockRepository.findCourseEnrollments).toHaveBeenCalledWith(courseId);
+  });
+
+  test('Should get all feedbacks made to a particular student', async () => {
+    const courseId = 1;
+    const userId = 'a1';
+    const studentFeedback = 'He worked very hard';
+    const studentNote = 4;
+
+    const enrollments = [
+      { courseId, userId, studentFeedback, studentNote },
+      { courseId, userId, studentFeedback: null, studentNote: null },
+    ];
+
+    (mockRepository.findEnrollments as jest.Mock).mockResolvedValue(enrollments);
+
+    const expected: { feedbacks: StudentFeedbackResponseDto[]; summary: string } = {
+      feedbacks: [{ courseId, studentFeedback, studentNote }],
+      summary: MOCK_AI_RESPONSE,
+    };
+
+    expect(await service.getStudentFeedbacks(userId)).toEqual(expected);
+    expect(mockRepository.findEnrollments).toHaveBeenCalledWith({ userId });
   });
 });

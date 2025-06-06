@@ -2,9 +2,7 @@ import { ConflictException, Injectable, Logger, NotFoundException } from '@nestj
 import { PrismaService } from 'src/prisma.service';
 import { Prisma, Course, Enrollment, ActivityRegister } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment/course.update.enrollment.dto';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
-import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
 import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
 
 const PRISMA_NOT_FOUND_CODE = 'P2025';
@@ -120,7 +118,7 @@ export class CourseRepository {
    * @returns A promise that resolves to an array of `Enrollment` objects associated with the course,
    *          or `null` if no enrollments are found.
    */
-  findCourseEnrollments(id: number): Promise<Enrollment[] | null> {
+  findCourseEnrollments(id: number): Promise<Enrollment[]> {
     return this.prisma.enrollment.findMany({
       where: { courseId: id },
     });
@@ -129,7 +127,7 @@ export class CourseRepository {
   async updateEnrollment(
     courseId: number,
     userId: string,
-    data: CourseUpdateEnrollmentDto,
+    data: Prisma.EnrollmentUpdateInput,
   ): Promise<Enrollment | null> {
     try {
       return await this.prisma.enrollment.update({

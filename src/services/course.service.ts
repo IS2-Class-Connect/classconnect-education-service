@@ -2,19 +2,24 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { CourseRequestDto } from '../dtos/course/course.request.dto';
 import { CourseResponseDto } from '../dtos/course/course.response.dto';
 import { CourseRepository, EnrollmentWithCourse } from '../repositories/course.repository';
-import { Activity, ActivityRegister, Course, Enrollment, Prisma, Role } from '@prisma/client';
+import { Activity, ActivityRegister, Course, Prisma, Role } from '@prisma/client';
 import { CourseUpdateDto } from 'src/dtos/course/course.update.dto';
 import { CourseCreateEnrollmentDto } from 'src/dtos/enrollment/course.create.enrollment.dto';
 import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment/course.update.enrollment.dto';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
-import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollments.response.dto';
+import { CourseEnrollmentDto } from 'src/dtos/enrollment/course.enrollment.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
 import { CourseModuleCreateDto } from 'src/dtos/module/course.module.create.dto';
 import { CourseModuleUpdateDto } from 'src/dtos/module/course.module.update.dto';
 import { CourseResourceCreateDto } from 'src/dtos/resources/course.resource.create.dto';
 import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
+import { CourseFeedbackRequestDto } from 'src/dtos/feedback/course.feedback.request.dto';
+import { StudentFeedbackRequestDto } from 'src/dtos/feedback/student.feedback.request.dto';
+import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.dto';
 import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
-import { get } from 'http';
+import { StudentFeedbackResponseDto } from 'src/dtos/feedback/student.feedback.response.dto';
+import { CourseFeedbackResponseDto } from 'src/dtos/feedback/course.feedback.response.dto';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const MIN_PLACES_LIMIT = 1;
 
@@ -67,7 +72,7 @@ function getResponseDTO(course: Course): CourseResponseDto {
   };
 }
 
-function getEnrollmentResponse(enrollment: EnrollmentWithCourse): EnrollmentResponseDto {
+function getEnrollmentResponse(enrollment: EnrollmentWithCourse): CourseEnrollmentDto {
   const { userId, role, course } = enrollment;
   const { id, title } = course;
   return {
@@ -165,7 +170,10 @@ function validateCourseUpdate(updateData: CourseUpdateDto, course: Course) {
  */
 @Injectable()
 export class CourseService {
-  constructor(private readonly repository: CourseRepository) {}
+  constructor(
+    private readonly repository: CourseRepository,
+    private readonly genAI: GoogleGenerativeAI,
+  ) {}
 
   private async getCourse(id: number) {
     const course = await this.repository.findById(id);
@@ -286,22 +294,38 @@ export class CourseService {
   async createEnrollment(
     courseId: number,
     userEnrollment: CourseCreateEnrollmentDto,
-  ): Promise<Enrollment | null> {
+  ): Promise<EnrollmentResponseDto | null> {
     if (!Number.isInteger(courseId) || courseId <= 0) {
       throw new BadRequestException('Invalid course ID.');
     }
-    return await this.repository.createEnrollment({ courseId, ...userEnrollment });
+    const enrollment = await this.repository.createEnrollment({ courseId, ...userEnrollment });
+    if (!enrollment) {
+      return null;
+    }
+    return (({ courseId, role, userId, favorite }) => ({ courseId, role, userId, favorite }))(
+      enrollment,
+    );
   }
 
   async updateEnrollment(
     courseId: number,
     userId: string,
     enrollmentUpdateDto: CourseUpdateEnrollmentDto,
-  ): Promise<Enrollment | null> {
+  ): Promise<EnrollmentResponseDto | null> {
     if (!Number.isInteger(courseId) || courseId <= 0) {
       throw new BadRequestException('Invalid course ID.');
     }
-    return await this.repository.updateEnrollment(courseId, userId, enrollmentUpdateDto);
+    const enrollment = await this.repository.updateEnrollment(
+      courseId,
+      userId,
+      enrollmentUpdateDto,
+    );
+    if (!enrollment) {
+      return null;
+    }
+    return (({ courseId, role, userId, favorite }) => ({ courseId, role, userId, favorite }))(
+      enrollment,
+    );
   }
 
   /**
@@ -313,14 +337,20 @@ export class CourseService {
    * @throws {BadRequestException} If the provided course ID is not a valid positive integer.
    * @throws {NotFoundException} If no course is found with the specified ID.
    */
-  async getCourseEnrollments(courseId: number): Promise<Enrollment[] | null> {
+  async getCourseEnrollments(courseId: number): Promise<EnrollmentResponseDto[] | null> {
     if (!Number.isInteger(courseId) || courseId <= 0) {
       throw new BadRequestException('Invalid course ID.');
     }
 
     await this.getCourse(courseId);
 
-    return await this.repository.findCourseEnrollments(courseId);
+    const enrollments = await this.repository.findCourseEnrollments(courseId);
+
+    return enrollments.map((enrollment) =>
+      (({ courseId, role, userId, favorite }) => ({ courseId, role, userId, favorite }))(
+        enrollment,
+      ),
+    );
   }
 
   async getEnrollments(filters: EnrollmentFilterDto) {
@@ -340,14 +370,126 @@ export class CourseService {
    * @throws {BadRequestException} If the provided `courseId` is not a valid positive integer.
    * @throws {NotFoundException} If the course with the specified `courseId` does not exist.
    */
-  async deleteEnrollment(courseId: number, userId: string): Promise<Enrollment | null> {
+  async deleteEnrollment(courseId: number, userId: string): Promise<EnrollmentResponseDto | null> {
     if (!Number.isInteger(courseId) || courseId <= 0) {
       throw new BadRequestException('Invalid course ID.');
     }
 
     await this.getCourse(courseId);
+    const enrollment = await this.repository.deleteEnrollment(courseId, userId);
 
-    return await this.repository.deleteEnrollment(courseId, userId);
+    if (!enrollment) {
+      return null;
+    }
+
+    return (({ courseId, role, userId, favorite }) => ({ courseId, role, userId, favorite }))(
+      enrollment,
+    );
+  }
+
+  async createCourseFeedback(courseId: number, userId: string, feedback: CourseFeedbackRequestDto) {
+    await this.repository.updateEnrollment(courseId, userId, feedback);
+  }
+
+  async createStudentFeedback(
+    courseId: number,
+    userId: string,
+    feedback: StudentFeedbackRequestDto,
+  ) {
+    const course = await this.getCourse(courseId);
+    const { teacherId, ...updateData } = feedback;
+    if (course.teacherId != teacherId) {
+      throw new ForbiddenUserException(
+        `User ${userId} is not allowed to create feedback for course ${courseId}. Only the head teacher is allowed.`,
+      );
+    }
+    await this.repository.updateEnrollment(courseId, userId, updateData);
+  }
+
+  async getCourseFeedback(courseId: number, userId: string): Promise<CourseFeedbackResponseDto> {
+    const enrollment = await this.repository.findEnrollment(courseId, userId);
+    if (!enrollment || !(enrollment.courseFeedback && enrollment.courseNote)) {
+      throw new NotFoundException(
+        `Feedback for course ${courseId} made by user ${userId} not found.`,
+      );
+    }
+    const { courseFeedback, courseNote } = enrollment;
+    return {
+      courseFeedback,
+      courseNote,
+      studentId: userId,
+    };
+  }
+
+  async getStudentFeedback(courseId: number, userId: string): Promise<StudentFeedbackResponseDto> {
+    const enrollment = await this.repository.findEnrollment(courseId, userId);
+    if (!enrollment || !(enrollment.studentFeedback && enrollment.studentNote)) {
+      throw new NotFoundException(`Feedback for user ${userId} in course ${courseId} not found.`);
+    }
+    const { studentFeedback, studentNote } = enrollment;
+    return { studentFeedback, studentNote, courseId };
+  }
+
+  async getCourseFeedbacks(
+    courseId: number,
+  ): Promise<{ feedbacks: CourseFeedbackResponseDto[]; summary: string }> {
+    await this.getCourse(courseId);
+    const enrollments = await this.repository.findCourseEnrollments(courseId);
+    const feedbacks = enrollments.flatMap(({ courseFeedback, courseNote, userId }) => {
+      if (courseFeedback && courseNote) {
+        return {
+          courseFeedback,
+          courseNote,
+          studentId: userId,
+        };
+      }
+      return [];
+    }) as CourseFeedbackResponseDto[];
+    const prompt = [
+      'Summarize the following course feedbacks in a concise paragraph.',
+      'Each feedback consists of a comment and a numeric rating (from 1 to 5) given by a student.',
+      'Highlight the main strengths and weaknesses mentioned, and provide an overall impression of the course based on the feedbacks.',
+      'If there is only one feedback, provide a very brief analysis (no more than two sentences) of it',
+      'If there are no feedbacks, just say that there are no feedbacks.',
+      'Here are the feedbacks:',
+      JSON.stringify(feedbacks, null, 2),
+    ].join('\n');
+    const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const summary = response.text();
+    return { feedbacks, summary };
+  }
+
+  async getStudentFeedbacks(
+    studentId: string,
+  ): Promise<{ feedbacks: StudentFeedbackResponseDto[]; summary: string }> {
+    const enrollments = await this.repository.findEnrollments({ userId: studentId });
+    const feedbacks = enrollments.flatMap(({ studentFeedback, studentNote, courseId }) => {
+      if (studentFeedback && studentNote) {
+        return {
+          studentFeedback,
+          studentNote,
+          courseId,
+        };
+      }
+      return [];
+    }) as StudentFeedbackResponseDto[];
+
+    const prompt = [
+      'Summarize the following student feedbacks in a concise paragraph.',
+      'Each feedback consists of a comment and a numeric rating (from 1 to 5) given by the head teacher of a course.',
+      'Highlight the main strengths and weaknesses mentioned, and provide an overall impression of the student performance based on the feedbacks.',
+      'If there is only one feedback, provide a very brief analysis (no more than two sentences) of it',
+      'If there are no feedbacks, just say that there are no feedbacks.',
+      'Here are the feedbacks:',
+      JSON.stringify(feedbacks, null, 2),
+    ].join('\n');
+    const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const summary = response.text();
+    return { feedbacks, summary };
   }
 
   async getActivities(courseId: number, userId: string): Promise<ActivityRegister[]> {

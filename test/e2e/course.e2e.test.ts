@@ -7,8 +7,7 @@ import { BaseExceptionFilter } from '../../src/middleware/exception.filter';
 import { ResponseInterceptor } from '../../src/middleware/response.interceptor';
 import { cleanDataBase, getDatesAfterToday } from 'test/utils';
 import { PrismaService } from 'src/prisma.service';
-import { DataType, Role } from '@prisma/client';
-import { link } from 'fs';
+import { Role } from '@prisma/client';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
@@ -1087,5 +1086,57 @@ describe('Course e2e', () => {
 
     const { data } = res.body;
     expect(data).toMatchObject(resourceRes.body.data);
+  });
+
+  test('POST /courses/{courseId}/enrollments/{userId}/{courseFeedback || studentFeedback} with feedbacks notes are out of range should throw Bad Request Error', async () => {
+    const course = await createCourse();
+    const userId = '123e4567-e89b-12d3-a456-426614174000';
+    const teacherId = '123e4567-e89b-12d3-a456-426614174001';
+
+    const enrollmentData = {
+      userId,
+      role: 'STUDENT',
+    };
+
+    await request(app.getHttpServer())
+      .post(`/courses/${course.id}/enrollments`)
+      .send(enrollmentData);
+
+    const courseFeedback = {
+      courseFeedback: 'This course was great!',
+      courseNote: 7, // out of range
+    };
+
+    const studentFeedback = {
+      studentFeedback: 'He learned a lot!',
+      studentNote: -1, // out of range
+      teacherId,
+    };
+
+    const courseFeedbackRes = await request(app.getHttpServer())
+      .post(`/courses/${course.id}/enrollments/${userId}/courseFeedback`)
+      .send(courseFeedback);
+
+    const studentFeedbackRes = await request(app.getHttpServer())
+      .post(`/courses/${course.id}/enrollments/${userId}/studentFeedback`)
+      .send(studentFeedback);
+
+    expect(courseFeedbackRes.status).toBe(400);
+    expect(courseFeedbackRes.body).toHaveProperty('type');
+    expect(courseFeedbackRes.body).toHaveProperty('title', 'BadRequestException');
+    expect(courseFeedbackRes.body).toHaveProperty('detail');
+    expect(courseFeedbackRes.body).toHaveProperty(
+      'instance',
+      `/courses/${course.id}/enrollments/${userId}/courseFeedback`,
+    );
+
+    expect(studentFeedbackRes.status).toBe(400);
+    expect(studentFeedbackRes.body).toHaveProperty('type');
+    expect(studentFeedbackRes.body).toHaveProperty('title', 'BadRequestException');
+    expect(studentFeedbackRes.body).toHaveProperty('detail');
+    expect(studentFeedbackRes.body).toHaveProperty(
+      'instance',
+      `/courses/${course.id}/enrollments/${userId}/studentFeedback`,
+    );
   });
 });
