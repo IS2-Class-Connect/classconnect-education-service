@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { CourseRequestDto } from '../dtos/course/course.request.dto';
 import { CourseResponseDto } from '../dtos/course/course.response.dto';
 import { CourseRepository, EnrollmentWithCourse } from '../repositories/course.repository';
-import { Activity, ActivityRegister, Course, Enrollment, Prisma, Role } from '@prisma/client';
+import { Activity, ActivityRegister, Course, Prisma, Role } from '@prisma/client';
 import { CourseUpdateDto } from 'src/dtos/course/course.update.dto';
 import { CourseCreateEnrollmentDto } from 'src/dtos/enrollment/course.create.enrollment.dto';
 import { CourseUpdateEnrollmentDto } from 'src/dtos/enrollment/course.update.enrollment.dto';
@@ -19,6 +19,7 @@ import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.d
 import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
 import { StudentFeedbackResponseDto } from 'src/dtos/feedback/student.feedback.response.dto';
 import { CourseFeedbackResponseDto } from 'src/dtos/feedback/course.feedback.response.dto';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const MIN_PLACES_LIMIT = 1;
 
@@ -169,7 +170,10 @@ function validateCourseUpdate(updateData: CourseUpdateDto, course: Course) {
  */
 @Injectable()
 export class CourseService {
-  constructor(private readonly repository: CourseRepository) {}
+  constructor(
+    private readonly repository: CourseRepository,
+    private readonly genAI: GoogleGenerativeAI,
+  ) {}
 
   private async getCourse(id: number) {
     const course = await this.repository.findById(id);
@@ -426,10 +430,12 @@ export class CourseService {
     return { studentFeedback, studentNote, courseId };
   }
 
-  async getCourseFeedbacks(courseId: number): Promise<CourseFeedbackResponseDto[]> {
+  async getCourseFeedbacks(
+    courseId: number,
+  ): Promise<{ feedbacks: CourseFeedbackResponseDto[]; summary: string }> {
     await this.getCourse(courseId);
     const enrollments = await this.repository.findCourseEnrollments(courseId);
-    return enrollments.flatMap(({ courseFeedback, courseNote, userId }) => {
+    const feedbacks = enrollments.flatMap(({ courseFeedback, courseNote, userId }) => {
       if (courseFeedback && courseNote) {
         return {
           courseFeedback,
@@ -439,11 +445,27 @@ export class CourseService {
       }
       return [];
     }) as CourseFeedbackResponseDto[];
+    const prompt = [
+      'Summarize the following course feedbacks in a concise paragraph.',
+      'Each feedback consists of a comment and a numeric rating (from 1 to 5) given by a student.',
+      'Highlight the main strengths and weaknesses mentioned, and provide an overall impression of the course based on the feedbacks.',
+      'If there is only one feedback, provide a very brief analysis (no more than two sentences) of it',
+      'If there are no feedbacks, just say that there are no feedbacks.',
+      'Here are the feedbacks:',
+      JSON.stringify(feedbacks, null, 2),
+    ].join('\n');
+    const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const summary = response.text();
+    return { feedbacks, summary };
   }
 
-  async getStudentFeedbacks(studentId: string): Promise<StudentFeedbackResponseDto[]> {
+  async getStudentFeedbacks(
+    studentId: string,
+  ): Promise<{ feedbacks: StudentFeedbackResponseDto[]; summary: string }> {
     const enrollments = await this.repository.findEnrollments({ userId: studentId });
-    return enrollments.flatMap(({ studentFeedback, studentNote, courseId }) => {
+    const feedbacks = enrollments.flatMap(({ studentFeedback, studentNote, courseId }) => {
       if (studentFeedback && studentNote) {
         return {
           studentFeedback,
@@ -453,6 +475,21 @@ export class CourseService {
       }
       return [];
     }) as StudentFeedbackResponseDto[];
+
+    const prompt = [
+      'Summarize the following student feedbacks in a concise paragraph.',
+      'Each feedback consists of a comment and a numeric rating (from 1 to 5) given by the head teacher of a course.',
+      'Highlight the main strengths and weaknesses mentioned, and provide an overall impression of the student performance based on the feedbacks.',
+      'If there is only one feedback, provide a very brief analysis (no more than two sentences) of it',
+      'If there are no feedbacks, just say that there are no feedbacks.',
+      'Here are the feedbacks:',
+      JSON.stringify(feedbacks, null, 2),
+    ].join('\n');
+    const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const summary = response.text();
+    return { feedbacks, summary };
   }
 
   async getActivities(courseId: number, userId: string): Promise<ActivityRegister[]> {

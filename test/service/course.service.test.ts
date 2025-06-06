@@ -3,22 +3,32 @@ import { CourseRequestDto } from '../../src/dtos/course/course.request.dto';
 import { CourseRepository } from 'src/repositories/course.repository';
 import { CourseResponseDto } from 'src/dtos/course/course.response.dto';
 import { getDatesAfterToday } from 'test/utils';
-import { Activity, DataType, Enrollment, Prisma, Role } from '@prisma/client';
+import { Activity, DataType, Prisma, Role } from '@prisma/client';
 import { NotFoundException } from '@nestjs/common';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
 import { CourseEnrollmentDto } from 'src/dtos/enrollment/course.enrollment.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
-import { link } from 'fs';
 import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.dto';
 import { CourseFeedbackResponseDto } from 'src/dtos/feedback/course.feedback.response.dto';
 import { StudentFeedbackResponseDto } from 'src/dtos/feedback/student.feedback.response.dto';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const MOCK_AI_RESPONSE = 'Mocked AI response';
 
 describe('CourseService', () => {
   let service: CourseService;
   let mockRepository: CourseRepository;
+  let mockGenAI: GoogleGenerativeAI;
   const { startDate, endDate, registrationDeadline } = getDatesAfterToday();
 
   beforeEach(() => {
+    const mockModel = {
+      generateContent: jest.fn().mockResolvedValue({
+        response: {
+          text: () => MOCK_AI_RESPONSE,
+        },
+      }),
+    };
     mockRepository = {
       findAll: jest.fn(),
       findCourses: jest.fn(),
@@ -45,7 +55,11 @@ describe('CourseService', () => {
       updateResource: jest.fn(),
       deleteResource: jest.fn(),
     } as any;
-    service = new CourseService(mockRepository);
+    mockGenAI = {
+      apiKey: 'dummy-api-key',
+      getGenerativeModel: jest.fn().mockReturnValue(mockModel),
+    } as any;
+    service = new CourseService(mockRepository, mockGenAI);
   });
 
   test('Should create a Course', async () => {
@@ -1062,9 +1076,10 @@ describe('CourseService', () => {
     (mockRepository.findById as jest.Mock).mockResolvedValue({ courseId });
     (mockRepository.findCourseEnrollments as jest.Mock).mockResolvedValue(enrollments);
 
-    const expected: CourseFeedbackResponseDto[] = [
-      { studentId: userId, courseFeedback, courseNote },
-    ];
+    const expected: { feedbacks: CourseFeedbackResponseDto[]; summary: string } = {
+      feedbacks: [{ studentId: userId, courseFeedback, courseNote }],
+      summary: MOCK_AI_RESPONSE,
+    };
 
     expect(await service.getCourseFeedbacks(courseId)).toEqual(expected);
     expect(mockRepository.findCourseEnrollments).toHaveBeenCalledWith(courseId);
@@ -1083,7 +1098,10 @@ describe('CourseService', () => {
 
     (mockRepository.findEnrollments as jest.Mock).mockResolvedValue(enrollments);
 
-    const expected: StudentFeedbackResponseDto[] = [{ courseId, studentFeedback, studentNote }];
+    const expected: { feedbacks: StudentFeedbackResponseDto[]; summary: string } = {
+      feedbacks: [{ courseId, studentFeedback, studentNote }],
+      summary: MOCK_AI_RESPONSE,
+    };
 
     expect(await service.getStudentFeedbacks(userId)).toEqual(expected);
     expect(mockRepository.findEnrollments).toHaveBeenCalledWith({ userId });
