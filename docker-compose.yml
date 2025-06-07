@@ -28,6 +28,7 @@ services:
       - my-network
     ports:
       - 3002:3002
+    env_file: .env
     environment:
       DATABASE_URL: postgresql://user:pass@db_education:54322/classconnect
       PORT: 3002
