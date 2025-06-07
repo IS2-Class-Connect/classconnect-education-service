@@ -33,8 +33,8 @@ function prometheusMiddleware(req: Request, res: Response, next: NextFunction) {
   const end = responseTimeHistogram.startTimer();
 
   res.on('finish', () => {
-    end({ method: req.method, route: req.route, status: res.statusCode.toString() });
-    requestCounter.inc({ method: req.method, route: req.route, status: res.statusCode.toString() });
+    end({ method: req.method, route: req.route.path, status: res.statusCode.toString() });
+    requestCounter.inc({ method: req.method, route: req.route.path, status: res.statusCode.toString() });
   });
 
   next();
