@@ -11,41 +11,41 @@ export class AssessmentService {
     private readonly courseRepository: CourseRepository,
   ) {}
 
-  private async getCourse(id: number) {
-    const course = await this.courseRepository.findById(id);
-    if (!course) {
-      logger.error(`The course with Id ${id} was not found`);
-      throw new NotFoundException(`Course with ID ${id} not found.`);
-    }
-    return course;
-  }
+  // TODO: Enable feats
+  // private async getCourse(id: number) {
+  //   const course = await this.courseRepository.findById(id);
+  //   if (!course) {
+  //     logger.error(`The course with Id ${id} was not found`);
+  //     throw new NotFoundException(`Course with ID ${id} not found.`);
+  //   }
+  //   return course;
+  // }
 
-  private async registerActivity(
-    courseId: number,
-    teacherId: string,
-    userId: string,
-    activity: Activity,
-  ) {
-    if (userId != teacherId) {
-      const userEnrollmentToCourse = await this.courseRepository.findEnrollment(courseId, userId);
-      if (!(userEnrollmentToCourse && userEnrollmentToCourse.role == Role.ASSISTANT)) {
-        // throw new ForbiddenUserException(
-        //   getForbiddenExceptionMsg(courseId, userId, activity) +
-        //     ' User has to be either the course head teacher or an assistant.',
-        // );
-      }
+  // private async registerActivity(
+  //   courseId: number,
+  //   teacherId: string,
+  //   userId: string,
+  //   activity: Activity,
+  // ) {
+  //   if (userId != teacherId) {
+  //     const userEnrollmentToCourse = await this.courseRepository.findEnrollment(courseId, userId);
+  //     if (!(userEnrollmentToCourse && userEnrollmentToCourse.role == Role.ASSISTANT)) {
+  //       // throw new ForbiddenUserException(
+  //       //   getForbiddenExceptionMsg(courseId, userId, activity) +
+  //       //     ' User has to be either the course head teacher or an assistant.',
+  //       // );
+  //     }
 
-      const activityData: Prisma.ActivityRegisterUncheckedCreateInput = {
-        courseId,
-        userId,
-        activity,
-      };
+  //     const activityData: Prisma.ActivityRegisterUncheckedCreateInput = {
+  //       courseId,
+  //       userId,
+  //       activity,
+  //     };
 
-      await this.courseRepository.createActivityRegister(activityData);
-    }
-  }
+  //     await this.courseRepository.createActivityRegister(activityData);
+  //   }
+  // }
 
-  // TODO: Enable createAssess
   // async createAssess(courseId: number, createDto: AssessmentCreateDto) {
   //   const course = await this.getCourse(courseId);
   //   const { teacherId } = course;
