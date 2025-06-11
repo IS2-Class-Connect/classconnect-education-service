@@ -5,10 +5,12 @@ import { getDatesAfterToday } from 'test/utils';
 import { Activity, Role } from '@prisma/client';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
 import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.dto';
+import { AssessmentService } from 'src/services/assessment.service';
 
 describe('CourseController', () => {
   let controller: CourseController;
   let mockService: CourseService;
+  let mockAssessmentService: AssessmentService;
   const { startDate, endDate, registrationDeadline } = getDatesAfterToday();
 
   beforeEach(() => {
@@ -27,7 +29,10 @@ describe('CourseController', () => {
       getCourseModule: jest.fn(),
       getModuleResource: jest.fn(),
     } as any;
-    controller = new CourseController(mockService);
+    mockAssessmentService = {
+      createAssess: jest.fn(),
+    } as any;
+    controller = new CourseController(mockService, mockAssessmentService);
   });
 
   test('Should retreive a new Course instance', async () => {
