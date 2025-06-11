@@ -3,8 +3,10 @@ import { CourseController } from '../controllers/course.controller';
 import { CourseService } from '../services/course.service';
 import { CourseRepository } from 'src/repositories/course.repository';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { AssessmentModule } from './assessment.module';
 
 @Module({
+  imports: [AssessmentModule],
   controllers: [CourseController],
   providers: [
     CourseService,
