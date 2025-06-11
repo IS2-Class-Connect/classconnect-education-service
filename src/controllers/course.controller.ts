@@ -336,17 +336,18 @@ export class CourseController {
     return this.service.getStudentFeedbacks(studentId);
   }
 
-  @HttpCode(HttpStatus.CREATED)
-  @Post(':courseId/assessments')
-  async createAssessment(
-    @Param('courseId') courseId: number,
-    @Body() createAssessmentDto: AssessmentCreateDto,
-  ) {
-    logger.log(
-      `Creating assessment for course ${courseId} with title ${createAssessmentDto.title}`,
-    );
-    return this.assessService.createAssess(courseId, createAssessmentDto);
-  }
+  // TODO: Enable endpoint
+  // @HttpCode(HttpStatus.CREATED)
+  // @Post(':courseId/assessments')
+  // async createAssessment(
+  //   @Param('courseId') courseId: number,
+  //   @Body() createAssessmentDto: AssessmentCreateDto,
+  // ) {
+  //   logger.log(
+  //     `Creating assessment for course ${courseId} with title ${createAssessmentDto.title}`,
+  //   );
+  //   return this.assessService.createAssess(courseId, createAssessmentDto);
+  // }
 }
 
 const logger = new Logger(CourseController.name);

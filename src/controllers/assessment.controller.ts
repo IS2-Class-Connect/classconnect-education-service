@@ -6,6 +6,7 @@ import { AssessmentService } from 'src/services/assessment.service';
 export class AssessmentController {
   constructor(private readonly service: AssessmentService) {}
 
+  // TODO: Enable endpoints
   // @Post()
   // create(@Body() createAssessmentDto: AssessmentCreateDto) {
   //   return this.service.createAssess(crea);
