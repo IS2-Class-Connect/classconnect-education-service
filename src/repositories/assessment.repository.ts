@@ -13,8 +13,9 @@ export class AssessmentRepository {
     @InjectModel(Assessment.name) private readonly assessmentModel: Model<AssessmentDocument>,
   ) {}
 
-  async create(assessment: CreateAssessmentProps): Promise<Assessment> {
-    const createdAssessment = new this.assessmentModel(assessment);
-    return createdAssessment.save();
-  }
+  // TODO: Enable create
+  // async create(assessment: CreateAssessmentProps): Promise<Assessment> {
+  //   const createdAssessment = new this.assessmentModel(assessment);
+  //   return createdAssessment.save();
+  // }
 }

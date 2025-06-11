@@ -45,22 +45,23 @@ export class AssessmentService {
     }
   }
 
-  async createAssess(courseId: number, createDto: AssessmentCreateDto) {
-    const course = await this.getCourse(courseId);
-    const { teacherId } = course;
-    const { userId, ...assessmentData } = createDto;
-    await this.registerActivity(
-      courseId,
-      teacherId,
-      userId,
-      createDto.type === 'Exam' ? Activity.ADD_EXAM : Activity.ADD_TASK,
-    );
-    const [startTime, deadline] = [createDto.startTime, createDto.deadline].map(
-      (date) => new Date(date),
-    );
-    const assessment = { courseId, teacherId, ...assessmentData, startTime, deadline };
-    return this.repository.create(assessment);
-  }
+  // TODO: Enable createAssess
+  // async createAssess(courseId: number, createDto: AssessmentCreateDto) {
+  //   const course = await this.getCourse(courseId);
+  //   const { teacherId } = course;
+  //   const { userId, ...assessmentData } = createDto;
+  //   await this.registerActivity(
+  //     courseId,
+  //     teacherId,
+  //     userId,
+  //     createDto.type === 'Exam' ? Activity.ADD_EXAM : Activity.ADD_TASK,
+  //   );
+  //   const [startTime, deadline] = [createDto.startTime, createDto.deadline].map(
+  //     (date) => new Date(date),
+  //   );
+  //   const assessment = { courseId, teacherId, ...assessmentData, startTime, deadline };
+  //   return this.repository.create(assessment);
+  // }
 }
 
 const logger = new Logger(AssessmentService.name);
