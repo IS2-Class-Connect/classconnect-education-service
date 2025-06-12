@@ -9,3 +9,13 @@ services:
       POSTGRES_USER: cc-education-user
       POSTGRES_PASSWORD: cc-education
       POSTGRES_DB: education-tests
+
+  mongo:
+    image: mongo
+    container_name: my-mongo
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_DATABASE: classconnect
+      MONGO_INITDB_ROOT_USERNAME: cc_user
+      MONGO_INITDB_ROOT_PASSWORD: cc_password

@@ -27,13 +27,18 @@ import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.upda
 import { CourseFeedbackRequestDto } from 'src/dtos/feedback/course.feedback.request.dto';
 import { StudentFeedbackRequestDto } from 'src/dtos/feedback/student.feedback.request.dto';
 import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
+import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
+import { AssessmentService } from 'src/services/assessment.service';
 
 /**
  * Controller class for handling HTTP requests related to courses.
  */
 @Controller('/courses')
 export class CourseController {
-  constructor(private readonly service: CourseService) {}
+  constructor(
+    private readonly service: CourseService,
+    private readonly assessService: AssessmentService,
+  ) {}
 
   /**
    * Creates a new course.
@@ -330,6 +335,19 @@ export class CourseController {
     logger.log(`Getting all feedbacks for student with ID ${studentId}`);
     return this.service.getStudentFeedbacks(studentId);
   }
+
+  // TODO: Enable endpoint
+  // @HttpCode(HttpStatus.CREATED)
+  // @Post(':courseId/assessments')
+  // async createAssessment(
+  //   @Param('courseId') courseId: number,
+  //   @Body() createAssessmentDto: AssessmentCreateDto,
+  // ) {
+  //   logger.log(
+  //     `Creating assessment for course ${courseId} with title ${createAssessmentDto.title}`,
+  //   );
+  //   return this.assessService.createAssess(courseId, createAssessmentDto);
+  // }
 }
 
 const logger = new Logger(CourseController.name);

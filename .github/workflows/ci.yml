@@ -12,8 +12,10 @@ jobs:
 
     env:
       JWT_SECRET: testsecret
-      PORT: 3000
+      PORT: 3002
       DATABASE_URL: postgresql://cc-education-user:cc-education@localhost:5433/education-tests
+      MONGODB_URL: mongodb://cc_user:cc_password@localhost:27017
+      MONGODB_NAME: classconnect?authSource=admin
       GEMINI_API_KEY: gemini_api_key
 
     steps:
@@ -34,6 +36,13 @@ jobs:
       - name: Wait for Postgres to be ready
         run: |
           until docker exec classconnect-education-tests pg_isready -U cc-education-user; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+          
+      - name: Wait for MongoDB to be ready
+        run: |
+          until docker exec my-mongo mongosh --eval "db.adminCommand('ping')"  >/dev/null 2>&1; do
             echo "Waiting for postgres..."
             sleep 2
           done
