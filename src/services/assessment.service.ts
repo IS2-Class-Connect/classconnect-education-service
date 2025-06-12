@@ -2,12 +2,18 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { Activity, Prisma, Role } from '@prisma/client';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
+import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
 import { AssessmentRepository } from 'src/repositories/assessment.repository';
 import { CourseRepository } from 'src/repositories/course.repository';
 import { Assessment, AssessmentType } from 'src/schema/assessment.schema';
 import { getForbiddenExceptionMsg } from 'src/utils';
+
+function getAssessResponse(assess: Assessment): AssessmentResponseDto {
+  // TODO: Transform it to AssessmentResponseDto when schema completed
+  return assess;
+}
 
 function validateAssessment(assessment: AssessmentCreateDto) {
   const { startTime, deadline } = assessment;
@@ -97,21 +103,29 @@ export class AssessmentService {
     );
     const assessment = { courseId, userId, teacherId, ...assessmentData, startTime, deadline };
 
-    return this.repository.create(assessment);
+    return getAssessResponse(await this.repository.create(assessment));
   }
 
   async findAssess(id: string) {
-    return this.repository.findById(id);
+    const assessment = await this.repository.findById(id);
+    if (!assessment) {
+      logger.error(`The assesment with ID ${id} was not found`);
+      throw new NotFoundException(`Assessment with ID ${id} not found`);
+    }
+    return getAssessResponse(assessment);
   }
 
   async getAssessments(filter: AssessmentFilterDto) {
-    return this.repository.findAssessments(filter);
+    return (await this.repository.findAssessments(filter)).map((assessment) =>
+      getAssessResponse(assessment),
+    );
   }
 
   async findAssessmentsByCourse(courseId: number) {
     await this.getCourse(courseId);
-    const assessments = await this.repository.findByCourseId(courseId);
-    return assessments;
+    return (await this.repository.findByCourseId(courseId)).map((assessment) =>
+      getAssessResponse(assessment),
+    );
   }
 
   async updateAssess(id: string, updateDto: AssessmentUpdateDto) {
@@ -123,14 +137,14 @@ export class AssessmentService {
 
     validateAssessmentUpdate(updateDto, assessment);
 
-    const { courseId, teacherId } = assessment;
+    const { courseId, teacherId, type } = assessment;
     const { userId, ...updateData } = updateDto;
 
     await this.registerActivity(
       courseId,
       teacherId,
       userId,
-      assessment.type === AssessmentType.Exam ? Activity.EDIT_EXAM : Activity.EDIT_TASK,
+      type === AssessmentType.Exam ? Activity.EDIT_EXAM : Activity.EDIT_TASK,
     );
 
     const updateAssess = {
@@ -139,7 +153,8 @@ export class AssessmentService {
       deadline: updateDto.deadline ? new Date(updateDto.deadline) : undefined,
     };
 
-    return this.repository.update(id, updateAssess);
+    const updatedAssessment = await this.repository.update(id, updateAssess);
+    return updatedAssessment ? getAssessResponse(updatedAssessment) : null;
   }
 
   async deleteAssess(id: string, userId: string) {
@@ -158,7 +173,8 @@ export class AssessmentService {
       assessment.type === AssessmentType.Exam ? Activity.DELETE_EXAM : Activity.DELETE_TASK,
     );
 
-    return this.repository.delete(id);
+    const deletedAssessment = await this.repository.delete(id);
+    return deletedAssessment ? getAssessResponse(deletedAssessment) : null;
   }
 }
 

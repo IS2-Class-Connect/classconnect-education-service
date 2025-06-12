@@ -334,4 +334,6 @@ describe('CourseController', () => {
     ).rejects.toThrow(NotFoundException);
     expect(mockService.getModuleResource).toHaveBeenCalledWith(courseId, moduleId, link);
   });
+
+  test('Should create an assessment', async () => {});
 });
