@@ -4,7 +4,12 @@ import { ValidationPipe } from '@nestjs/common';
 import { ResponseInterceptor } from './middleware/response.interceptor';
 import { BaseExceptionFilter } from './middleware/exception.filter';
 import { Request, Response, NextFunction } from 'express';
-import { cpuUsageGauge, memoryUsageGauge, requestCounter, responseTimeHistogram } from './controllers/metrics.controller';
+import {
+  cpuUsageGauge,
+  memoryUsageGauge,
+  requestCounter,
+  responseTimeHistogram,
+} from './controllers/metrics.controller';
 
 // Resource fetching for metrics
 function setupMetricsFetching() {
@@ -33,8 +38,9 @@ function prometheusMiddleware(req: Request, res: Response, next: NextFunction) {
   const end = responseTimeHistogram.startTimer();
 
   res.on('finish', () => {
-    end({ method: req.method, route: req.route.path, status: res.statusCode.toString() });
-    requestCounter.inc({ method: req.method, route: req.route.path, status: res.statusCode.toString() });
+    const routePath = req.route?.path || req.path || 'unknown';
+    end({ method: req.method, route: routePath, status: res.statusCode.toString() });
+    requestCounter.inc({ method: req.method, route: routePath, status: res.statusCode.toString() });
   });
 
   next();
