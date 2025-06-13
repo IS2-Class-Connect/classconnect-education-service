@@ -12,7 +12,7 @@ import { getForbiddenExceptionMsg } from 'src/utils';
 
 function getAssessResponse(assess: Assessment): AssessmentResponseDto {
   // TODO: Transform it to AssessmentResponseDto when schema completed
-  return assess;
+  return { ...assess };
 }
 
 function validateAssessment(assessment: AssessmentCreateDto) {
@@ -84,6 +84,15 @@ export class AssessmentService {
     }
   }
 
+  private async getAssess(id: string) {
+    const assessment = await this.repository.findById(id);
+    if (!assessment) {
+      logger.error(`The assesment with ID ${id} was not found`);
+      throw new NotFoundException(`Assessment with ID ${id} not found`);
+    }
+    return assessment;
+  }
+
   async createAssess(courseId: number, createDto: AssessmentCreateDto) {
     validateAssessment(createDto);
 
@@ -122,18 +131,13 @@ export class AssessmentService {
   }
 
   async findAssessmentsByCourse(courseId: number) {
-    await this.getCourse(courseId);
     return (await this.repository.findByCourseId(courseId)).map((assessment) =>
       getAssessResponse(assessment),
     );
   }
 
   async updateAssess(id: string, updateDto: AssessmentUpdateDto) {
-    const assessment = await this.repository.findById(id);
-    if (!assessment) {
-      logger.error(`The assessment with ID ${id} was not found`);
-      throw new NotFoundException(`Assessment with ID ${id} not found.`);
-    }
+    const assessment = await this.getAssess(id);
 
     validateAssessmentUpdate(updateDto, assessment);
 
@@ -158,11 +162,7 @@ export class AssessmentService {
   }
 
   async deleteAssess(id: string, userId: string) {
-    const assessment = await this.repository.findById(id);
-    if (!assessment) {
-      logger.error(`The assessment with ID ${id} was not found`);
-      throw new NotFoundException(`Assessment with ID ${id} not found.`);
-    }
+    const assessment = await this.getAssess(id);
 
     const { courseId, teacherId } = assessment;
 

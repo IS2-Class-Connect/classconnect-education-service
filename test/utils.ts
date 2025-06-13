@@ -9,13 +9,15 @@ export function getDatesAfterToday(): {
   startDate: Date;
   endDate: Date;
   registrationDeadline: Date;
+  deadline: Date;
 } {
   // so that it don't fail when validating that dates are beyond current date
   const now = new Date();
   const startDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000); // 2 days after now
   const endDate = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days after now
   const registrationDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 1 day after now
-  return { startDate, endDate, registrationDeadline };
+  const deadline = new Date(now.getTime() + 2 * 25 * 60 * 60 * 1000); // 1 day and an hour after now
+  return { startDate, endDate, registrationDeadline, deadline };
 }
 
 export async function cleanDataBase(prisma: PrismaClient) {

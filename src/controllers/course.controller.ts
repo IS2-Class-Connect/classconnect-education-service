@@ -343,7 +343,7 @@ export class CourseController {
     @Body() createAssessmentDto: AssessmentCreateDto,
   ) {
     logger.log(
-      `Creating assessment for course ${courseId} with title ${createAssessmentDto.title}`,
+      `Creating assessment for course ${courseId} with title "${createAssessmentDto.title}"`,
     );
     return await this.assessService.createAssess(courseId, createAssessmentDto);
   }
