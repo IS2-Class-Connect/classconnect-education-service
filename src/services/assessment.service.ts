@@ -116,12 +116,7 @@ export class AssessmentService {
   }
 
   async findAssess(id: string) {
-    const assessment = await this.repository.findById(id);
-    if (!assessment) {
-      logger.error(`The assesment with ID ${id} was not found`);
-      throw new NotFoundException(`Assessment with ID ${id} not found`);
-    }
-    return getAssessResponse(assessment);
+    return getAssessResponse(await this.getAssess(id));
   }
 
   async getAssessments(filter: AssessmentFilterDto) {
