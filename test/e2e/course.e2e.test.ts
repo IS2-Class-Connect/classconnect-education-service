@@ -5,15 +5,18 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../../src/app.module';
 import { BaseExceptionFilter } from '../../src/middleware/exception.filter';
 import { ResponseInterceptor } from '../../src/middleware/response.interceptor';
-import { cleanDataBase, getDatesAfterToday } from 'test/utils';
+import { cleanDataBase, cleanMongoDatabase, getDatesAfterToday } from 'test/utils';
 import { PrismaService } from 'src/prisma.service';
 import { Role } from '@prisma/client';
+import { Connection } from 'mongoose';
+import { getConnectionToken } from '@nestjs/mongoose';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let connection: Connection;
 
-  const { startDate, endDate, registrationDeadline } = getDatesAfterToday();
+  const { startDate, endDate, registrationDeadline, deadline } = getDatesAfterToday();
 
   async function createCourse() {
     const teacherId = '123e4567-e89b-12d3-a456-426614174000';
@@ -30,7 +33,7 @@ describe('Course e2e', () => {
     return courseRes.body.data;
   }
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -44,15 +47,18 @@ describe('Course e2e', () => {
     app.useGlobalInterceptors(new ResponseInterceptor());
     await app.init();
 
+    connection = app.get<Connection>(getConnectionToken());
     prisma = moduleFixture.get<PrismaService>(PrismaService);
   });
 
   afterEach(async () => {
     await cleanDataBase(prisma);
+    await cleanMongoDatabase(connection);
   });
 
   afterAll(async () => {
     await cleanDataBase(prisma);
+    await cleanMongoDatabase(connection);
 
     await prisma.$disconnect();
     await app.close();
@@ -1138,5 +1144,41 @@ describe('Course e2e', () => {
       'instance',
       `/courses/${course.id}/enrollments/${userId}/studentFeedback`,
     );
+  });
+
+  test('POST courses/courseId/assessments should retreive the created course assessment', async () => {
+    const course = await createCourse();
+    const courseId = course.id;
+    const { teacherId } = course;
+
+    const assessmentDto = {
+      title: `Exam 1`,
+      description: `It is an Exam for testing purpose.`,
+      type: 'Exam',
+      startTime: startDate.toISOString(),
+      deadline: deadline.toISOString(),
+      toleranceTime: 0,
+      userId: course.teacherId,
+    };
+
+    const res = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/assessments`)
+      .send(assessmentDto);
+
+    expect(res.body).toHaveProperty('data');
+    const data = res.body.data;
+
+    const expected = {
+      _id: data._id,
+      __v: data.__v,
+      teacherId,
+      courseId,
+      ...assessmentDto,
+      createdAt: data.createdAt,
+    };
+
+    expect(res.status).toBe(201);
+
+    expect(data).toEqual(expected);
   });
 });

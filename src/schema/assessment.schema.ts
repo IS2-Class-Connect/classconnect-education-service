@@ -38,7 +38,13 @@ export class Assessment {
   courseId: number;
 
   /**
-   * Identifier of the teacher who created the assessment. Required.
+   * Identifier of the user (teacher or assistant) who created the assessment. Required.
+   */
+  @Prop({ required: true })
+  userId: string;
+
+  /**
+   * Identifier of the teacher of the course that the assessment belongs. Required.
    */
   @Prop({ required: true })
   teacherId: string;
