@@ -159,13 +159,13 @@ export class AssessmentService {
   async deleteAssess(id: string, userId: string) {
     const assessment = await this.getAssess(id);
 
-    const { courseId, teacherId } = assessment;
+    const { courseId, teacherId, type } = assessment;
 
     await this.registerActivity(
       courseId,
       teacherId,
       userId,
-      assessment.type === AssessmentType.Exam ? Activity.DELETE_EXAM : Activity.DELETE_TASK,
+      type === AssessmentType.Exam ? Activity.DELETE_EXAM : Activity.DELETE_TASK,
     );
 
     const deletedAssessment = await this.repository.delete(id);

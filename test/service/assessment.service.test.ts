@@ -1,9 +1,9 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { title } from 'process';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
+import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
 import { AssessmentRepository } from 'src/repositories/assessment.repository';
 import { CourseRepository } from 'src/repositories/course.repository';
 import { Assessment, AssessmentType } from 'src/schema/assessment.schema';
@@ -75,6 +75,49 @@ describe('AssessmentService', () => {
       teacherId: userId,
       courseId,
     });
+  });
+
+  test('Should throw an exception when trying to create an assessment with non valid values', async () => {
+    const courseId = 1;
+    const createDto: AssessmentCreateDto = {
+      title: 'Testing exam',
+      description: 'This is an exam for testing purposes',
+      type: AssessmentType.Exam,
+      startTime: deadline.toISOString(), // startTime must be before deadline
+      deadline: deadline.toISOString(),
+      toleranceTime: 0,
+      userId: 'u1',
+    };
+
+    await expect(service.createAssess(courseId, createDto)).rejects.toThrow(BadRequestException);
+  });
+
+  test('Should throw an exception when a forbidden user tries to create an assessment', async () => {
+    const courseId = 1;
+    const forbiddenUser = 'u1';
+    const createExamDto: AssessmentCreateDto = {
+      title: 'Testing exam',
+      description: 'This is an exam for testing purposes',
+      type: AssessmentType.Exam,
+      startTime: startDate.toISOString(),
+      deadline: deadline.toISOString(),
+      toleranceTime: 0,
+      userId: forbiddenUser,
+    };
+    const createTaskDto: AssessmentCreateDto = {
+      ...createExamDto,
+      type: AssessmentType.Task,
+    };
+
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({ id: courseId, teacherId: 't1' });
+    (mockCourseRepo.findEnrollment as jest.Mock).mockResolvedValue(null);
+
+    await expect(service.createAssess(courseId, createExamDto)).rejects.toThrow(
+      ForbiddenUserException,
+    );
+    await expect(service.createAssess(courseId, createTaskDto)).rejects.toThrow(
+      ForbiddenUserException,
+    );
   });
 
   test('Should find the specified assessment', async () => {
@@ -237,6 +280,25 @@ describe('AssessmentService', () => {
     expect(mockAssesRepo.update).not.toHaveBeenCalled();
   });
 
+  test('Should throw an exception when a forbidden user tries to update an assessment', async () => {
+    const courseId = 1;
+    const forbiddenUser = 'u1';
+    const updateDto: AssessmentUpdateDto = {
+      title: 'Updated testing assess',
+      userId: forbiddenUser,
+    };
+
+    (mockAssesRepo.findById as jest.Mock).mockImplementation((id: string) => ({
+      courseId,
+      teacherId: 't1',
+      type: id === 'a1' ? AssessmentType.Exam : AssessmentType.Task,
+    }));
+    (mockCourseRepo.findEnrollment as jest.Mock).mockResolvedValue(null);
+
+    await expect(service.updateAssess('a1', updateDto)).rejects.toThrow(ForbiddenUserException);
+    await expect(service.updateAssess('a2', updateDto)).rejects.toThrow(ForbiddenUserException);
+  });
+
   test('Should delete an assessment', async () => {
     const id = 'a1';
     const userId = 'u1';
@@ -264,5 +326,20 @@ describe('AssessmentService', () => {
     expect(await service.deleteAssess(id, userId)).toEqual(expected);
     expect(mockAssesRepo.findById).toHaveBeenCalledWith(id);
     expect(mockAssesRepo.delete).toHaveBeenCalledWith(id);
+  });
+
+  test('Should throw an exception when a forbidden user tries to delete an assessment', async () => {
+    const courseId = 1;
+    const forbiddenUser = 'u1';
+
+    (mockAssesRepo.findById as jest.Mock).mockImplementation((id: string) => ({
+      courseId,
+      teacherId: 't1',
+      type: id === 'a1' ? AssessmentType.Exam : AssessmentType.Task,
+    }));
+    (mockCourseRepo.findEnrollment as jest.Mock).mockResolvedValue(null);
+
+    await expect(service.deleteAssess('a1', forbiddenUser)).rejects.toThrow(ForbiddenUserException);
+    await expect(service.deleteAssess('a2', forbiddenUser)).rejects.toThrow(ForbiddenUserException);
   });
 });

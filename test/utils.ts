@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { Connection } from 'mongoose';
 
 /**
  * Get dates that are beyond the current date, useful to add a new course
@@ -26,4 +27,12 @@ export async function cleanDataBase(prisma: PrismaClient) {
     prisma.activityRegister.deleteMany(),
     prisma.course.deleteMany(),
   ]);
+}
+
+export async function cleanMongoDatabase(connection: Connection) {
+  const collections = Object.keys(connection.collections);
+  for (const collectionName of collections) {
+    const collection = connection.collections[collectionName];
+    await collection.deleteMany({});
+  }
 }

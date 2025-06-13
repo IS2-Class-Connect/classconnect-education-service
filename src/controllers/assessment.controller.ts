@@ -9,7 +9,9 @@ export class AssessmentController {
 
   @Get()
   async getAssessments(@Query() filter: AssessmentFilterDto) {
-    logger.log(`Getting the assessments that match with the filters: ${JSON.stringify(filter)}`);
+    logger.debug(
+      `Getting the assessments that match with ${filter ? `the filters: ${JSON.stringify(filter)}` : 'non filters'}`,
+    );
     return await this.service.getAssessments(filter);
   }
 

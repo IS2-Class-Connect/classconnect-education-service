@@ -16,11 +16,11 @@ export class AssessmentRepository {
 
   async create(assessment: CreateAssessmentProps): Promise<Assessment> {
     const createdAssessment = new this.assessmentModel(assessment);
-    return createdAssessment.save();
+    return (await createdAssessment.save()).toObject();
   }
 
-  async findById(id: string): Promise<Assessment | null> {
-    return this.assessmentModel.findById(id).exec();
+  async findById(id: string): Promise<Assessment | undefined> {
+    return (await this.assessmentModel.findById(id).exec())?.toObject();
   }
 
   async findAssessments(filter: AssessmentFilterDto): Promise<Assessment[]> {
@@ -31,32 +31,34 @@ export class AssessmentRepository {
         query[key] = value;
       }
     });
-    return this.assessmentModel.find(query).exec();
+    return (await this.assessmentModel.find(query).exec()).map((assesment) => assesment.toObject());
   }
 
   async findByCourseId(courseId: number): Promise<Assessment[]> {
-    return this.assessmentModel.find({ courseId }).exec();
+    return (await this.assessmentModel.find({ courseId }).exec()).map((assessment) =>
+      assessment.toObject(),
+    );
   }
 
   async update(
     id: string,
     updateData: Partial<Omit<CreateAssessmentProps, 'courseId' | 'teacherId' | 'userId' | 'type'>>,
-  ): Promise<Assessment | null> {
+  ): Promise<Assessment | undefined> {
     const updatedAsess = await this.assessmentModel
       .findByIdAndUpdate(id, updateData, { new: true })
       .exec();
     if (!updatedAsess) {
       throw new NotFoundException(`Assessment with ID ${id} not found.`);
     }
-    return updatedAsess;
+    return updatedAsess.toObject();
   }
 
-  async delete(id: string): Promise<Assessment | null> {
+  async delete(id: string): Promise<Assessment | undefined> {
     const deletedAssessment = await this.assessmentModel.findByIdAndDelete(id).exec();
     if (!deletedAssessment) {
       throw new NotFoundException(`Assessment with ID ${id} not found.`);
     }
-    return deletedAssessment;
+    return deletedAssessment.toObject();
   }
 }
 
