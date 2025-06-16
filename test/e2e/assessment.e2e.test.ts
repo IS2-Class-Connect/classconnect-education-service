@@ -85,14 +85,6 @@ describe('Course e2e', () => {
     await app.close();
   });
 
-  /**
-   * Casos a ver:
-   * - getAssessments (con buena y mala query)
-   * - getAssess
-   * - updateAssess (con buen y mal body)
-   * - deleteAssess
-   */
-
   test('GET /assessments should retreive all the existing assessments', async () => {
     const course = await createCourse();
     const assessment = await createAssessment(course.id, AssessmentType.Exam.toString());
@@ -115,8 +107,14 @@ describe('Course e2e', () => {
     await createAssessment(course.id, AssessmentType.Exam.toString());
 
     const expected = [];
-
-    const result = await request(app.getHttpServer()).get('/assessments?type=Task').send();
+    // Create ranges that does not include startDate nor deadline
+    const startTimeBegin = new Date(startDate.getTime() + 1).toISOString();
+    const startTimeEnd = new Date(startDate.getTime() + 2).toISOString();
+    const deadlineBegin = new Date(deadline.getTime() + 1).toISOString();
+    const deadlineEnd = new Date(deadline.getTime() + 2).toISOString();
+    // range in url never include the assessment registered
+    const url = `/assessments?startTimeBegin=${startTimeBegin}&startTimeEnd=${startTimeEnd}&deadlineBegin=${deadlineBegin}&deadlineEnd=${deadlineEnd}`;
+    const result = await request(app.getHttpServer()).get(url).send();
 
     expect(result.body).toHaveProperty('data');
     const data = result.body.data;
