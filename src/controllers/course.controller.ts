@@ -299,7 +299,7 @@ export class CourseController {
     @Body() feedback: CourseFeedbackRequestDto,
   ) {
     logger.log(`Creating feedback for course ${courseId} by user ${userId}`);
-    return this.service.createCourseFeedback(courseId, userId, feedback);
+    return await this.service.createCourseFeedback(courseId, userId, feedback);
   }
 
   @Post(':courseId/enrollments/:userId/studentFeedback')
@@ -309,45 +309,50 @@ export class CourseController {
     @Body() feedback: StudentFeedbackRequestDto,
   ) {
     logger.log(`Creating feedback for user ${userId} in course ${courseId}`);
-    return this.service.createStudentFeedback(courseId, userId, feedback);
+    return await this.service.createStudentFeedback(courseId, userId, feedback);
   }
 
   @Get(':courseId/enrollments/:userId/courseFeedback')
   async getCourseFeedback(@Param('courseId') courseId: number, @Param('userId') userId: string) {
     logger.log(`Getting feedback for course ${courseId} made by user ${userId}`);
-    return this.service.getCourseFeedback(courseId, userId);
+    return await this.service.getCourseFeedback(courseId, userId);
   }
 
   @Get(':courseId/enrollments/:userId/studentFeedback')
   async getStudentFeedback(@Param('courseId') courseId: number, @Param('userId') userId: string) {
     logger.log(`Getting feedback for user ${userId} in course ${courseId}`);
-    return this.service.getStudentFeedback(courseId, userId);
+    return await this.service.getStudentFeedback(courseId, userId);
   }
 
   @Get(':courseId/feedbacks')
   async getCourseFeedbacks(@Param('courseId') courseId: number) {
     logger.log(`Getting all feedbacks for course ${courseId}`);
-    return this.service.getCourseFeedbacks(courseId);
+    return await this.service.getCourseFeedbacks(courseId);
   }
 
   @Get('studentFeedbacks/:studentId')
   async getStudentFeedbacks(@Param('studentId') studentId: string) {
     logger.log(`Getting all feedbacks for student with ID ${studentId}`);
-    return this.service.getStudentFeedbacks(studentId);
+    return await this.service.getStudentFeedbacks(studentId);
   }
 
-  // TODO: Enable endpoint
-  // @HttpCode(HttpStatus.CREATED)
-  // @Post(':courseId/assessments')
-  // async createAssessment(
-  //   @Param('courseId') courseId: number,
-  //   @Body() createAssessmentDto: AssessmentCreateDto,
-  // ) {
-  //   logger.log(
-  //     `Creating assessment for course ${courseId} with title ${createAssessmentDto.title}`,
-  //   );
-  //   return this.assessService.createAssess(courseId, createAssessmentDto);
-  // }
+  @HttpCode(HttpStatus.CREATED)
+  @Post(':courseId/assessments')
+  async createAssessment(
+    @Param('courseId') courseId: number,
+    @Body() createAssessmentDto: AssessmentCreateDto,
+  ) {
+    logger.log(
+      `Creating assessment for course ${courseId} with title "${createAssessmentDto.title}"`,
+    );
+    return await this.assessService.createAssess(courseId, createAssessmentDto);
+  }
+
+  @Get(':courseId/assessments')
+  async getCourseAssessments(@Param('courseId') courseId: number) {
+    logger.log(`Getting assessments for course with ID ${courseId}`);
+    return await this.assessService.findAssessmentsByCourse(courseId);
+  }
 }
 
 const logger = new Logger(CourseController.name);

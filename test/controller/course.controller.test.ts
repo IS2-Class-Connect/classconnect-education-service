@@ -6,12 +6,15 @@ import { Activity, Role } from '@prisma/client';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
 import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.dto';
 import { AssessmentService } from 'src/services/assessment.service';
+import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
+import { AssessmentType } from 'src/schema/assessment.schema';
+import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 
 describe('CourseController', () => {
   let controller: CourseController;
   let mockService: CourseService;
   let mockAssessmentService: AssessmentService;
-  const { startDate, endDate, registrationDeadline } = getDatesAfterToday();
+  const { startDate, endDate, registrationDeadline, deadline } = getDatesAfterToday();
 
   beforeEach(() => {
     mockService = {
@@ -31,6 +34,7 @@ describe('CourseController', () => {
     } as any;
     mockAssessmentService = {
       createAssess: jest.fn(),
+      findAssessmentsByCourse: jest.fn(),
     } as any;
     controller = new CourseController(mockService, mockAssessmentService);
   });
@@ -149,7 +153,7 @@ describe('CourseController', () => {
     expect(mockService.updateCourse).toHaveBeenCalledWith(id, { ...courseUpdateData, userId });
   });
 
-  test('Should retrieve an enrollment to a course', async () => {
+  test('Should retrieve a new Enrollment instance related to a course', async () => {
     const courseId = 1;
     const enrollmentDTO = {
       userId: '123e4567-e89b-12d3-a456-426614174000',
@@ -333,5 +337,61 @@ describe('CourseController', () => {
       controller.getModuleResource(courseId, moduleId, encodeURIComponent(link)),
     ).rejects.toThrow(NotFoundException);
     expect(mockService.getModuleResource).toHaveBeenCalledWith(courseId, moduleId, link);
+  });
+
+  test('Should retreive a new Assessment instance', async () => {
+    const courseId = 1;
+    const createDto: AssessmentCreateDto = {
+      title: 'Testing exam',
+      description: 'This is an exam for testing purposes',
+      type: AssessmentType.Exam,
+      startTime: startDate.toISOString(),
+      deadline: deadline.toISOString(),
+      toleranceTime: 0,
+      userId: 'a1',
+    };
+
+    const { userId, ...createData } = createDto;
+
+    // Ignore 'id' as it’s not included in AssessmentResponseDto nor is necessary
+    const expected: AssessmentResponseDto = {
+      ...createData,
+      startTime: startDate,
+      deadline,
+      courseId,
+      teacherId: userId,
+      userId,
+      createdAt: new Date(),
+    };
+
+    (mockAssessmentService.createAssess as jest.Mock).mockResolvedValue(expected);
+
+    expect(await controller.createAssessment(courseId, createDto)).toEqual(expected);
+    expect(mockAssessmentService.createAssess).toHaveBeenCalledWith(courseId, createDto);
+  });
+
+  test('Should get the course assessment', async () => {
+    const courseId = 1;
+
+    // Ignore 'id' as it’s not included in AssessmentResponseDto nor is necessary
+    const expected: AssessmentResponseDto[] = [
+      {
+        title: 'Testing exam',
+        description: 'This is an exam for testing purposes',
+        type: AssessmentType.Exam,
+        startTime: startDate,
+        deadline,
+        toleranceTime: 0,
+        courseId,
+        teacherId: 'a1',
+        userId: 'a1',
+        createdAt: new Date(),
+      },
+    ];
+
+    (mockAssessmentService.findAssessmentsByCourse as jest.Mock).mockResolvedValue(expected);
+
+    expect(await controller.getCourseAssessments(courseId)).toEqual(expected);
+    expect(mockAssessmentService.findAssessmentsByCourse).toHaveBeenCalledWith(courseId);
   });
 });

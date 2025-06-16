@@ -1,8 +1,47 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Activity, Prisma, Role } from '@prisma/client';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
+import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
+import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
+import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
+import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
 import { AssessmentRepository } from 'src/repositories/assessment.repository';
 import { CourseRepository } from 'src/repositories/course.repository';
+import { Assessment, AssessmentType } from 'src/schema/assessment.schema';
+import { getForbiddenExceptionMsg } from 'src/utils';
+
+function getAssessResponse(assess: Assessment): AssessmentResponseDto {
+  // TODO: Transform it to AssessmentResponseDto when schema completed
+  return { ...assess };
+}
+
+function validateAssessment(assessment: AssessmentCreateDto) {
+  const { startTime, deadline } = assessment;
+  if (new Date(startTime) >= new Date(deadline)) {
+    throw new BadRequestException('Start time must be before the deadline.');
+  }
+}
+
+function validateAssessmentUpdate(updateData: AssessmentUpdateDto, assessment: Assessment) {
+  const { startTime, deadline } = updateData;
+  const now = new Date();
+
+  if (deadline && new Date(deadline) <= now) {
+    throw new BadRequestException('Deadline must be a future date.');
+  }
+
+  if (startTime && deadline && new Date(startTime) >= new Date(deadline)) {
+    throw new BadRequestException('Start time must be before the deadline.');
+  }
+
+  if (
+    startTime &&
+    (new Date(startTime) >= now || (!deadline && new Date(startTime) >= assessment.deadline))
+  ) {
+    // TODO: change msg
+    throw new BadRequestException('Start time must be a future date.');
+  }
+}
 
 @Injectable()
 export class AssessmentService {
@@ -11,57 +50,127 @@ export class AssessmentService {
     private readonly courseRepository: CourseRepository,
   ) {}
 
-  // TODO: Enable feats
-  // private async getCourse(id: number) {
-  //   const course = await this.courseRepository.findById(id);
-  //   if (!course) {
-  //     logger.error(`The course with Id ${id} was not found`);
-  //     throw new NotFoundException(`Course with ID ${id} not found.`);
-  //   }
-  //   return course;
-  // }
+  private async getCourse(id: number) {
+    const course = await this.courseRepository.findById(id);
+    if (!course) {
+      logger.error(`The course with Id ${id} was not found`);
+      throw new NotFoundException(`Course with ID ${id} not found.`);
+    }
+    return course;
+  }
 
-  // private async registerActivity(
-  //   courseId: number,
-  //   teacherId: string,
-  //   userId: string,
-  //   activity: Activity,
-  // ) {
-  //   if (userId != teacherId) {
-  //     const userEnrollmentToCourse = await this.courseRepository.findEnrollment(courseId, userId);
-  //     if (!(userEnrollmentToCourse && userEnrollmentToCourse.role == Role.ASSISTANT)) {
-  //       // throw new ForbiddenUserException(
-  //       //   getForbiddenExceptionMsg(courseId, userId, activity) +
-  //       //     ' User has to be either the course head teacher or an assistant.',
-  //       // );
-  //     }
+  private async registerActivity(
+    courseId: number,
+    teacherId: string,
+    userId: string,
+    activity: Activity,
+  ) {
+    if (userId != teacherId) {
+      const userEnrollmentToCourse = await this.courseRepository.findEnrollment(courseId, userId);
+      if (!(userEnrollmentToCourse && userEnrollmentToCourse.role == Role.ASSISTANT)) {
+        throw new ForbiddenUserException(
+          getForbiddenExceptionMsg(courseId, userId, activity) +
+            ' User has to be either the course head teacher or an assistant.',
+        );
+      }
 
-  //     const activityData: Prisma.ActivityRegisterUncheckedCreateInput = {
-  //       courseId,
-  //       userId,
-  //       activity,
-  //     };
+      const activityData: Prisma.ActivityRegisterUncheckedCreateInput = {
+        courseId,
+        userId,
+        activity,
+      };
 
-  //     await this.courseRepository.createActivityRegister(activityData);
-  //   }
-  // }
+      await this.courseRepository.createActivityRegister(activityData);
+    }
+  }
 
-  // async createAssess(courseId: number, createDto: AssessmentCreateDto) {
-  //   const course = await this.getCourse(courseId);
-  //   const { teacherId } = course;
-  //   const { userId, ...assessmentData } = createDto;
-  //   await this.registerActivity(
-  //     courseId,
-  //     teacherId,
-  //     userId,
-  //     createDto.type === 'Exam' ? Activity.ADD_EXAM : Activity.ADD_TASK,
-  //   );
-  //   const [startTime, deadline] = [createDto.startTime, createDto.deadline].map(
-  //     (date) => new Date(date),
-  //   );
-  //   const assessment = { courseId, teacherId, ...assessmentData, startTime, deadline };
-  //   return this.repository.create(assessment);
-  // }
+  private async getAssess(id: string) {
+    const assessment = await this.repository.findById(id);
+    if (!assessment) {
+      logger.error(`The assesment with ID ${id} was not found`);
+      throw new NotFoundException(`Assessment with ID ${id} not found`);
+    }
+    return assessment;
+  }
+
+  async createAssess(courseId: number, createDto: AssessmentCreateDto) {
+    validateAssessment(createDto);
+
+    const course = await this.getCourse(courseId);
+    const { teacherId } = course;
+    const { userId, ...assessmentData } = createDto;
+
+    await this.registerActivity(
+      courseId,
+      teacherId,
+      userId,
+      createDto.type === AssessmentType.Exam ? Activity.ADD_EXAM : Activity.ADD_TASK,
+    );
+
+    const [startTime, deadline] = [createDto.startTime, createDto.deadline].map(
+      (date) => new Date(date),
+    );
+    const assessment = { courseId, userId, teacherId, ...assessmentData, startTime, deadline };
+
+    return getAssessResponse(await this.repository.create(assessment));
+  }
+
+  async findAssess(id: string) {
+    return getAssessResponse(await this.getAssess(id));
+  }
+
+  async getAssessments(filter: AssessmentFilterDto) {
+    return (await this.repository.findAssessments(filter)).map((assessment) =>
+      getAssessResponse(assessment),
+    );
+  }
+
+  async findAssessmentsByCourse(courseId: number) {
+    return (await this.repository.findByCourseId(courseId)).map((assessment) =>
+      getAssessResponse(assessment),
+    );
+  }
+
+  async updateAssess(id: string, updateDto: AssessmentUpdateDto) {
+    const assessment = await this.getAssess(id);
+
+    validateAssessmentUpdate(updateDto, assessment);
+
+    const { courseId, teacherId, type } = assessment;
+    const { userId, ...updateData } = updateDto;
+
+    await this.registerActivity(
+      courseId,
+      teacherId,
+      userId,
+      type === AssessmentType.Exam ? Activity.EDIT_EXAM : Activity.EDIT_TASK,
+    );
+
+    const updateAssess = {
+      ...updateData,
+      startTime: updateDto.startTime ? new Date(updateDto.startTime) : undefined,
+      deadline: updateDto.deadline ? new Date(updateDto.deadline) : undefined,
+    };
+
+    const updatedAssessment = await this.repository.update(id, updateAssess);
+    return updatedAssessment ? getAssessResponse(updatedAssessment) : null;
+  }
+
+  async deleteAssess(id: string, userId: string) {
+    const assessment = await this.getAssess(id);
+
+    const { courseId, teacherId, type } = assessment;
+
+    await this.registerActivity(
+      courseId,
+      teacherId,
+      userId,
+      type === AssessmentType.Exam ? Activity.DELETE_EXAM : Activity.DELETE_TASK,
+    );
+
+    const deletedAssessment = await this.repository.delete(id);
+    return deletedAssessment ? getAssessResponse(deletedAssessment) : null;
+  }
 }
 
 const logger = new Logger(AssessmentService.name);
