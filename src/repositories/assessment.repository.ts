@@ -26,11 +26,31 @@ export class AssessmentRepository {
   async findAssessments(filter: AssessmentFilterDto): Promise<Assessment[]> {
     // Elimina las propiedades undefined o null del filtro
     const query: Record<string, any> = {};
-    Object.entries(filter).forEach(([key, value]) => {
+
+    // Extraer los valores especiales
+    const { startTimeBegin, startTimeEnd, deadlineBegin, deadlineEnd, ...rest } = filter;
+
+    // Clean and add basic fields
+    Object.entries(rest).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         query[key] = value;
       }
     });
+
+    // Add nested fields if necessary
+    if (startTimeBegin !== undefined || startTimeEnd !== undefined) {
+      query.startTime = {};
+      if (startTimeBegin !== undefined) query.startTime.$gte = startTimeBegin;
+      if (startTimeEnd !== undefined) query.startTime.$lt = startTimeEnd;
+      if (Object.keys(query.startTime).length === 0) delete query.startTime;
+    }
+
+    if (deadlineBegin !== undefined || deadlineEnd !== undefined) {
+      query.deadline = {};
+      if (deadlineBegin !== undefined) query.deadline.$gte = deadlineBegin;
+      if (deadlineEnd !== undefined) query.deadline.$lt = deadlineEnd;
+      if (Object.keys(query.deadline).length === 0) delete query.deadline;
+    }
     return (await this.assessmentModel.find(query).exec()).map((assesment) => assesment.toObject());
   }
 
