@@ -10,6 +10,9 @@ import { PrismaService } from 'src/prisma.service';
 import { Role } from '@prisma/client';
 import { Connection } from 'mongoose';
 import { getConnectionToken } from '@nestjs/mongoose';
+import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
+import { ExerciseType } from 'src/schema/exercise.schema';
+import { AssessmentType } from 'src/schema/assessment.schema';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
@@ -1151,14 +1154,22 @@ describe('Course e2e', () => {
     const courseId = course.id;
     const { teacherId } = course;
 
-    const assessmentDto = {
+    const assessmentDto: AssessmentCreateDto = {
       title: `Exam 1`,
       description: `It is an Exam for testing purpose.`,
-      type: 'Exam',
+      type: AssessmentType.Exam,
       startTime: startDate.toISOString(),
       deadline: deadline.toISOString(),
       toleranceTime: 0,
       userId: course.teacherId,
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
     };
 
     const res = await request(app.getHttpServer())

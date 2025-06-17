@@ -1,5 +1,6 @@
-import { IsDateString, IsEnum, IsInt, IsNotEmpty, IsString } from 'class-validator';
+import { IsArray, IsDateString, IsEnum, IsInt, IsNotEmpty, IsString } from 'class-validator';
 import { AssessmentType } from 'src/schema/assessment.schema';
+import { ExerciseCreateDto } from '../exercise/exercise.create.dto';
 
 export class AssessmentCreateDto {
   @IsNotEmpty()
@@ -30,4 +31,8 @@ export class AssessmentCreateDto {
   @IsNotEmpty()
   @IsString()
   userId: string;
+
+  @IsNotEmpty()
+  @IsArray()
+  exercises: ExerciseCreateDto[];
 }

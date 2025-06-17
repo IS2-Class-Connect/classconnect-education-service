@@ -7,6 +7,7 @@ import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user'
 import { AssessmentRepository } from 'src/repositories/assessment.repository';
 import { CourseRepository } from 'src/repositories/course.repository';
 import { Assessment, AssessmentType } from 'src/schema/assessment.schema';
+import { ExerciseType } from 'src/schema/exercise.schema';
 import { AssessmentService } from 'src/services/assessment.service';
 import { getDatesAfterToday } from 'test/utils';
 
@@ -43,6 +44,14 @@ describe('AssessmentService', () => {
       deadline: deadline.toISOString(),
       toleranceTime: 0,
       userId: 'u1',
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
     };
 
     const { userId, ...createData } = createDto;
@@ -87,6 +96,14 @@ describe('AssessmentService', () => {
       deadline: deadline.toISOString(),
       toleranceTime: 0,
       userId: 'u1',
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
     };
 
     await expect(service.createAssess(courseId, createDto)).rejects.toThrow(BadRequestException);
@@ -103,6 +120,14 @@ describe('AssessmentService', () => {
       deadline: deadline.toISOString(),
       toleranceTime: 0,
       userId: forbiddenUser,
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
     };
     const createTaskDto: AssessmentCreateDto = {
       ...createExamDto,
@@ -134,6 +159,14 @@ describe('AssessmentService', () => {
       courseId: 1,
       teacherId: 'u1',
       createdAt: new Date(),
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
     };
 
     const expected: AssessmentResponseDto = {
@@ -171,6 +204,14 @@ describe('AssessmentService', () => {
         userId: 'a1',
         teacherId: 'a1',
         createdAt: new Date(),
+        exercises: [
+          {
+            type: ExerciseType.Mc,
+            question: 'For what purpose it’s used this assess?',
+            choices: ['To test students', 'To test code'],
+            correctChoiceIdx: 1,
+          },
+        ],
       },
     ];
 
@@ -197,6 +238,14 @@ describe('AssessmentService', () => {
         courseId,
         teacherId: 'u1',
         createdAt: new Date(),
+        exercises: [
+          {
+            type: ExerciseType.Mc,
+            question: 'For what purpose it’s used this assess?',
+            choices: ['To test students', 'To test code'],
+            correctChoiceIdx: 1,
+          },
+        ],
       },
     ];
 
@@ -227,6 +276,14 @@ describe('AssessmentService', () => {
       courseId: 1,
       teacherId: userId,
       createdAt: new Date(),
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
     };
 
     const updateDto: AssessmentUpdateDto = {
@@ -266,6 +323,14 @@ describe('AssessmentService', () => {
       courseId: 1,
       teacherId: userId,
       createdAt: new Date(),
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
     };
 
     const updateDto: AssessmentUpdateDto = {
@@ -314,6 +379,14 @@ describe('AssessmentService', () => {
       courseId: 1,
       teacherId: userId,
       createdAt: new Date(),
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
     };
 
     const expected: AssessmentResponseDto = {
