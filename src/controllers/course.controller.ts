@@ -14,6 +14,7 @@ import {
   Query,
   ParseIntPipe,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { CourseRequestDto } from '../dtos/course/course.request.dto';
 import { CourseUpdateDto } from 'src/dtos/course/course.update.dto';
@@ -29,6 +30,7 @@ import { StudentFeedbackRequestDto } from 'src/dtos/feedback/student.feedback.re
 import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentService } from 'src/services/assessment.service';
+import { McExerciseCreateDto } from 'src/dtos/exercise/exercise.create.dto';
 
 /**
  * Controller class for handling HTTP requests related to courses.
@@ -345,6 +347,12 @@ export class CourseController {
     logger.log(
       `Creating assessment for course ${courseId} with title "${createAssessmentDto.title}"`,
     );
+    if (
+      createAssessmentDto.exercises instanceof McExerciseCreateDto &&
+      createAssessmentDto.exercises.correctChoiceIdx >= createAssessmentDto.exercises.choices.length
+    ) {
+      throw new BadRequestException('Correct answer index is out of range');
+    }
     return await this.assessService.createAssess(courseId, createAssessmentDto);
   }
 

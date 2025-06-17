@@ -73,10 +73,10 @@ export class Assessment {
   @Prop({ type: Date, default: Date.now })
   createdAt: Date;
 
-  // TODO: Support for excercises and submissions
-  // @Prop({ type: Object })
-  // exercises: Record<string, any>;
+  @Prop({ type: Object })
+  exercises: Record<string, any>;
 
+  // TODO: Support for submissions
   // @Prop({ type: Object })
   // submissions: Record<string, any>;
 }

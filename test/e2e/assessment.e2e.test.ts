@@ -10,6 +10,8 @@ import { cleanDataBase, cleanMongoDatabase, getDatesAfterToday } from 'test/util
 import { Connection } from 'mongoose';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { AssessmentType } from 'src/schema/assessment.schema';
+import { ExerciseType } from 'src/schema/exercise.schema';
+import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 
 const TEACHER_ID = 't1';
 const USER_ID = 'u1';
@@ -36,20 +38,28 @@ describe('Course e2e', () => {
     return courseRes.body.data;
   }
 
-  async function createAssessment(courseId: number, type: string) {
-    const assessmentData = {
+  async function createAssessment(courseId: number, type: AssessmentType) {
+    const assessmentDto: AssessmentCreateDto = {
       userId: TEACHER_ID, // el que crea (auxiliar / profesor)
-      title: `${type} 1`,
-      description: `It is a ${type} for testing purpose.`,
+      title: `${type.toString()} 1`,
+      description: `It is a ${type.toString()} for testing purpose.`,
       type: type,
       startTime: startDate.toISOString(),
       deadline: deadline.toISOString(),
       toleranceTime: 60,
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
     };
 
     const res = await request(app.getHttpServer())
       .post(`/courses/${courseId}/assessments`)
-      .send(assessmentData);
+      .send(assessmentDto);
 
     return res.body.data;
   }
@@ -87,7 +97,7 @@ describe('Course e2e', () => {
 
   test('GET /assessments should retreive all the existing assessments', async () => {
     const course = await createCourse();
-    const assessment = await createAssessment(course.id, AssessmentType.Exam.toString());
+    const assessment = await createAssessment(course.id, AssessmentType.Exam);
 
     const expected = [assessment];
 
@@ -104,7 +114,7 @@ describe('Course e2e', () => {
 
   test('GET /assessments?{filter} should retreive all the existing assessments matching the filter passed', async () => {
     const course = await createCourse();
-    await createAssessment(course.id, AssessmentType.Exam.toString());
+    await createAssessment(course.id, AssessmentType.Exam);
 
     const expected = [];
     // Create ranges that does not include startDate nor deadline

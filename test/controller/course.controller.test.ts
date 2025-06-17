@@ -9,6 +9,7 @@ import { AssessmentService } from 'src/services/assessment.service';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentType } from 'src/schema/assessment.schema';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
+import { ExerciseType } from 'src/schema/exercise.schema';
 
 describe('CourseController', () => {
   let controller: CourseController;
@@ -349,6 +350,14 @@ describe('CourseController', () => {
       deadline: deadline.toISOString(),
       toleranceTime: 0,
       userId: 'a1',
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
     };
 
     const { userId, ...createData } = createDto;
@@ -386,6 +395,14 @@ describe('CourseController', () => {
         teacherId: 'a1',
         userId: 'a1',
         createdAt: new Date(),
+        exercises: [
+          {
+            type: ExerciseType.Mc,
+            question: 'For what purpose it’s used this assess?',
+            choices: ['To test students', 'To test code'],
+            correctChoiceIdx: 1,
+          },
+        ],
       },
     ];
 
