@@ -4,6 +4,9 @@ import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
+import { AssessmentPerformanceDto } from 'src/dtos/course/course.assessmentPerformance.dto';
+import { CoursePerformanceDto } from 'src/dtos/course/course.performance.dto';
+import { StudentPerformanceInCourseDto } from 'src/dtos/course/course.studentPerformance.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
 import { AssessmentRepository } from 'src/repositories/assessment.repository';
 import { CourseRepository } from 'src/repositories/course.repository';
@@ -48,7 +51,7 @@ export class AssessmentService {
   constructor(
     private readonly repository: AssessmentRepository,
     private readonly courseRepository: CourseRepository,
-  ) {}
+  ) { }
 
   private async getCourse(id: number) {
     const course = await this.courseRepository.findById(id);
@@ -70,7 +73,7 @@ export class AssessmentService {
       if (!(userEnrollmentToCourse && userEnrollmentToCourse.role == Role.ASSISTANT)) {
         throw new ForbiddenUserException(
           getForbiddenExceptionMsg(courseId, userId, activity) +
-            ' User has to be either the course head teacher or an assistant.',
+          ' User has to be either the course head teacher or an assistant.',
         );
       }
 
@@ -170,6 +173,104 @@ export class AssessmentService {
 
     const deletedAssessment = await this.repository.delete(id);
     return deletedAssessment ? getAssessResponse(deletedAssessment) : null;
+  }
+
+  // marcos
+  // Tests relevantes:
+  //
+  // 1. sin assessments
+  // 2. con assessments sin submissions
+  // 3. con assessments con submissions
+  async calculateCoursePerformanceSummary(courseId: number): Promise<CoursePerformanceDto> {
+    const assessments = await this.findAssessmentsByCourse(courseId);
+    const assessmentCount = assessments.length;
+
+    let gradesSum = 0;
+    let completionCount = 0;
+    let submissionCount = 0;
+    let openCount = 0;
+
+    // marcos
+    // TODO: definir bien como conseguimos esto
+    const now = new Date();
+
+    assessments
+      .map(a => {
+        if (a.startTime <= now && now <= a.deadline) {
+          openCount++;
+        }
+        return a;
+      })
+      .flatMap(_ => []) // a => a.submissions
+      .forEach(_ => {   // s => {
+        // if completed { gradesSum += note; completionCount++ }
+        submissionCount++;
+      });
+
+    return {
+      averageGrade: gradesSum / Math.max(1, completionCount),
+      completionRate: completionCount / Math.max(1, submissionCount),
+      totalAssessments: assessmentCount,
+      totalSubmissions: submissionCount,
+      openRate: openCount / Math.max(1, submissionCount),
+    } as CoursePerformanceDto;
+  }
+
+  // marcos
+  // Tests relevantes:
+  //
+  // 1. sin assessments
+  // 2. con assessments sin submissions
+  // 3. con assessments con submissions
+  async calculateStudentPerformanceSummaryInCourse(courseId: number, studentId: number): Promise<StudentPerformanceInCourseDto> {
+    const assessments = await this.findAssessmentsByCourse(courseId);
+    const assessmentCount = assessments.length;
+
+    let gradesSum = 0;
+    let completionCount = 0;
+
+    assessments
+      .flatMap(_ => [])  // a => a.submissions
+      .filter(_ => true) // s => s.studentId == studentId && completed
+      .forEach(_ => {    // s => {}
+        // gradesSum += note
+        // completionCount++
+      });
+
+    return {
+      averageGrade: gradesSum / Math.max(1, completionCount),
+      completedAssessments: completionCount,
+      totalAssessments: assessmentCount,
+    } as StudentPerformanceInCourseDto;
+  }
+
+  // marcos
+  // Tests relevantes:
+  //
+  // 1. sin assessments
+  // 2. con assessments sin submissions
+  // 3. con assessments con submissions
+  async calculateAssessmentPerformanceSummariesInCourse(courseId: number): Promise<AssessmentPerformanceDto[]> {
+    const assessments = await this.findAssessmentsByCourse(courseId);
+
+    return assessments.map(a => {
+      let gradesSum = 0;
+      let completionCount = 0;
+      const submissionsCount = 0; // a.submissions.length
+
+      assessments
+        .filter(_ => true) // a => completed
+        .forEach(_ => {
+          // gradesSum += note
+          // copmletionCount++
+        })
+
+      return {
+        title: a.title,
+        averageGrade: gradesSum / Math.max(1, completionCount),
+        completionRate: completionCount / Math.max(1, submissionsCount),
+      } as AssessmentPerformanceDto;
+    });
   }
 }
 
