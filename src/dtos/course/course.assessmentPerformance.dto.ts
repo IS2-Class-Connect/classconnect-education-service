@@ -1,4 +1,3 @@
-// marcos
 /**
  * Data Transfer Object (DTO) for student performance summary in an assessment.
  */

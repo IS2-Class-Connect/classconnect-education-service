@@ -1,4 +1,3 @@
-// marcos
 /**
  * Data Transfer Object (DTO) for course performance summary.
  */

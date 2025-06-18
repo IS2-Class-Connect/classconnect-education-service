@@ -175,48 +175,62 @@ export class AssessmentService {
     return deletedAssessment ? getAssessResponse(deletedAssessment) : null;
   }
 
-  // marcos
   // Tests relevantes:
   //
   // 1. sin assessments
   // 2. con assessments sin submissions
   // 3. con assessments con submissions
-  async calculateCoursePerformanceSummary(courseId: number): Promise<CoursePerformanceDto> {
+  async calculateCoursePerformanceSummary(courseId: number, from: Date | undefined, till: Date | undefined): Promise<CoursePerformanceDto> {
     const assessments = await this.findAssessmentsByCourse(courseId);
     const assessmentCount = assessments.length;
 
+    const enrollments = await this.courseRepository.findCourseEnrollments(courseId);
+    const studentCount = enrollments.filter(e => e.role == Role.STUDENT).length;
+
     let gradesSum = 0;
+    let gradesCount = 0;
     let completionCount = 0;
     let submissionCount = 0;
     let openCount = 0;
 
-    // marcos
     // TODO: definir bien como conseguimos esto
     const now = new Date();
 
-    assessments
-      .map(a => {
-        if (a.startTime <= now && now <= a.deadline) {
-          openCount++;
-        }
-        return a;
-      })
-      .flatMap(_ => []) // a => a.submissions
-      .forEach(_ => {   // s => {
-        // if completed { gradesSum += note; completionCount++ }
-        submissionCount++;
-      });
+    for (const a of assessments) {
+
+    }
+
+    /*
+
+    1. Definir como usar las fechas (formato)
+
+    gradeAverage (submissions):
+      si la fecha de correccion (noteCreatedAt) cae entre el intervalo dado
+    
+    completionRate (submissions):
+      si esta entregada (submitAt) entre el intervalo
+      si el largo de ejercicios es igual al largo de respuestas
+
+    totalClosedAssessments (assessments):
+      si el assessment cierra antes de from y despues de till
+
+    totalSubmissions (submissions):
+      la cantidad de assessments (submitAt) entre el intervalo
+
+    openRate (assessments):
+      si el deadline cae luego del till
+
+    */
 
     return {
-      averageGrade: gradesSum / Math.max(1, completionCount),
-      completionRate: completionCount / Math.max(1, submissionCount),
+      averageGrade: gradesSum / Math.max(1, gradesCount),
+      completionRate: completionCount / Math.max(1, studentCount),
       totalAssessments: assessmentCount,
       totalSubmissions: submissionCount,
       openRate: openCount / Math.max(1, submissionCount),
     } as CoursePerformanceDto;
   }
 
-  // marcos
   // Tests relevantes:
   //
   // 1. sin assessments
@@ -227,24 +241,35 @@ export class AssessmentService {
     const assessmentCount = assessments.length;
 
     let gradesSum = 0;
+    let gradesCount = 0;
     let completionCount = 0;
 
-    assessments
-      .flatMap(_ => [])  // a => a.submissions
-      .filter(_ => true) // s => s.studentId == studentId && completed
-      .forEach(_ => {    // s => {}
-        // gradesSum += note
-        // completionCount++
-      });
+    for (const a of assessments) {
+      // TODO reemplazar por:
+      // const s = a.submitions[studentId];
+      const s = { submittedAt: null, noteCreatedAt: null, note: null, exercises: [] };
+      if (!s) {
+        continue;
+      }
+
+      const exercisesCount = a.exercises.length;
+      if (s.submittedAt && exercisesCount == s.exercises.length) {
+        completionCount++;
+      }
+
+      if (s.noteCreatedAt && s.note) {
+        gradesSum += s.note
+        gradesCount++;
+      }
+    }
 
     return {
-      averageGrade: gradesSum / Math.max(1, completionCount),
+      averageGrade: gradesSum / Math.max(1, gradesCount),
       completedAssessments: completionCount,
       totalAssessments: assessmentCount,
     } as StudentPerformanceInCourseDto;
   }
 
-  // marcos
   // Tests relevantes:
   //
   // 1. sin assessments
@@ -252,23 +277,31 @@ export class AssessmentService {
   // 3. con assessments con submissions
   async calculateAssessmentPerformanceSummariesInCourse(courseId: number): Promise<AssessmentPerformanceDto[]> {
     const assessments = await this.findAssessmentsByCourse(courseId);
+    const enrollments = await this.courseRepository.findCourseEnrollments(courseId);
+    const studentCount = enrollments.filter(e => e.role == Role.STUDENT).length;
 
     return assessments.map(a => {
       let gradesSum = 0;
+      let gradesCount = 0;
       let completionCount = 0;
-      const submissionsCount = 0; // a.submissions.length
 
-      assessments
-        .filter(_ => true) // a => completed
-        .forEach(_ => {
-          // gradesSum += note
-          // copmletionCount++
-        })
+      // TODO reemplazar por:
+      // for (const s of a.submitions) {
+      for (const s of [{ submittedAt: null, note: null }]) {
+        if (!s.submittedAt) {
+          continue;
+        }
+
+        if (s.note) {
+          gradesSum += s.note;
+          gradesCount++;
+        }
+      }
 
       return {
         title: a.title,
-        averageGrade: gradesSum / Math.max(1, completionCount),
-        completionRate: completionCount / Math.max(1, submissionsCount),
+        averageGrade: gradesSum / Math.max(1, gradesCount),
+        completionRate: completionCount / Math.max(1, studentCount),
       } as AssessmentPerformanceDto;
     });
   }

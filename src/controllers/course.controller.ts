@@ -363,9 +363,15 @@ export class CourseController {
   }
 
   @Get('/courses/:courseId/performance/summary')
-  async getCoursePerformanceSummary(@Param('courseId') courseId: number) {
+  async getCoursePerformanceSummary(
+    @Param('courseId') courseId: number,
+    @Query('from') from?: string,
+    @Query('till') till?: string,
+  ) {
+    const fromDate = from ? new Date(from) : undefined;
+    const tillDate = till ? new Date(till) : undefined;
     logger.log(`Getting performance summary for course with ID ${courseId}`);
-    return await this.assessService.calculateCoursePerformanceSummary(courseId)
+    return await this.assessService.calculateCoursePerformanceSummary(courseId, fromDate, tillDate)
   }
 
   @Get('/courses/:courseId/performance/students/:studentId')
