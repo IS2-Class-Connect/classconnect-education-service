@@ -6,7 +6,7 @@ import { Assessment, AssessmentDocument } from 'src/schema/assessment.schema';
 import { Assessment as AssessmentSchema } from 'src/schema/assessment.schema';
 
 export interface CreateAssessmentProps
-  extends Omit<AssessmentSchema, 'createdAt' | '_id' | '__v'> {}
+  extends Omit<AssessmentSchema, 'createdAt' | '_id' | '__v' | 'submissions'> {}
 
 @Injectable()
 export class AssessmentRepository {
