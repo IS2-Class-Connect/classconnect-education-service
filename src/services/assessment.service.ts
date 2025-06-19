@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { Activity, Prisma, Role } from '@prisma/client';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
@@ -7,10 +13,7 @@ import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
 import { SubmissionCreateDto } from 'src/dtos/submission/submission.create.dto';
 import { SubmissionResponseDto } from 'src/dtos/submission/submission.response.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
-import {
-  AssessmentRepository,
-  CreateSubmissionProps,
-} from 'src/repositories/assessment.repository';
+import { AssessmentRepository } from 'src/repositories/assessment.repository';
 import { CourseRepository } from 'src/repositories/course.repository';
 import { Assessment, AssessmentType } from 'src/schema/assessment.schema';
 import { Submission, SubmittedAnswer } from 'src/schema/submission.schema';
@@ -187,20 +190,21 @@ export class AssessmentService {
   }
 
   async createSubmission(id: string, createDto: SubmissionCreateDto) {
-    const { userId, answers, submitted } = createDto;
-    const assess = await this.getAssess(id);
-    const enrollment = await this.courseRepository.findEnrollment(assess.courseId, userId);
+    const { userId, answers } = createDto;
+    const asses = await this.getAssess(id);
+    if (asses.submissions && asses.submissions[userId]) {
+      throw new ConflictException(`Submission for user ${userId} already exists`);
+    }
+    const enrollment = await this.courseRepository.findEnrollment(asses.courseId, userId);
     if (!enrollment || enrollment.role != Role.STUDENT)
       throw new ForbiddenUserException(
-        `User ${userId} is not authorized to sumbit the assessment. Only course ${assess.courseId} students can submit the assessment.`,
+        `User ${userId} is not authorized to sumbit the assessment. Only course ${asses.courseId} students can submit the assessment.`,
       );
     const submittedAnswers: SubmittedAnswer[] = answers.map((answer) => ({
       answer,
       correction: '',
     }));
-    let createData: CreateSubmissionProps = submitted
-      ? { answers: submittedAnswers, submittedAt: new Date() }
-      : { answers: submittedAnswers };
+    let createData: Submission = { answers: submittedAnswers, submittedAt: new Date() };
     const submission = await this.repository.createAssesSubmission(id, userId, createData);
     return getSubmissionResponse(submission, id, userId);
   }
@@ -218,7 +222,11 @@ export class AssessmentService {
   async getAssesSubmission(assesId: string, userId: string) {
     const asses = await this.getAssess(assesId);
     const userSubmission = asses.submissions?.[userId];
-    return userSubmission ? getSubmissionResponse(userSubmission, assesId, userId) : null;
+    if (!userSubmission)
+      throw new NotFoundException(
+        `Submission of user ${userId} not found in assessment ${assesId}`,
+      );
+    return getSubmissionResponse(userSubmission, assesId, userId);
   }
 }
 

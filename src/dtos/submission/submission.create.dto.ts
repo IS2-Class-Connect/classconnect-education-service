@@ -8,8 +8,4 @@ export class SubmissionCreateDto {
   @IsNotEmpty()
   @IsArray()
   answers: string[];
-
-  @IsNotEmpty()
-  @IsBoolean()
-  submitted: boolean;
 }

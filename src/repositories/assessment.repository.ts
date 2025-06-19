@@ -9,7 +9,7 @@ import { Model } from 'mongoose';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { Assessment, AssessmentDocument } from 'src/schema/assessment.schema';
 import { Assessment as AssessmentSchema } from 'src/schema/assessment.schema';
-import { SubmittedAnswer } from 'src/schema/submission.schema';
+import { Submission, SubmittedAnswer } from 'src/schema/submission.schema';
 
 /**
  * - profesor necesita todas las entregas con correcciones
@@ -23,11 +23,6 @@ import { SubmittedAnswer } from 'src/schema/submission.schema';
 
 export interface CreateAssessmentProps
   extends Omit<AssessmentSchema, 'createdAt' | '_id' | '__v' | 'submissions'> {}
-
-export interface CreateSubmissionProps {
-  answers: SubmittedAnswer[];
-  submittedAt?: Date;
-}
 
 @Injectable()
 export class AssessmentRepository {
@@ -102,7 +97,7 @@ export class AssessmentRepository {
     return deletedAssessment.toObject();
   }
 
-  async createAssesSubmission(assesId: string, userId: string, createData: CreateSubmissionProps) {
+  async createAssesSubmission(assesId: string, userId: string, createData: Submission) {
     const updatedAsses = await this.assessmentModel.findOneAndUpdate(
       { _id: assesId },
       { $set: { [`submissions.${userId}`]: createData } },

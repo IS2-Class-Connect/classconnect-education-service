@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
@@ -422,10 +422,12 @@ describe('AssessmentService', () => {
   });
 
   test('Should create a submission of the assessment', async () => {
+    const mockedDate = new Date('2024-06-01T12:00:00Z');
+    jest.spyOn(global, 'Date').mockImplementation(() => mockedDate as unknown as Date);
+
     const createDto: SubmissionCreateDto = {
       userId: USER_ID,
       answers: ['This is the answer for first exercise', 'This is the answer for second exercise'],
-      submitted: false,
     };
 
     const answers: SubmittedAnswer[] = [
@@ -441,12 +443,13 @@ describe('AssessmentService', () => {
 
     const submission: Submission = {
       answers,
+      submittedAt: new Date(),
     };
 
     const expected: SubmissionResponseDto = {
       userId: USER_ID,
       assesId: ASSES_ID,
-      answers,
+      ...submission,
     };
 
     (mockAssesRepo.findById as jest.Mock).mockResolvedValue({ courseId: COURSE_ID });
@@ -459,19 +462,49 @@ describe('AssessmentService', () => {
 
     expect(await service.createSubmission(ASSES_ID, createDto)).toEqual(expected);
     expect(mockAssesRepo.findById).toHaveBeenCalledWith(ASSES_ID);
-    expect(mockAssesRepo.createAssesSubmission).toHaveBeenCalledWith(ASSES_ID, USER_ID, {
-      answers,
-    });
+    expect(mockAssesRepo.createAssesSubmission).toHaveBeenCalledWith(ASSES_ID, USER_ID, submission);
     expect(mockCourseRepo.findEnrollment).toHaveBeenCalledWith(COURSE_ID, USER_ID);
+
+    jest.restoreAllMocks();
+  });
+
+  test('Should throw an exception when trying to repeatly create a user submission to assessment', async () => {
+    const createDto: SubmissionCreateDto = {
+      userId: USER_ID,
+      answers: ['This is the answer for first exercise', 'This is the answer for second exercise'],
+    };
+
+    const submissions = {
+      [USER_ID]: {
+        answers: [
+          {
+            answer: 'This is the original first answer',
+            correction: '',
+          },
+          {
+            answer: 'This is the origin second answer',
+            correction: '',
+          },
+        ],
+        submittedAt: new Date(),
+      },
+    };
+    (mockAssesRepo.findById as jest.Mock).mockResolvedValue({ courseId: COURSE_ID, submissions });
+
+    await expect(service.createSubmission(ASSES_ID, createDto)).rejects.toThrow(ConflictException);
+    expect(mockAssesRepo.findById).toHaveBeenCalledWith(ASSES_ID);
   });
 
   test('Should find a specified assessment submission', async () => {
-    const answers: SubmittedAnswer[] = [
-      {
-        answer: '1',
-        correction: '',
-      },
-    ];
+    const submission: Submission = {
+      answers: [
+        {
+          answer: '1',
+          correction: '',
+        },
+      ],
+      submittedAt: new Date(),
+    };
 
     const asses: Assessment = {
       title: 'Testing exam',
@@ -493,14 +526,14 @@ describe('AssessmentService', () => {
         },
       ],
       submissions: {
-        [USER_ID]: { answers },
+        [USER_ID]: submission,
       },
     };
 
     const expected: SubmissionResponseDto = {
       userId: USER_ID,
       assesId: ASSES_ID,
-      answers,
+      ...submission,
     };
 
     (mockAssesRepo.findById as jest.Mock).mockResolvedValue(asses);
@@ -510,19 +543,25 @@ describe('AssessmentService', () => {
   });
 
   test('Should get all the submissions of a specified assessment', async () => {
-    const answers1: SubmittedAnswer[] = [
-      {
-        answer: '1',
-        correction: '',
-      },
-    ];
+    const submission1: Submission = {
+      answers: [
+        {
+          answer: '1',
+          correction: '',
+        },
+      ],
+      submittedAt: new Date(),
+    };
 
-    const answers2: SubmittedAnswer[] = [
-      {
-        answer: '0',
-        correction: '',
-      },
-    ];
+    const submission2: Submission = {
+      answers: [
+        {
+          answer: '0',
+          correction: '',
+        },
+      ],
+      submittedAt: new Date(),
+    };
 
     const asses: Assessment = {
       title: 'Testing exam',
@@ -544,8 +583,8 @@ describe('AssessmentService', () => {
         },
       ],
       submissions: {
-        [USER_ID]: { answers: answers1 },
-        [FORBIDDEN_USER_ID]: { answers: answers2 },
+        [USER_ID]: submission1,
+        [FORBIDDEN_USER_ID]: submission2,
       },
     };
 
@@ -553,12 +592,12 @@ describe('AssessmentService', () => {
       {
         userId: USER_ID,
         assesId: ASSES_ID,
-        answers: answers1,
+        ...submission1,
       },
       {
         userId: FORBIDDEN_USER_ID,
         assesId: ASSES_ID,
-        answers: answers2,
+        ...submission2,
       },
     ];
 

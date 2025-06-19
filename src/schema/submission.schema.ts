@@ -8,6 +8,6 @@ export interface Submission {
   note?: number;
   feedback?: string;
   AIFeedback?: string;
-  submittedAt?: Date;
+  submittedAt: Date;
   correctedAt?: Date;
 }
