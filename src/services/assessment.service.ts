@@ -23,10 +23,10 @@ function getAssessResponse(assess: Assessment): AssessmentResponseDto {
 
 function getSubmissionResponse(
   submission: Submission,
-  assessmentId: string,
+  assesId: string,
   userId: string,
 ): SubmissionResponseDto {
-  return { ...submission, assessmentId, userId };
+  return { ...submission, assesId, userId };
 }
 
 function validateAssessment(assessment: AssessmentCreateDto) {
@@ -189,15 +189,8 @@ export class AssessmentService {
   async createSubmission(id: string, createDto: SubmissionCreateDto) {
     const { userId, answers, submitted } = createDto;
     const assess = await this.getAssess(id);
-    const enrollments = await this.courseRepository.findCourseEnrollments(assess.courseId);
-    let isStudent = false;
-    for (const enrollment of enrollments) {
-      if (enrollment.userId === userId) {
-        isStudent = enrollment.role === Role.STUDENT;
-        break;
-      }
-    }
-    if (!isStudent)
+    const enrollment = await this.courseRepository.findEnrollment(assess.courseId, userId);
+    if (!enrollment || enrollment.role != Role.STUDENT)
       throw new ForbiddenUserException(
         `User ${userId} is not authorized to sumbit the assessment. Only course ${assess.courseId} students can submit the assessment.`,
       );

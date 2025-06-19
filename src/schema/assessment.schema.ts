@@ -78,7 +78,7 @@ export class Assessment {
   exercises: any[];
 
   @Prop({ required: false, type: Object })
-  submissions: Record<string, Submission>;
+  submissions?: Record<string, Submission>;
 }
 
 export const AssessmentSchema = SchemaFactory.createForClass(Assessment);

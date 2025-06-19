@@ -1,15 +1,19 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
+import { SubmissionCreateDto } from 'src/dtos/submission/submission.create.dto';
+import { SubmissionResponseDto } from 'src/dtos/submission/submission.response.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
 import { AssessmentRepository } from 'src/repositories/assessment.repository';
 import { CourseRepository } from 'src/repositories/course.repository';
 import { Assessment, AssessmentType } from 'src/schema/assessment.schema';
 import { ExerciseType } from 'src/schema/exercise.schema';
+import { Submission, SubmittedAnswer } from 'src/schema/submission.schema';
 import { AssessmentService } from 'src/services/assessment.service';
-import { getDatesAfterToday } from 'test/utils';
+import { ASSES_ID, COURSE_ID, FORBIDDEN_USER_ID, getDatesAfterToday, USER_ID } from 'test/utils';
 
 describe('AssessmentService', () => {
   let service: AssessmentService;
@@ -30,6 +34,7 @@ describe('AssessmentService', () => {
       findByCourseId: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      createAssesSubmission: jest.fn(),
     } as any;
     service = new AssessmentService(mockAssesRepo, mockCourseRepo);
   });
@@ -414,5 +419,152 @@ describe('AssessmentService', () => {
 
     await expect(service.deleteAssess('a1', forbiddenUser)).rejects.toThrow(ForbiddenUserException);
     await expect(service.deleteAssess('a2', forbiddenUser)).rejects.toThrow(ForbiddenUserException);
+  });
+
+  test('Should create a submission of the assessment', async () => {
+    const createDto: SubmissionCreateDto = {
+      userId: USER_ID,
+      answers: ['This is the answer for first exercise', 'This is the answer for second exercise'],
+      submitted: false,
+    };
+
+    const answers: SubmittedAnswer[] = [
+      {
+        answer: 'This is the answer for first exercise',
+        correction: '',
+      },
+      {
+        answer: 'This is the answer for second exercise',
+        correction: '',
+      },
+    ];
+
+    const submission: Submission = {
+      answers,
+    };
+
+    const expected: SubmissionResponseDto = {
+      userId: USER_ID,
+      assesId: ASSES_ID,
+      answers,
+    };
+
+    (mockAssesRepo.findById as jest.Mock).mockResolvedValue({ courseId: COURSE_ID });
+    (mockCourseRepo.findEnrollment as jest.Mock).mockResolvedValue({
+      courseId: COURSE_ID,
+      userId: USER_ID,
+      role: Role.STUDENT,
+    });
+    (mockAssesRepo.createAssesSubmission as jest.Mock).mockResolvedValue(submission);
+
+    expect(await service.createSubmission(ASSES_ID, createDto)).toEqual(expected);
+    expect(mockAssesRepo.findById).toHaveBeenCalledWith(ASSES_ID);
+    expect(mockAssesRepo.createAssesSubmission).toHaveBeenCalledWith(ASSES_ID, USER_ID, {
+      answers,
+    });
+    expect(mockCourseRepo.findEnrollment).toHaveBeenCalledWith(COURSE_ID, USER_ID);
+  });
+
+  test('Should find a specified assessment submission', async () => {
+    const answers: SubmittedAnswer[] = [
+      {
+        answer: '1',
+        correction: '',
+      },
+    ];
+
+    const asses: Assessment = {
+      title: 'Testing exam',
+      description: 'This is an exam for testing purposes',
+      type: AssessmentType.Exam,
+      toleranceTime: 0,
+      userId: USER_ID,
+      startTime: startDate,
+      deadline,
+      courseId: COURSE_ID,
+      teacherId: USER_ID,
+      createdAt: new Date(),
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
+      submissions: {
+        [USER_ID]: { answers },
+      },
+    };
+
+    const expected: SubmissionResponseDto = {
+      userId: USER_ID,
+      assesId: ASSES_ID,
+      answers,
+    };
+
+    (mockAssesRepo.findById as jest.Mock).mockResolvedValue(asses);
+
+    expect(await service.getAssesSubmission(ASSES_ID, USER_ID)).toEqual(expected);
+    expect(mockAssesRepo.findById).toHaveBeenCalledWith(ASSES_ID);
+  });
+
+  test('Should get all the submissions of a specified assessment', async () => {
+    const answers1: SubmittedAnswer[] = [
+      {
+        answer: '1',
+        correction: '',
+      },
+    ];
+
+    const answers2: SubmittedAnswer[] = [
+      {
+        answer: '0',
+        correction: '',
+      },
+    ];
+
+    const asses: Assessment = {
+      title: 'Testing exam',
+      description: 'This is an exam for testing purposes',
+      type: AssessmentType.Exam,
+      toleranceTime: 0,
+      userId: USER_ID,
+      startTime: startDate,
+      deadline,
+      courseId: COURSE_ID,
+      teacherId: USER_ID,
+      createdAt: new Date(),
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
+      submissions: {
+        [USER_ID]: { answers: answers1 },
+        [FORBIDDEN_USER_ID]: { answers: answers2 },
+      },
+    };
+
+    const expected: SubmissionResponseDto[] = [
+      {
+        userId: USER_ID,
+        assesId: ASSES_ID,
+        answers: answers1,
+      },
+      {
+        userId: FORBIDDEN_USER_ID,
+        assesId: ASSES_ID,
+        answers: answers2,
+      },
+    ];
+
+    (mockAssesRepo.findById as jest.Mock).mockResolvedValue(asses);
+
+    expect(await service.getAssesSubmissions(ASSES_ID)).toEqual(expected);
+    expect(mockAssesRepo.findById).toHaveBeenCalledWith(ASSES_ID);
   });
 });

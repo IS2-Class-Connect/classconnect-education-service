@@ -6,16 +6,12 @@ import { AppModule } from 'src/app.module';
 import { ResponseInterceptor } from 'src/middleware/response.interceptor';
 import { PrismaService } from 'src/prisma.service';
 import { App } from 'supertest/types';
-import { cleanDataBase, cleanMongoDatabase, getDatesAfterToday } from 'test/utils';
+import { cleanDataBase, cleanMongoDatabase, getDatesAfterToday, TEACHER_ID } from 'test/utils';
 import { Connection } from 'mongoose';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { AssessmentType } from 'src/schema/assessment.schema';
 import { ExerciseType } from 'src/schema/exercise.schema';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
-
-const TEACHER_ID = 't1';
-const USER_ID = 'u1';
-const FORBIDDEN_USER_ID = 'u2';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
@@ -40,7 +36,7 @@ describe('Course e2e', () => {
 
   async function createAssessment(courseId: number, type: AssessmentType) {
     const assessmentDto: AssessmentCreateDto = {
-      userId: TEACHER_ID, // el que crea (auxiliar / profesor)
+      userId: TEACHER_ID, // who creates it (assistant / teacher)
       title: `${type.toString()} 1`,
       description: `It is a ${type.toString()} for testing purpose.`,
       type: type,
