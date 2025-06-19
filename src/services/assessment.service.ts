@@ -4,15 +4,29 @@ import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
+import { SubmissionCreateDto } from 'src/dtos/submission/submission.create.dto';
+import { SubmissionResponseDto } from 'src/dtos/submission/submission.response.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
-import { AssessmentRepository } from 'src/repositories/assessment.repository';
+import {
+  AssessmentRepository,
+  CreateSubmissionProps,
+} from 'src/repositories/assessment.repository';
 import { CourseRepository } from 'src/repositories/course.repository';
 import { Assessment, AssessmentType } from 'src/schema/assessment.schema';
+import { Submission, SubmittedAnswer } from 'src/schema/submission.schema';
 import { getForbiddenExceptionMsg } from 'src/utils';
 
 function getAssessResponse(assess: Assessment): AssessmentResponseDto {
   // TODO: Transform it to AssessmentResponseDto when schema completed
   return { ...assess };
+}
+
+function getSubmissionResponse(
+  submission: Submission,
+  assessmentId: string,
+  userId: string,
+): SubmissionResponseDto {
+  return { ...submission, assessmentId, userId };
 }
 
 function validateAssessment(assessment: AssessmentCreateDto) {
@@ -170,6 +184,48 @@ export class AssessmentService {
 
     const deletedAssessment = await this.repository.delete(id);
     return deletedAssessment ? getAssessResponse(deletedAssessment) : null;
+  }
+
+  async createSubmission(id: string, createDto: SubmissionCreateDto) {
+    const { userId, answers, submitted } = createDto;
+    const assess = await this.getAssess(id);
+    const enrollments = await this.courseRepository.findCourseEnrollments(assess.courseId);
+    let isStudent = false;
+    for (const enrollment of enrollments) {
+      if (enrollment.userId === userId) {
+        isStudent = enrollment.role === Role.STUDENT;
+        break;
+      }
+    }
+    if (!isStudent)
+      throw new ForbiddenUserException(
+        `User ${userId} is not authorized to sumbit the assessment. Only course ${assess.courseId} students can submit the assessment.`,
+      );
+    const submittedAnswers: SubmittedAnswer[] = answers.map((answer) => ({
+      answer,
+      correction: '',
+    }));
+    let createData: CreateSubmissionProps = submitted
+      ? { answers: submittedAnswers, submittedAt: new Date() }
+      : { answers: submittedAnswers };
+    const submission = await this.repository.createAssesSubmission(id, userId, createData);
+    return getSubmissionResponse(submission, id, userId);
+  }
+
+  async getAssesSubmissions(id: string) {
+    const submissions = (await this.getAssess(id)).submissions;
+    if (!submissions) {
+      return [];
+    }
+    return Object.entries(submissions).map(([userId, submission]) =>
+      getSubmissionResponse(submission, id, userId),
+    );
+  }
+
+  async getAssesSubmission(assesId: string, userId: string) {
+    const asses = await this.getAssess(assesId);
+    const userSubmission = asses.submissions?.[userId];
+    return userSubmission ? getSubmissionResponse(userSubmission, assesId, userId) : null;
   }
 }
 

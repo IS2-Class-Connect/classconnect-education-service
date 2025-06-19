@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document } from 'mongoose';
+import { Submission } from './submission.schema';
 
 export type AssessmentDocument = Assessment & Document;
 
@@ -77,7 +78,7 @@ export class Assessment {
   exercises: any[];
 
   @Prop({ required: false, type: Object })
-  submissions: Record<string, any>;
+  submissions: Record<string, Submission>;
 }
 
 export const AssessmentSchema = SchemaFactory.createForClass(Assessment);

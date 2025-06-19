@@ -1,12 +1,33 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { Assessment, AssessmentDocument } from 'src/schema/assessment.schema';
 import { Assessment as AssessmentSchema } from 'src/schema/assessment.schema';
+import { SubmittedAnswer } from 'src/schema/submission.schema';
+
+/**
+ * - profesor necesita todas las entregas con correcciones
+ * - alumno necesita entrega
+ * - alumno necesita correccion
+ * - profesor y alumno necesitan assessment solo
+ * - tanto en POST como en UPDATE de submission/correction se necesita un campo booleano que sea submitted,
+ *   que diga si es el cambio final o no, ahi se registra el submittedAt/correctedAt y se cierra la
+ *   submission/correction (no se puede seguir editando)
+ */
 
 export interface CreateAssessmentProps
   extends Omit<AssessmentSchema, 'createdAt' | '_id' | '__v' | 'submissions'> {}
+
+export interface CreateSubmissionProps {
+  answers: SubmittedAnswer[];
+  submittedAt?: Date;
+}
 
 @Injectable()
 export class AssessmentRepository {
@@ -79,6 +100,21 @@ export class AssessmentRepository {
       throw new NotFoundException(`Assessment with ID ${id} not found.`);
     }
     return deletedAssessment.toObject();
+  }
+
+  async createAssesSubmission(assesId: string, userId: string, createData: CreateSubmissionProps) {
+    const updatedAsses = await this.assessmentModel.findOneAndUpdate(
+      { _id: assesId },
+      { $set: { [`submissions.${userId}`]: createData } },
+      { new: true },
+    );
+    if (!updatedAsses) {
+      throw new NotFoundException(`Assessment with ID ${assesId} not found.`);
+    }
+    if (!updatedAsses.submissions) {
+      throw new InternalServerErrorException('Database error: failed to insert submissions.');
+    }
+    return updatedAsses.submissions[userId];
   }
 }
 
