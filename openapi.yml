@@ -903,6 +903,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/AssessmentResponse'
 
+  /courses/metrics:
+    get:
+      summary: Retrieve the metrics of a service.
+      description: Returns metric information for Prometheus server.
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Metric information.
+
 components:
   schemas:
     AssessmentResponse:
