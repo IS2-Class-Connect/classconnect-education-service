@@ -70,7 +70,8 @@ describe('Course e2e', () => {
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     );
-    app.useGlobalFilters(new BaseExceptionFilter());
+    const httpAdapterHost = app.getHttpAdapter();
+    app.useGlobalFilters(new BaseExceptionFilter(httpAdapterHost));
     app.useGlobalInterceptors(new ResponseInterceptor());
     await app.init();
 
@@ -130,4 +131,27 @@ describe('Course e2e', () => {
     expect(data.length).toBe(0);
     expect(data).toEqual(expected);
   });
+
+  test('DELETE /assessments/{assesId} should delete the assessment specified, if exists', async () => {
+    const course = await createCourse();
+    const assessment = await createAssessment(course.id, AssessmentType.Exam);
+    const id = assessment._id;
+
+    const result = await request(app.getHttpServer())
+      .delete(`/assessments/${assessment._id}?userId=${assessment.teacherId}`)
+      .send();
+
+    expect(result.status).toBe(200);
+    expect(result.body).toHaveProperty('data');
+    const { data } = result.body;
+    expect(data).toEqual(assessment);
+
+    // Should throw a Not Found Error
+    const resultError = await request(app.getHttpServer())
+      .delete(`/assessments/${id}?userId=${TEACHER_ID}`)
+      .send();
+    expect(resultError.status).toBe(404);
+  });
+
+  test('POST /assessments/{assesId}/submissions should retreive a created submission for the specified assessment', async () => {});
 });

@@ -19,9 +19,10 @@ import { Assessment, AssessmentType } from 'src/schema/assessment.schema';
 import { Submission, SubmittedAnswer } from 'src/schema/submission.schema';
 import { getForbiddenExceptionMsg } from 'src/utils';
 
-function getAssessResponse(assess: Assessment): AssessmentResponseDto {
+function getAssessResponse(asses: Assessment): AssessmentResponseDto {
   // TODO: Transform it to AssessmentResponseDto when schema completed
-  return { ...assess };
+  const { submissions, ...assesResponse } = asses;
+  return assesResponse;
 }
 
 function getSubmissionResponse(

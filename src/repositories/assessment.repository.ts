@@ -9,7 +9,7 @@ import { Model } from 'mongoose';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { Assessment, AssessmentDocument } from 'src/schema/assessment.schema';
 import { Assessment as AssessmentSchema } from 'src/schema/assessment.schema';
-import { Submission, SubmittedAnswer } from 'src/schema/submission.schema';
+import { Submission } from 'src/schema/submission.schema';
 
 /**
  * - profesor necesita todas las entregas con correcciones
