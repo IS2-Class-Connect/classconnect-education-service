@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -10,6 +11,7 @@ import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
+import { CorrectionCreateDto } from 'src/dtos/correction/correction.create.dto';
 import { SubmissionCreateDto } from 'src/dtos/submission/submission.create.dto';
 import { SubmissionResponseDto } from 'src/dtos/submission/submission.response.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
@@ -206,7 +208,7 @@ export class AssessmentService {
       correction: '',
     }));
     const createData: Submission = { answers: submittedAnswers, submittedAt: new Date() };
-    const submission = await this.repository.createAssesSubmission(id, userId, createData);
+    const submission = await this.repository.setAssesSubmission(id, userId, createData);
     return getSubmissionResponse(submission, id, userId);
   }
 
@@ -228,6 +230,42 @@ export class AssessmentService {
         `Submission of user ${userId} not found in assessment ${assesId}`,
       );
     return getSubmissionResponse(userSubmission, assesId, userId);
+  }
+
+  async createCorrection(assesId: string, createDto: CorrectionCreateDto) {
+    const { userId, teacherId, corrections, ...correctionData } = createDto;
+
+    const asses = await this.getAssess(assesId);
+    const course = await this.getCourse(asses.courseId);
+    if (course.teacherId != teacherId) {
+      throw new ForbiddenException(
+        `User ${teacherId} is not authorized to correct the submission. Only the course ${asses.courseId} head teacher can correct the course submissions`,
+      );
+    }
+
+    const submission = asses.submissions?.[userId];
+    if (!submission) {
+      throw new NotFoundException(
+        `Submission of user ${userId} not found in assessment ${assesId}.`,
+      );
+    }
+
+    if (submission.answers.length != corrections.length)
+      throw new BadRequestException('There must be the same number of corrections as answers');
+    submission.answers.forEach((answer, idx) => {
+      answer.correction = corrections[idx];
+    });
+    // TODO: Add AI feedback
+    const correctedSubmission: Submission = {
+      ...submission,
+      ...correctionData,
+      correctedAt: new Date(),
+    };
+    return getSubmissionResponse(
+      await this.repository.setAssesSubmission(assesId, userId, correctedSubmission),
+      assesId,
+      userId,
+    );
   }
 }
 
