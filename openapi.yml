@@ -678,12 +678,137 @@ paths:
               schema:
                 $ref: '#/components/schemas/CourseResourceCreate'
 
-    /courses/{courseId}/enrollments/{userId}/courseFeedback:
-      # linea 297 en course.controller.ts
-      
+  /courses/{courseId}/enrollments/{userId}/courseFeedback:
+    post:
+      summary: Leave feedback for a course.
+      description: Leave feedback for a course as a user.
+      operationId: createCourseFeedback
+      parameters:
+        - in: path
+          name: courseId
+          schema:
+            type: number
+        - in: path
+          name: userId
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseFeedbackRequest'
+      responses:
+        '404':
+          description: The course or user was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '201':
+          description: The feedback was created successfully.
+
+    get:
+      summary: Retrieves a specific instance of feedback of a course.
+      description: Returns the feedback that a certain user left for a course.
+      operationId: getCourseFeedback
+      parameters:
+        - in: path
+          name: courseId
+          schema:
+            type: number
+        - in: path
+          name: userId
+          schema:
+            type: string
+      responses:
+        '404':
+          description: The course, user or feedback was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '200':
+          description: The instance of feedback.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComponentsFeedbackResponse'
+        
+
+  /courses/{courseId}/enrollments/{userId}/studentFeedback:
+    post:
+      summary: Leave feedback for a student.
+      description: Leave feedback for a student as a teacher.
+      operationId: createStudentFeedback
+      parameters:
+        - in: path
+          name: courseId
+          schema:
+            type: number
+        - in: path
+          name: userId
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/componentes/schemas/StudentFeedbackRequest'
+      responses:
+        '403':
+          description: The given user is not a teacher in the given course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '404':
+          description: The course or user was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '201':
+          description: The feedback was created successfully.
+
+# aca: course.controller.ts 323
 
 components:
   schemas:
+    CourseFeedbackResponse:
+      allOff:
+        - $ref: '#/components/schemas/CourseFeedbackRequest'
+    
+    StudentFeedbackRequest:
+      type: object
+      required:
+        - studentFeedback
+        - studentNote
+      properties:
+        studentFeedback:
+          type: string
+          example: "Persistent student"
+        studentNote:
+          type: number
+          example: 5
+        teacherId:
+          type: string
+          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"    
+
+    CourseFeedbackRequest:
+      type: object
+      required:
+        - courseFeedback
+        - courseNote
+      properties:
+        courseFeedback:
+          type: string
+          example: "Nice course"
+        courseNote:
+          type: number
+          example: 5
+
     CourseResourceUpdate:
       type: object
       required:
