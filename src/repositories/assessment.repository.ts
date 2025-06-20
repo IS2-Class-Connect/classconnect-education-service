@@ -1,12 +1,28 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { Assessment, AssessmentDocument } from 'src/schema/assessment.schema';
 import { Assessment as AssessmentSchema } from 'src/schema/assessment.schema';
+import { Submission } from 'src/schema/submission.schema';
+
+/**
+ * - profesor necesita todas las entregas con correcciones
+ * - alumno necesita entrega
+ * - alumno necesita correccion
+ * - profesor y alumno necesitan assessment solo
+ * - tanto en POST como en UPDATE de submission/correction se necesita un campo booleano que sea submitted,
+ *   que diga si es el cambio final o no, ahi se registra el submittedAt/correctedAt y se cierra la
+ *   submission/correction (no se puede seguir editando)
+ */
 
 export interface CreateAssessmentProps
-  extends Omit<AssessmentSchema, 'createdAt' | '_id' | '__v'> {}
+  extends Omit<AssessmentSchema, 'createdAt' | '_id' | '__v' | 'submissions'> {}
 
 @Injectable()
 export class AssessmentRepository {
@@ -42,6 +58,7 @@ export class AssessmentRepository {
       query.startTime = {};
       if (startTimeBegin !== undefined) query.startTime.$gte = startTimeBegin;
       if (startTimeEnd !== undefined) query.startTime.$lt = startTimeEnd;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       if (Object.keys(query.startTime).length === 0) delete query.startTime;
     }
 
@@ -49,6 +66,7 @@ export class AssessmentRepository {
       query.deadline = {};
       if (deadlineBegin !== undefined) query.deadline.$gte = deadlineBegin;
       if (deadlineEnd !== undefined) query.deadline.$lt = deadlineEnd;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       if (Object.keys(query.deadline).length === 0) delete query.deadline;
     }
     return (await this.assessmentModel.find(query).exec()).map((assesment) => assesment.toObject());
@@ -80,6 +98,22 @@ export class AssessmentRepository {
     }
     return deletedAssessment.toObject();
   }
+
+  async createAssesSubmission(assesId: string, userId: string, createData: Submission) {
+    const updatedAsses = await this.assessmentModel.findOneAndUpdate(
+      { _id: assesId },
+      { $set: { [`submissions.${userId}`]: createData } },
+      { new: true },
+    );
+    if (!updatedAsses) {
+      throw new NotFoundException(`Assessment with ID ${assesId} not found.`);
+    }
+    if (!updatedAsses.submissions) {
+      throw new InternalServerErrorException('Database error: failed to insert submissions.');
+    }
+    return updatedAsses.submissions[userId];
+  }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const logger = new Logger(AssessmentRepository.name);

@@ -1,18 +1,36 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { Activity, Prisma, Role } from '@prisma/client';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
+import { SubmissionCreateDto } from 'src/dtos/submission/submission.create.dto';
+import { SubmissionResponseDto } from 'src/dtos/submission/submission.response.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
 import { AssessmentRepository } from 'src/repositories/assessment.repository';
 import { CourseRepository } from 'src/repositories/course.repository';
 import { Assessment, AssessmentType } from 'src/schema/assessment.schema';
+import { Submission, SubmittedAnswer } from 'src/schema/submission.schema';
 import { getForbiddenExceptionMsg } from 'src/utils';
 
-function getAssessResponse(assess: Assessment): AssessmentResponseDto {
-  // TODO: Transform it to AssessmentResponseDto when schema completed
-  return { ...assess };
+function getAssessResponse(asses: Assessment): AssessmentResponseDto {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { submissions, ...assesResponse } = asses;
+  return assesResponse;
+}
+
+function getSubmissionResponse(
+  submission: Submission,
+  assesId: string,
+  userId: string,
+): SubmissionResponseDto {
+  return { ...submission, assesId, userId };
 }
 
 function validateAssessment(assessment: AssessmentCreateDto) {
@@ -170,6 +188,46 @@ export class AssessmentService {
 
     const deletedAssessment = await this.repository.delete(id);
     return deletedAssessment ? getAssessResponse(deletedAssessment) : null;
+  }
+
+  async createSubmission(id: string, createDto: SubmissionCreateDto) {
+    const { userId, answers } = createDto;
+    const asses = await this.getAssess(id);
+    if (asses.submissions && asses.submissions[userId]) {
+      throw new ConflictException(`Submission for user ${userId} already exists`);
+    }
+    const enrollment = await this.courseRepository.findEnrollment(asses.courseId, userId);
+    if (!enrollment || enrollment.role != Role.STUDENT)
+      throw new ForbiddenUserException(
+        `User ${userId} is not authorized to sumbit the assessment. Only course ${asses.courseId} students can submit the assessment.`,
+      );
+    const submittedAnswers: SubmittedAnswer[] = answers.map((answer) => ({
+      answer,
+      correction: '',
+    }));
+    const createData: Submission = { answers: submittedAnswers, submittedAt: new Date() };
+    const submission = await this.repository.createAssesSubmission(id, userId, createData);
+    return getSubmissionResponse(submission, id, userId);
+  }
+
+  async getAssesSubmissions(id: string) {
+    const submissions = (await this.getAssess(id)).submissions;
+    if (!submissions) {
+      return [];
+    }
+    return Object.entries(submissions).map(([userId, submission]) =>
+      getSubmissionResponse(submission, id, userId),
+    );
+  }
+
+  async getAssesSubmission(assesId: string, userId: string) {
+    const asses = await this.getAssess(assesId);
+    const userSubmission = asses.submissions?.[userId];
+    if (!userSubmission)
+      throw new NotFoundException(
+        `Submission of user ${userId} not found in assessment ${assesId}`,
+      );
+    return getSubmissionResponse(userSubmission, assesId, userId);
   }
 }
 

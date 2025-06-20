@@ -1,8 +1,8 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 
 export enum ExerciseType {
-  Written,
-  Mc,
+  Written = 'Written',
+  Mc = 'Mc',
 }
 
 @Schema({ _id: false })

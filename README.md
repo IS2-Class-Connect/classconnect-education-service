@@ -57,9 +57,9 @@ curl -X GET 'https://<host_url>/courses/{id}'
 curl -X PATCH 'http://<host_url>/courses/{id}' \
 -H 'Content-Type: application/json' \
 -d '{
-  "title": "Updated title",
-  "description": "Updated description",
-  "totalPlaces": 200,
+  "title"?: "Updated title",
+  "description"?: "Updated description",
+  "totalPlaces"?: 200,
   "userId": <user_id>,
   ...
 }'
@@ -117,13 +117,245 @@ curl -X GET 'https://<host_url>/courses/enrollments'
 curl -X DELETE 'https://<host_url>/courses/{course_id}/enrollments/{user_id}'
 ```
 
+- To get the course activity (the movements done by the head teacher or assistants):
+
+```bash
+curl 'https://<host_url>/courses/{course_id}/activities'
+```
+
+- To create a course module:
+
+```bash
+curl 'https://<host_url>/courses/{course_id}/modules' \
+-H 'Content-Type: application/json' \
+-d '{
+"title": "Title",
+"description": "Description",
+"order": <order>,
+"userId": <user_id>
+}'
+```
+
+- To get a module by id:
+
+```bash
+curl 'https://<host_url>/courses/{course_id}/modules/{module_id}'
+```
+
+- To get all modules for a course:
+
+```bash
+curl 'https://<host_url>/courses/{course_id}/modules'
+```
+
+- To update a course module by id (all properties are optional):
+
+```bash
+curl -X PATCH 'https://<host_url>/courses/{course_id}/modules/{module_id}' \
+-H 'Content-Type: application/json' \
+-d '{
+"title"?: "Updated Title",
+"description"?: "Updated Description",
+"order"?: <order>,
+"userId": <user_id>
+}'
+```
+
+- To delete a course module by id:
+
+```bash
+curl -X DELETE 'https://<host_url>/courses/{course_id}/modules/{module_id}'
+```
+
+- To create a resource for a course module:
+
+```bash
+curl -X POST 'https://<host_url>/courses/{course_id}/modules/{module_id}/resources' \
+-H 'Content-Type: application/json' \
+-d '{
+    "link": "https://resource-link.com",
+    "dataType": <data_type>,
+    "order": <order>,
+    "userId": <user_id>
+}'
+```
+
+- To get a module resource by link:
+
+```bash
+curl 'https://<host_url>/courses/{course_id}/modules/{module_id}/resources/{link}'
+```
+
+- To get all resources for a course module:
+
+```bash
+curl 'https://<host_url>/courses/{course_id}/modules/{module_id}/resources'
+```
+
+- To patch a module resource:
+
+```bash
+curl 'https://<host_url>/courses/{course_id}/modules/{module_id}/resources/{link}' \
+-H 'Content-Type: application/json' \
+-d '{
+"order": <order>,
+"userId": <user_id>"
+}'
+```
+
+- To delete a module resource:
+
+```bash
+curl -X GET 'https://<host_url>/courses/{course_id}/modules/{module_id}/resources/{link}?userId={user_id}'
+```
+
+- To create course feedback:
+
+```bash
+curl -X POST 'https://<host_url>/courses/{course_id}/enrollments/{user_id}/courseFeedback' \
+-H 'Content-Type: application/json' \
+-d '{
+    "courseNote": 5,
+    "courseFeedback": "Great course!"
+}'
+```
+
+- To get course feedback by student and course id:
+
+```bash
+curl 'https://<host_url>/courses/{course_id}/enrollments/{user_id}/courseFeedback'
+```
+
+- To get all feedback for a course:
+
+```bash
+curl 'https://<host_url>/courses/{course_id}/feedbacks'
+```
+
+- To create student feedback:
+
+```bash
+curl -X POST 'https://<host_url>/courses/{course_id}/enrollments/{user_id}/studentFeedback' \
+-H 'Content-Type: application/json' \
+-d '{
+    "studentFeedback": "Excellent participation",
+    "studentNote": 4,
+    "teacherId": <teacher_id>
+}'
+```
+
+- To get student feedback by student and course id:
+
+```bash
+curl 'https://<host_url>/courses/{course_id}/enrollments/{user_id}/studentFeedback'
+```
+
+- To get all feedback for a student:
+
+```bash
+curl 'https://<host_url>/courses/studentFeedbacks/{student_id}'
+```
+
+- To create an assessment for a course:
+
+```bash
+curl -X POST 'https://<host_url>/courses/{course_id}/assessments' \
+-H 'Content-Type: application/json' \
+-d '{
+    "title": "Assessment Title",
+    "description": "Assessment Description",
+    "type": <assessment_type>,
+    "startTime": <start_time>,
+    "deadline": <deadline>,
+    "toleranceTime": 60,
+    "userId": <user_id>
+    "exercises": [
+        {
+            "type": "Written",
+            "question": "What is an API?",
+            "link"?: "https://example-link.com"
+        },
+        {
+            "type": "Mc",
+            "question": "Is this an example?",
+            "choices": ["Yes", "No"],
+            "correctChoiceIdx": 0,
+            "link"?: "https://example-link.com"
+        },
+        ...
+    ]
+}'
+```
+
+- To get all assessments for a course:
+
+```bash
+curl 'https://<host_url>/courses/{course_id}/assessments'
+```
+
+- To get assessments matching a filter:
+
+```bash
+curl 'https://<host_url>/assessments/{filter}'
+```
+
+- To get an assessment by id:
+
+```bash
+curl 'https://<host_url>/assessments/{asses_id}'
+```
+
+- To update an assessment by id:
+
+```bash
+curl -X PATCH 'https://<host_url>/courses/{course_id}/assessments/{asses_id}' \
+-H 'Content-Type: application/json' \
+-d '{
+    "title"?: "Updated Exam Title",
+    "description"?: "Updated description",
+    "userId": "<user_id>",
+    ...
+}'
+```
+
+- To delete an assessment by ID:
+
+```bash
+curl -X DELETE 'https://<host_url>/courses/{course_id}/assessments/{asses_id}'
+```
+
+- To create a submission for an assessment:
+
+```bash
+curl -X POST 'https://<host_url>/assessments/{assessment_id}/submissions' \
+-H 'Content-Type: application/json' \
+-d '{
+    "userId": <user_id>,
+    "answers": ["1", "I don’t know", ...]
+}'
+```
+
+- To get all submissions for an assessment:
+
+```bash
+curl 'https://<host_url>/assessments/{assessment_id}/submissions'
+```
+
+- To get a submission by assessment and user id:
+
+```bash
+curl 'https://<host_url>/assessments/{assessment_id}/submissions/{user_id}'
+```
+
 ### Variables
 
-`<start_date>`, `<end_date>`, and `<registration_date>` are strings of the dates in ISO 8601 format: `YYYY-mm-ddThh:mm:ssZ`. \
+`<start_date>`, `<end_date>`, `<registration_date>`, `<start_time>` and `<deadline>` are strings of the dates in ISO 8601 format: `YYYY-mm-ddThh:mm:ssZ`. \
 `<teacher_id>` and `<user_id>` must match with the `uuid` used in users service. \
-`<user_id>` is required when requesting a `PATCH` for a course.
+`<user_id>` is required when requesting any endpoint allowed just to authorized users, or when needed to identify any entity (e.x. `enrollments`). \
 `<role>` must be `"STUDENT"` or `"ASSISTANT"`. \
-`<filters>` are _query params_ which can include an enrollment `userId` and/or `role`.
+`<filters>` are _query params_ which can include an enrollment `userId` and/or `role`. \
+`<order>` is the integer indicating the order of the module/resource in the course/module modules/resources list.
+`<data_type>` must be `"IMAGE"`, `"VIDEO"`, `"LINK"`.
 
 ## Technologies
 

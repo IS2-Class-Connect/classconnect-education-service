@@ -6,16 +6,22 @@ import { AppModule } from 'src/app.module';
 import { ResponseInterceptor } from 'src/middleware/response.interceptor';
 import { PrismaService } from 'src/prisma.service';
 import { App } from 'supertest/types';
-import { cleanDataBase, cleanMongoDatabase, getDatesAfterToday } from 'test/utils';
+import {
+  cleanDataBase,
+  cleanMongoDatabase,
+  FORBIDDEN_USER_ID,
+  getDatesAfterToday,
+  TEACHER_ID,
+  USER_ID,
+} from 'test/utils';
 import { Connection } from 'mongoose';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { AssessmentType } from 'src/schema/assessment.schema';
 import { ExerciseType } from 'src/schema/exercise.schema';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
-
-const TEACHER_ID = 't1';
-const USER_ID = 'u1';
-const FORBIDDEN_USER_ID = 'u2';
+import { SubmissionCreateDto } from 'src/dtos/submission/submission.create.dto';
+import { SubmissionResponseDto } from 'src/dtos/submission/submission.response.dto';
+import { Role } from '@prisma/client';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
@@ -40,7 +46,7 @@ describe('Course e2e', () => {
 
   async function createAssessment(courseId: number, type: AssessmentType) {
     const assessmentDto: AssessmentCreateDto = {
-      userId: TEACHER_ID, // el que crea (auxiliar / profesor)
+      userId: TEACHER_ID, // who creates it (assistant / teacher)
       title: `${type.toString()} 1`,
       description: `It is a ${type.toString()} for testing purpose.`,
       type: type,
@@ -74,7 +80,8 @@ describe('Course e2e', () => {
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     );
-    app.useGlobalFilters(new BaseExceptionFilter());
+    const httpAdapterHost = app.getHttpAdapter();
+    app.useGlobalFilters(new BaseExceptionFilter(httpAdapterHost));
     app.useGlobalInterceptors(new ResponseInterceptor());
     await app.init();
 
@@ -133,5 +140,153 @@ describe('Course e2e', () => {
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBe(0);
     expect(data).toEqual(expected);
+  });
+
+  test('DELETE /assessments/{assesId} should delete the assessment specified, if exists', async () => {
+    const course = await createCourse();
+    const assessment = await createAssessment(course.id, AssessmentType.Exam);
+    const id = assessment._id;
+
+    const result = await request(app.getHttpServer())
+      .delete(`/assessments/${assessment._id}?userId=${assessment.teacherId}`)
+      .send();
+
+    expect(result.status).toBe(200);
+    expect(result.body).toHaveProperty('data');
+    const { data } = result.body;
+    expect(data).toEqual(assessment);
+
+    // Should throw a Not Found Error
+    const resultError = await request(app.getHttpServer())
+      .delete(`/assessments/${id}?userId=${TEACHER_ID}`)
+      .send();
+    expect(resultError.status).toBe(404);
+  });
+
+  test('POST /assessments/{assesId}/submissions should retreive a created submission for the specified assessment', async () => {
+    const course = await createCourse();
+    const asses = await createAssessment(course.id, AssessmentType.Exam);
+    const assesId = asses._id;
+
+    // Enroll the user as a student in the course
+    await request(app.getHttpServer())
+      .post(`/courses/${course.id}/enrollments`)
+      .send({ userId: USER_ID, role: Role.STUDENT });
+
+    const createDto: SubmissionCreateDto = {
+      userId: USER_ID,
+      answers: ['1'],
+    };
+
+    const expected: Omit<SubmissionResponseDto, 'submittedAt'> = {
+      assesId,
+      userId: USER_ID,
+      answers: [{ answer: '1', correction: '' }],
+    };
+
+    const result = await request(app.getHttpServer())
+      .post(`/assessments/${assesId}/submissions`)
+      .send(createDto);
+
+    expect(result.status).toBe(201);
+    expect(result.body).toHaveProperty('data');
+    const data = result.body.data;
+    expect(data).toEqual({ ...expected, submittedAt: data.submittedAt });
+
+    // Should throw a Conflict Error
+    const resultError = await request(app.getHttpServer())
+      .post(`/assessments/${assesId}/submissions`)
+      .send(createDto);
+    expect(resultError.status).toBe(409);
+  });
+
+  test('POST /assessments/{assesId}/submissions should throw a Forbidden Error if the user is not a student', async () => {
+    const course = await createCourse();
+    const asses = await createAssessment(course.id, AssessmentType.Exam);
+    const assesId = asses._id;
+
+    const createDto: SubmissionCreateDto = {
+      userId: FORBIDDEN_USER_ID,
+      answers: ['0'],
+    };
+
+    const resultError = await request(app.getHttpServer())
+      .post(`/assessments/${assesId}/submissions`)
+      .send(createDto);
+
+    expect(resultError.status).toBe(403);
+  });
+
+  test('GET /assessments/{assesId}/submissions should retreive all the submissions of the specified assessment', async () => {
+    const course = await createCourse();
+    const asses = await createAssessment(course.id, AssessmentType.Exam);
+    const assesId = asses._id;
+
+    // Enroll the user as a student in the course
+    await request(app.getHttpServer())
+      .post(`/courses/${course.id}/enrollments`)
+      .send({ userId: USER_ID, role: Role.STUDENT });
+
+    const createDto: SubmissionCreateDto = {
+      userId: USER_ID,
+      answers: ['1'],
+    };
+
+    const submissionRes = await request(app.getHttpServer())
+      .post(`/assessments/${assesId}/submissions`)
+      .send(createDto);
+
+    expect(submissionRes.status).toBe(201);
+    expect(submissionRes.body).toHaveProperty('data');
+    const submission = submissionRes.body.data;
+
+    const result = await request(app.getHttpServer()).get(`/assessments/${assesId}/submissions`);
+
+    expect(result.status).toBe(200);
+    expect(result.body).toHaveProperty('data');
+    const data = result.body.data;
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBe(1);
+    expect(data[0]).toEqual(submission);
+  });
+
+  test('GET /assessments/{assesId}/submissions/{userId} should retreive the submission of the specified user for the specified assessment', async () => {
+    const course = await createCourse();
+    const asses = await createAssessment(course.id, AssessmentType.Exam);
+    const assesId = asses._id;
+
+    // Enroll the user as a student in the course
+    await request(app.getHttpServer())
+      .post(`/courses/${course.id}/enrollments`)
+      .send({ userId: USER_ID, role: Role.STUDENT });
+
+    const createDto: SubmissionCreateDto = {
+      userId: USER_ID,
+      answers: ['1'],
+    };
+
+    const submissionRes = await request(app.getHttpServer())
+      .post(`/assessments/${assesId}/submissions`)
+      .send(createDto);
+
+    expect(submissionRes.status).toBe(201);
+    expect(submissionRes.body).toHaveProperty('data');
+    const submission = submissionRes.body.data;
+
+    const result = await request(app.getHttpServer()).get(
+      `/assessments/${assesId}/submissions/${USER_ID}`,
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.body).toHaveProperty('data');
+    const data = result.body.data;
+    expect(data).toEqual(submission);
+
+    // Should throw a Not Found Error
+    const resultError = await request(app.getHttpServer())
+      .get(`/assessments/${assesId}/submissions/${FORBIDDEN_USER_ID}`)
+      .send();
+    expect(resultError.status).toBe(404);
+    expect(resultError.body).toHaveProperty('message');
   });
 });

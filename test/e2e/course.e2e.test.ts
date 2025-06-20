@@ -163,7 +163,7 @@ describe('Course e2e', () => {
       type: 'about:blank',
       title: 'NotFoundException',
       status: 404,
-      detail: 'The course with ID 999 was not found.',
+      detail: 'Course with ID 999 was not found.',
       instance: '/courses/999',
     };
 
