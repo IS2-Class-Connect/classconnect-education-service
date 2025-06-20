@@ -58,6 +58,7 @@ export class AssessmentRepository {
       query.startTime = {};
       if (startTimeBegin !== undefined) query.startTime.$gte = startTimeBegin;
       if (startTimeEnd !== undefined) query.startTime.$lt = startTimeEnd;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       if (Object.keys(query.startTime).length === 0) delete query.startTime;
     }
 
@@ -65,6 +66,7 @@ export class AssessmentRepository {
       query.deadline = {};
       if (deadlineBegin !== undefined) query.deadline.$gte = deadlineBegin;
       if (deadlineEnd !== undefined) query.deadline.$lt = deadlineEnd;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       if (Object.keys(query.deadline).length === 0) delete query.deadline;
     }
     return (await this.assessmentModel.find(query).exec()).map((assesment) => assesment.toObject());
@@ -113,4 +115,5 @@ export class AssessmentRepository {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const logger = new Logger(AssessmentRepository.name);

@@ -1,22 +1,22 @@
-import { Injectable, InternalServerErrorException } from "@nestjs/common";
-import { HttpService } from "@nestjs/axios";
-import { firstValueFrom } from "rxjs";
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class PushNotificationService {
-  private gatewayUrl: string = process.env.GATEWAY_URL ?? "http://localhost:3000";
-  private gatewayToken: string = process.env.GATEWAY_TOKEN ?? "gateway-token";
+  private gatewayUrl: string = process.env.GATEWAY_URL ?? 'http://localhost:3000';
+  private gatewayToken: string = process.env.GATEWAY_TOKEN ?? 'gateway-token';
   private validTopics: Set<string> = new Set([
-    "task-assignment",
-    "message-received",
-    "deadline-reminder",
+    'task-assignment',
+    'message-received',
+    'deadline-reminder',
   ]);
 
   constructor(private readonly httpService: HttpService) {}
 
   /**
    * Sends a push notification to a specific user.
-   * 
+   *
    * @param uuid  - The ID of the user to send a push notification
    * @param title - The title that'll be shown in the notification.
    * @param body  - The body of the notification.
@@ -24,7 +24,12 @@ export class PushNotificationService {
    *
    * @throws {InternalServerErrorException} If there's an error trying to communicate with the gateway or it had trouble sending the notification to the user
    */
-  private async notifyUserPush(uuid: string, title: string, body: string, topic: string): Promise<void> {
+  private async notifyUserPush(
+    uuid: string,
+    title: string,
+    body: string,
+    topic: string,
+  ): Promise<void> {
     if (!this.validTopics.has(topic)) {
       throw new InternalServerErrorException('Got an invalid notification topic', topic);
     }
@@ -33,8 +38,8 @@ export class PushNotificationService {
     const data = { uuid, title, body, topic };
     const headers = {
       headers: {
-        Authorization: `Bearer ${this.gatewayToken}`
-      }
+        Authorization: `Bearer ${this.gatewayToken}`,
+      },
     };
 
     try {
@@ -50,7 +55,7 @@ export class PushNotificationService {
 
   /**
    * Notifies the user of a new task assignment.
-   * 
+   *
    * @param uuid  - The ID of the user to send a push notification.
    * @param title - The title that'll be shown in the notification.
    * @param body  - The body of the notification.
@@ -58,12 +63,12 @@ export class PushNotificationService {
    * @throws {InternalServerErrorException} If there's an error trying to communicate with the gateway or it had trouble sending the notification to the user.
    */
   async notifyTaskAssignment(uuid: string, title: string, body: string): Promise<void> {
-    return await this.notifyUserPush(uuid, title, body, "task-assignment");
+    return await this.notifyUserPush(uuid, title, body, 'task-assignment');
   }
 
   /**
    * Notifies the user of a received message.
-   * 
+   *
    * @param uuid  - The ID of the user to send a push notification.
    * @param title - The title that'll be shown in the notification.
    * @param body  - The body of the notification.
@@ -71,12 +76,12 @@ export class PushNotificationService {
    * @throws {InternalServerErrorException} If there's an error trying to communicate with the gateway or it had trouble sending the notification to the user.
    */
   async notifyMessageReceived(uuid: string, title: string, body: string): Promise<void> {
-    return await this.notifyUserPush(uuid, title, body, "message-received");
+    return await this.notifyUserPush(uuid, title, body, 'message-received');
   }
 
   /**
    * Notifies the user of an upcoming deadline.
-   * 
+   *
    * @param uuid  - The ID of the user to send a push notification.
    * @param title - The title that'll be shown in the notification.
    * @param body  - The body of the notification.
@@ -84,6 +89,6 @@ export class PushNotificationService {
    * @throws {InternalServerErrorException} If there's an error trying to communicate with the gateway or it had trouble sending the notification to the user.
    */
   async notifyDeadlineReminder(uuid: string, title: string, body: string): Promise<void> {
-    return await this.notifyUserPush(uuid, title, body, "deadline-reminder");
+    return await this.notifyUserPush(uuid, title, body, 'deadline-reminder');
   }
 }

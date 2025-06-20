@@ -20,7 +20,7 @@ import { Submission, SubmittedAnswer } from 'src/schema/submission.schema';
 import { getForbiddenExceptionMsg } from 'src/utils';
 
 function getAssessResponse(asses: Assessment): AssessmentResponseDto {
-  // TODO: Transform it to AssessmentResponseDto when schema completed
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { submissions, ...assesResponse } = asses;
   return assesResponse;
 }
@@ -205,7 +205,7 @@ export class AssessmentService {
       answer,
       correction: '',
     }));
-    let createData: Submission = { answers: submittedAnswers, submittedAt: new Date() };
+    const createData: Submission = { answers: submittedAnswers, submittedAt: new Date() };
     const submission = await this.repository.createAssesSubmission(id, userId, createData);
     return getSubmissionResponse(submission, id, userId);
   }

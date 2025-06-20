@@ -1,4 +1,4 @@
-import { Controller, Get, Header, Res } from "@nestjs/common";
+import { Controller, Get, Header, Res } from '@nestjs/common';
 import * as client from 'prom-client';
 import { Response } from 'express';
 
@@ -35,7 +35,6 @@ register.registerMetric(memoryUsageGauge);
 
 @Controller('education')
 export class MetricsController {
-
   // Returns the metrics for this service.
   @Get('/metrics')
   @Header('Content-Type', register.contentType)
