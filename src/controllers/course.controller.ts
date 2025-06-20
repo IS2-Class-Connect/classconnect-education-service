@@ -234,7 +234,6 @@ export class CourseController {
     return await this.service.deleteModule(courseId, userId, moduleId);
   }
 
-  // me quede aca
   @Post(':courseId/modules/:moduleId/resources')
   async createResource(
     @Param('courseId') courseId: number,

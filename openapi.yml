@@ -493,8 +493,237 @@ paths:
               schema:
                 $ref: '#/components/schemas/CourseModuleCreate'
 
+  /courses/{courseId}/modules/{moduleId}/resources:
+    post:
+      summary: Creates a new resource in a certain module.
+      description: Crates a new resource, like a link, image or video to a module in a course.
+      operationId: createResource
+      parameters:
+        - in: path
+          name: courseId
+          schema:
+            type: number
+        - in: path
+          name: moduleId
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseResourceCreate'
+      responses:
+        '403':
+          description: The given user is not a teacher or assistant in the given course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '404':
+          description: The course or the module was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '201':
+          description: The resource was successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseResourceCreate'
+
+    get:
+      summary: Retrieves the resources of a module
+      description: Returns a list of the resources in a certain module.
+      operationId: getAllModuleResources
+      parameters:
+        - in: path
+          name: courseId
+          schema:
+            type: number
+        - in: path
+          name: moduleId
+          schema:
+            type: string
+      responses:
+        '404':
+          description: The course or the module was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '200':
+          description: A list of resources.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CourseResourceCreate'
+
+  /courses/{courseId}/modules/{moduleId}/resources/{link}:
+    get:
+      summary: Retrieves a certain resource of a module.
+      description: Returns a resource that's inside a module of a course.
+      operationId: getModuleResource
+      parameters:
+        - in: path
+          name: courseId
+          schema:
+            type: number
+        - in: path
+          name: moduleId
+          schema:
+            type: string
+        - in: path
+          name: link
+          schema:
+            type: string
+      responses:
+        '404':
+          description: The course, module or resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '200':
+          description: The resource for the module.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseResourceCreate'
+
+    patch:
+      summary: Updates a resource in a module
+      description: Updates an image, link or video resource inside a module.
+      operationId: updateResource
+      parameters:
+        - in: path
+          name: courseId
+          schema:
+            type: number
+        - in: path
+          name: moduleId
+          schema:
+            type: string
+        - in: path
+          name: link
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/CourseResourceUpdate'
+      responses:
+        '403':
+          description: The given user is not a teacher or assistant in the given course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '404':
+          description: The course, module or resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '200':
+          description: The updated resource for the module.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseResourceCreate'
+
+    delete:
+      summary: Deletes a resource from a module
+      description: Deletes a resource from a module in a certain course.
+      operationId: deleteResource
+      parameters:
+        - in: path
+          name: courseId
+          schema:
+            type: number
+        - in: path
+          name: moduleId
+          schema:
+            type: string
+        - in: path
+          name: link
+          schema:
+            type: string
+        - in: query
+          name: userId
+          schema:
+            type: string
+      responses:
+        '403':
+          description: The given user is not a teacher or assistant in the given course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '404':
+          description: The course, module or resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '200':
+          description: The deleted resource for the module.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseResourceCreate'
+
+    /courses/{courseId}/enrollments/{userId}/courseFeedback:
+      # linea 297 en course.controller.ts
+      
+
 components:
   schemas:
+    CourseResourceUpdate:
+      type: object
+      required:
+        - order
+        - userId
+      properties:
+        order:
+          type: number
+          example: 1
+        userId:
+          type: string
+          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+
+    DataType:
+      type: string
+      enum:
+        - IMAGE
+        - VIDEO
+        - LINK
+      description: The type of resource indise a module.
+    
+    CourseResourceCreate:
+      required:
+        - link
+        - dataType
+        - order
+        - userId
+      properties:
+        link:
+          type: string
+          example: "https://www.google.com"
+        dataType:
+          $ref: '#/components/schemas/DataType'
+        order:
+          type: number
+          example: 0
+        userId:
+          type: string
+          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+
     CourseModuleUpdate:
       allOf:
         - $ref: '#/components/schemas/CourseModuleCreate'
