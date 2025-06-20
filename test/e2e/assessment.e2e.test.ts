@@ -163,13 +163,6 @@ describe('Course e2e', () => {
     expect(resultError.status).toBe(404);
   });
 
-  /**
-   * Para hacer:
-   * - POST submission con exito y falla porque intent a crear uno que ya existe
-   * - POST submission falla porque no es un estudiante.
-   * - GET submissions de un assessmet
-   * - GET submission en particular y si falla si no existe el submission
-   */
   test('POST /assessments/{assesId}/submissions should retreive a created submission for the specified assessment', async () => {
     const course = await createCourse();
     const asses = await createAssessment(course.id, AssessmentType.Exam);
