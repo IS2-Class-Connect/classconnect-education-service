@@ -912,8 +912,141 @@ paths:
         '200':
           description: Metric information.
 
+  /assessments:
+    get:
+      summary: Retrieves all the assesments.
+      description: Returns a list of all assessment that match the given filter.
+      operationId: getAssessments
+      parameters:
+        - in: query
+          name: filter
+          schema:
+            $ref: '#/components/schemas/AssessmentFilter'
+      responses:
+        '200':
+          description: A list of assessments.
+          content:
+            applicaition/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AssessmentResponse'
+
+  /assessments/{id}:
+    get:
+      summary: Retrieves an assessment by id.
+      description: Returns an assessment given an id.
+      operationId: getAssess
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+      responses:
+        '404':
+          description: The assessment was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '200':
+          description: The assessment.
+          content:
+            applicaition/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentResponse'
+
+    patch:
+      summary: Updates an assessment's information.
+      description: Updates an assessment with the given information.
+      operationId: updateAssess
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessmentUpdate'
+      responses:
+        '400':
+          description: The assessment data is invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '403':
+          description: The given user is not a teacher in the given course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '404':
+          description: The assessment or user was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '200':
+          description: The updated assessment.
+          content:
+            applicaition/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentResponse'
+
+    delete:
+      summry: Deletes an assessment.
+      description: Deletes an asessment given it's id.
+      operationId: deleteAssess
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+        - in: query
+          name: userId
+          schema:
+            type: string
+      responses:
+        '403':
+          description: The given user is not a teacher in the given course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '404':
+          description: The assessment or user was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '200':
+          description: The deleted assessment.
+          content:
+            applicaition/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentResponse'
+
 components:
   schemas:
+    AssessmentUpdate:
+      # TODO: tiene los mismos campos que AssessmentRequest + userId - type
+    
+    AssessmentFilter:
+      type: object
+      properties:
+        startTimeBegin:
+          type: string
+        startTimeEnd:
+          type: string
+        deadlineBegin:
+          type: string
+        deadlineend:
+          type: string
+      # TODO: agregar los campos de AssessmentCreate que esten
+
     AssessmentResponse:
       # TODO
     
