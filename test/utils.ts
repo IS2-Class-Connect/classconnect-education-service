@@ -1,6 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import { Connection } from 'mongoose';
 
+export const COURSE_ID = 1;
+export const TEACHER_ID = 't1';
+export const USER_ID = 'u1';
+export const FORBIDDEN_USER_ID = 'u2';
+export const ASSES_ID = 'a1';
+
 /**
  * Get dates that are beyond the current date, useful to add a new course
  * that must respect the dates rules.

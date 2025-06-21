@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import mongoose, { Document } from 'mongoose';
+import { Submission } from './submission.schema';
 
 export type AssessmentDocument = Assessment & Document;
 
@@ -73,12 +74,11 @@ export class Assessment {
   @Prop({ type: Date, default: Date.now })
   createdAt: Date;
 
-  @Prop({ type: Object })
-  exercises: Record<string, any>;
+  @Prop({ type: [mongoose.Schema.Types.Mixed] })
+  exercises: any[];
 
-  // TODO: Support for submissions
-  // @Prop({ type: Object })
-  // submissions: Record<string, any>;
+  @Prop({ required: false, type: Object })
+  submissions?: Record<string, Submission>;
 }
 
 export const AssessmentSchema = SchemaFactory.createForClass(Assessment);
