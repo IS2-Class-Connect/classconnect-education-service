@@ -350,7 +350,14 @@ curl 'https://<host_url>/assessments/{assessment_id}/submissions/{user_id}'
 - to create/update a correction for a specified submission
 
 ```bash
-curl -X POST 'https://<host_url>/assessments/{assessment_id}/submissions/{user_id}.'
+curl -X POST 'https://<host_url>/assessments/{assessment_id}/submissions/{user_id}/correction' \
+-H 'Content-Type: application/json' \
+-d '{
+"teacherId": <teacher_id>,
+"corrections": ["Very Good!", "This exercise was difficult, but you did it well ;)"]},
+"feedback": "The exam is well done, congrats",
+"note": 7
+}'
 ```
 
 ### Variables

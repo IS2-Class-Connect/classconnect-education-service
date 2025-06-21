@@ -1,4 +1,4 @@
-import { IsArray, IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
+import { IsArray, IsInt, IsNotEmpty, IsString, Max, Min } from 'class-validator';
 
 export class CorrectionCreateDto {
   @IsNotEmpty()
@@ -16,5 +16,6 @@ export class CorrectionCreateDto {
   @IsNotEmpty()
   @IsInt()
   @Min(1)
+  @Max(10)
   note: number;
 }
