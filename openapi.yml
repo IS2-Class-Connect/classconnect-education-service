@@ -1,4 +1,3 @@
-
 openapi: 3.1.3
 info:
   title: Education API
@@ -65,9 +64,7 @@ paths:
         - in: query
           name: role
           schema:
-            type: object
-            schema:
-              $ref: '#/components/schemas/Role'
+            $ref: '#/components/schemas/Role'
       responses:
         '200':
           description: A list of enrollments.
@@ -86,6 +83,7 @@ paths:
       parameters:
         - in: path
           name: id
+          required: true
           schema:
             type: number
       responses:
@@ -100,15 +98,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/compoenents/schemas/ERROR'
+                $ref: '#/components/schemas/ERROR'
 
     patch:
       summary: Updates a course's information.
       description: Updates an existing course with the provided data.
-      operationid: updateCourse
+      operationId: updateCourse
       parameters:
         - in: path
           name: id
+          required: true
           schema:
             type: number
       requestBody:
@@ -149,6 +148,7 @@ paths:
       operationId: deleteCourse
       parameters:
         - in: path
+          required: true
           name: id
           schema:
             type: number
@@ -169,6 +169,7 @@ paths:
       operationId: createEnrollment
       parameters:
         - in: path
+          required: true
           name: courseId
           schema:
             type: number
@@ -204,6 +205,7 @@ paths:
       operationId: getCourseEnrollments
       parameters:
         - in: path
+          required: true
           name: courseId
           schema:
             type: number
@@ -227,14 +229,16 @@ paths:
     patch:
       summary: Updates an enrollment.
       description: Updates an existing enrollment with the provided data.
-      operationid: updateEnrollment
+      operationId: updateEnrollment
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
         - in: path
           name: userId
+          required: true
           schema:
             type: string
       requestBody:
@@ -270,10 +274,12 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
         - in: path
           name: userId
+          required: true
           schema:
             type: string
       responses:
@@ -299,7 +305,8 @@ paths:
       operationId: getCrouseActivity
       parameters:
         - in: path
-          name: courseId
+          name: id
+          required: true
           schema:
             type: number
         - in: query
@@ -336,6 +343,7 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
       requestBody:
@@ -371,6 +379,7 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
       responses:
@@ -397,10 +406,12 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
         - in: path
           name: moduleId
+          required: true
           schema:
             type: string
       responses:
@@ -424,10 +435,12 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
         - in: path
           name: moduleId
+          required: true
           schema:
             type: string
       requestBody:
@@ -463,10 +476,12 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
         - in: path
           name: moduleId
+          required: true
           schema:
             type: string
         - in: query
@@ -501,10 +516,12 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
         - in: path
           name: moduleId
+          required: true
           schema:
             type: string
       requestBody:
@@ -540,10 +557,12 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
         - in: path
           name: moduleId
+          required: true
           schema:
             type: string
       responses:
@@ -570,14 +589,17 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
         - in: path
           name: moduleId
+          required: true
           schema:
             type: string
         - in: path
           name: link
+          required: true
           schema:
             type: string
       responses:
@@ -601,14 +623,17 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
         - in: path
           name: moduleId
+          required: true
           schema:
             type: string
         - in: path
           name: link
+          required: true
           schema:
             type: string
       requestBody:
@@ -616,7 +641,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/CourseResourceUpdate'
+              $ref: '#/components/schemas/CourseResourceUpdate'
       responses:
         '403':
           description: The given user is not a teacher or assistant in the given course.
@@ -644,14 +669,17 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
         - in: path
           name: moduleId
+          required: true
           schema:
             type: string
         - in: path
           name: link
+          required: true
           schema:
             type: string
         - in: query
@@ -686,10 +714,12 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
         - in: path
           name: userId
+          required: true
           schema:
             type: string
       requestBody:
@@ -715,10 +745,12 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
         - in: path
           name: userId
+          required: true
           schema:
             type: string
       responses:
@@ -733,7 +765,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ComponentsFeedbackResponse'
+                $ref: '#/components/schemas/CourseFeedbackResponse'
         
 
   /courses/{courseId}/enrollments/{userId}/studentFeedback:
@@ -744,10 +776,12 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
         - in: path
           name: userId
+          required: true
           schema:
             type: string
       requestBody:
@@ -755,7 +789,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/componentes/schemas/StudentFeedbackRequest'
+              $ref: '#/components/schemas/StudentFeedbackRequest'
       responses:
         '403':
           description: The given user is not a teacher in the given course.
@@ -779,10 +813,12 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
         - in: path
           name: userId
+          required: true
           schema:
             type: string
       responses:
@@ -807,6 +843,7 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
       responses:
@@ -826,7 +863,7 @@ paths:
                   feedbacks:
                     type: array
                     items:
-                      $ref: '#/components/schemas/CourseFeedbackRespons'
+                      $ref: '#/components/schemas/CourseFeedbackResponse'
                   summary:
                     type: string
 
@@ -838,6 +875,7 @@ paths:
       parameters:
         - in: path
           name: studentId
+          required: true
           schema:
             type: string
       responses:
@@ -869,6 +907,7 @@ paths:
       parameters:
         - in: path
           name: courseId
+          required: true
           schema:
             type: number
       requestBody:
@@ -902,6 +941,26 @@ paths:
             applicaition/json:
               schema:
                 $ref: '#/components/schemas/AssessmentResponse'
+
+    get:
+      summary: Retrieves a course's assessments.
+      description: Returns a list containing all the assessments in a course.
+      operationId: getCourseAssessments
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: A list of assessments.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AssessmentResponse'
 
   /courses/metrics:
     get:
@@ -940,6 +999,7 @@ paths:
       parameters:
         - in: path
           name: id
+          required: true
           schema:
             type: string
       responses:
@@ -963,6 +1023,7 @@ paths:
       parameters:
         - in: path
           name: id
+          required: true
           schema:
             type: string
       requestBody:
@@ -997,12 +1058,13 @@ paths:
                 $ref: '#/components/schemas/AssessmentResponse'
 
     delete:
-      summry: Deletes an assessment.
+      summary: Deletes an assessment.
       description: Deletes an asessment given it's id.
       operationId: deleteAssess
       parameters:
         - in: path
           name: id
+          required: true
           schema:
             type: string
         - in: query
@@ -1029,9 +1091,141 @@ paths:
               schema:
                 $ref: '#/components/schemas/AssessmentResponse'
 
+  /assessments/{id}/submissions:
+    post:
+      summary: Creates a new submission.
+      description: Creates a new submission for a given assessment.
+      operationId: createSubmission
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmissionCreate'
+      responses:
+        '400':
+          description: The given id is in an invalid format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '403':
+          description: The user is not enrolled in the course or doesn't have a student role in it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '404':
+          description: The assessment was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '409':
+          description: The submission for this user already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '201':
+          description: The created submission.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionResponse'
+
+    get:
+      summary: Retrieves all the submissions of an assessment.
+      description: Returns a list of the submissions of an assessment.
+      operationId: getAssesSubmissions
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '404':
+          description: The assessment was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '200':
+          description: A list of submissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionResponse'
+
+  /assessments/{assesId}/submissions/{userId}:
+    get:
+      summary: Retrieves the submission of a user in an assessment.
+      description: Returns the submission of a certain user in a given assessment.
+      operationId: getAssesSubmission
+      parameters:
+        - in: path
+          name: assesId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '400':
+          description: The given id is in an invalid format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '404':
+          description: The assessment or the user's submition in it was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '200':
+          description: The submission for this assessment by the student.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionResponse'
+
 components:
   schemas:
+    SubmissionResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"    
+        assesId:
+          type: string
+          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+
+    SubmissionCreate:
+      type: object
+      properties:
+        userId:
+          type: string
+          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"    
+        answers:
+          type: array
+          items:
+            type: string
+            example: "2 + 2 = 4"
+
     AssessmentUpdate:
+      type: object
       # TODO: tiene los mismos campos que AssessmentRequest + userId - type
     
     AssessmentFilter:
@@ -1048,9 +1242,11 @@ components:
       # TODO: agregar los campos de AssessmentCreate que esten
 
     AssessmentResponse:
+      type: object
       # TODO
     
     AssessmentCreate:
+      type: object
       # TODO
 
     StudentFeedbackResponse:
@@ -1067,7 +1263,7 @@ components:
           example: 5
     
     CourseFeedbackResponse:
-      allOff:
+      allOf:
         - $ref: '#/components/schemas/CourseFeedbackRequest'
     
     StudentFeedbackRequest:
@@ -1195,7 +1391,7 @@ components:
         activity:
           $ref: '#/components/schemas/Activity'
         createdAt:
-          type: Date
+          type: string
 
     CourseUpdateEnrollment:
       type: object
