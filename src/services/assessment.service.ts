@@ -192,39 +192,29 @@ export class AssessmentService {
     return deletedAssessment ? getAssessResponse(deletedAssessment) : null;
   }
 
-  // Tests relevantes:
-  //
-  // 1. sin assessments
-  // 2. con assessments sin submissions
-  // 3. con assessments con submissions
   async calculateCoursePerformanceSummary(courseId: number, from: Date | undefined, till: Date | undefined): Promise<CoursePerformanceDto> {
     const assessments = await this.repository.findAssessments({ courseId } as AssessmentFilterDto);
-    const assessmentCount = assessments.length;
-
-    const enrollments = await this.courseRepository.findCourseEnrollments(courseId);
-    const studentCount = enrollments.filter(e => e.role == Role.STUDENT).length;
 
     let gradesSum = 0;
     let gradesCount = 0;
     let completionCount = 0;
     let submissionCount = 0;
     let openCount = 0;
-    let closedCount = 0;
+    let assessmentCount = 0;
 
     from = from ? from : new Date(0);
     till = till ? till : new Date();
 
     for (const assessment of assessments) {
-      // An assessment is closed if it's deadline is before the end of
-      // the interval and was created after the start of it.
-      if (from <= assessment.createdAt && assessment.deadline <= till) {
-        closedCount++;
-      }
-
       // An assessment is open if it's deadline is after the end of the
       // interval and was created after the start of it.
       if (from <= assessment.createdAt && till < assessment.deadline) {
         openCount++;
+      }
+
+      // An assessment is counted if it was created during the interval.
+      if (from <= assessment.createdAt && assessment.createdAt <= till) {
+        assessmentCount++;
       }
 
       const submissions = assessment.submissions;
@@ -243,7 +233,7 @@ export class AssessmentService {
         }
 
         // A submission is counted if it was submited inside the interval.
-        if (from <= submission.submittedAt && submission.submittedAt < till) {
+        if (from <= submission.submittedAt && submission.submittedAt <= till) {
           submissionCount++;
 
           // A submission is completed if it was submited inside the range and
@@ -258,18 +248,13 @@ export class AssessmentService {
 
     return {
       averageGrade: gradesSum / Math.max(1, gradesCount),
-      completionRate: completionCount / Math.max(1, studentCount),
-      totalAssessments: closedCount,
+      completionRate: completionCount / Math.max(1, submissionCount),
+      totalAssessments: assessmentCount,
       totalSubmissions: submissionCount,
-      openRate: openCount / Math.max(1, submissionCount),
+      openRate: openCount / Math.max(1, assessmentCount),
     } as CoursePerformanceDto;
   }
 
-  // Tests relevantes:
-  //
-  // 1. sin assessments
-  // 2. con assessments sin submissions
-  // 3. con assessments con submissions
   async calculateStudentPerformanceSummaryInCourse(courseId: number, studentId: number): Promise<StudentPerformanceInCourseDto> {
     const assessments = await this.repository.findAssessments({ courseId } as AssessmentFilterDto);
     const assessmentCount = assessments.length;
@@ -283,7 +268,7 @@ export class AssessmentService {
         continue
       }
 
-      const studentSubmission = a.submissions[studentId];
+      const studentSubmission = a.submissions[studentId.toString()];
       if (!studentSubmission) {
         continue;
       }
@@ -316,6 +301,7 @@ export class AssessmentService {
     const enrollments = await this.courseRepository.findCourseEnrollments(courseId);
     const studentCount = enrollments.filter(e => e.role == Role.STUDENT).length;
 
+
     let summaries: AssessmentPerformanceDto[] = [];
     for (const assessment of assessments) {
       const submissions = assessment.submissions;
@@ -331,6 +317,11 @@ export class AssessmentService {
         if (submission.correctedAt && submission.note) {
           gradesSum += submission.note;
           gradesCount++;
+
+          const exercisesCount = assessment.exercises.length;
+          if (submission.submittedAt && exercisesCount == submission.answers.length) {
+            completionCount++;
+          }
         }
       }
 
