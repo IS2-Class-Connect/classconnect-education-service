@@ -319,7 +319,6 @@ describe('Course e2e', () => {
 
     const correctionDto: CorrectionCreateDto = {
       teacherId: TEACHER_ID,
-      userId: USER_ID,
       corrections: [correction],
       feedback: 'It seems that you have understood the topic.',
       note: 10,
@@ -335,7 +334,7 @@ describe('Course e2e', () => {
     };
 
     const result = await request(app.getHttpServer())
-      .post(`/assessments/${assesId}/correction`)
+      .post(`/assessments/${assesId}/submissions/${USER_ID}/correction`)
       .send(correctionDto);
 
     expect(result.status).toBe(201);

@@ -231,8 +231,8 @@ export class AssessmentService {
     return getSubmissionResponse(userSubmission, assesId, userId);
   }
 
-  async createCorrection(assesId: string, createDto: CorrectionCreateDto) {
-    const { userId, teacherId, corrections, ...correctionData } = createDto;
+  async createCorrection(assesId: string, userId: string, createDto: CorrectionCreateDto) {
+    const { teacherId, corrections, ...correctionData } = createDto;
 
     const asses = await this.getAssess(assesId);
     const course = await this.getCourse(asses.courseId);

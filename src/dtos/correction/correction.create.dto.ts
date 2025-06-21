@@ -6,10 +6,6 @@ export class CorrectionCreateDto {
   teacherId: string;
 
   @IsNotEmpty()
-  @IsString()
-  userId: string;
-
-  @IsNotEmpty()
   @IsArray()
   corrections: string[];
 

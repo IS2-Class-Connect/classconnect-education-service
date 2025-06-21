@@ -78,13 +78,15 @@ export class AssessmentController {
     return this.service.getAssesSubmission(assesId, userId);
   }
 
-  @Post(':id/correction')
-  async createCorrection(@Param('id') id: string, @Body() createDto: CorrectionCreateDto) {
+  @Post(':assesId/submissions/:userId/correction')
+  async createCorrection(
+    @Param('assesId') id: string,
+    @Param('userId') userId: string,
+    @Body() createDto: CorrectionCreateDto,
+  ) {
     validateAssesId(id);
-    logger.log(
-      `Creating correction to submission from user ${createDto.userId} of assessment ${id}`,
-    );
-    return this.service.createCorrection(id, createDto);
+    logger.log(`Creating correction to submission from user ${userId} of assessment ${id}`);
+    return this.service.createCorrection(id, userId, createDto);
   }
 }
 

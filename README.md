@@ -347,6 +347,12 @@ curl 'https://<host_url>/assessments/{assessment_id}/submissions'
 curl 'https://<host_url>/assessments/{assessment_id}/submissions/{user_id}'
 ```
 
+- to create/update a correction for a specified submission
+
+```bash
+curl -X POST 'https://<host_url>/assessments/{assessment_id}/submissions/{user_id}.'
+```
+
 ### Variables
 
 `<start_date>`, `<end_date>`, `<registration_date>`, `<start_time>` and `<deadline>` are strings of the dates in ISO 8601 format: `YYYY-mm-ddThh:mm:ssZ`. \

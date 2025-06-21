@@ -656,7 +656,6 @@ describe('AssessmentService', () => {
 
     const createDto: CorrectionCreateDto = {
       teacherId: TEACHER_ID,
-      userId: USER_ID,
       corrections: [correction],
       feedback: 'Good job!',
       note: 10,
@@ -670,7 +669,7 @@ describe('AssessmentService', () => {
         },
       ],
       submittedAt: deadline,
-      correctedAt: new Date(),
+      correctedAt: expect.any(Date),
       feedback: createDto.feedback,
       note: createDto.note,
     };
@@ -688,7 +687,7 @@ describe('AssessmentService', () => {
       assesId: ASSES_ID,
     };
 
-    expect(await service.createCorrection(ASSES_ID, createDto)).toEqual(expected);
+    expect(await service.createCorrection(ASSES_ID, USER_ID, createDto)).toEqual(expected);
     expect(mockAssesRepo.findById).toHaveBeenCalledWith(ASSES_ID);
     expect(mockCourseRepo.findById).toHaveBeenCalledWith(COURSE_ID);
     expect(mockAssesRepo.setAssesSubmission).toHaveBeenCalledWith(ASSES_ID, USER_ID, newSubmission);
@@ -698,7 +697,6 @@ describe('AssessmentService', () => {
     const asses = getMockedAssessment();
     const createDto: CorrectionCreateDto = {
       teacherId: TEACHER_ID,
-      userId: USER_ID,
       corrections: ['Good job!'],
       feedback: 'Good job!',
       note: 10,
@@ -709,7 +707,9 @@ describe('AssessmentService', () => {
       id: COURSE_ID,
       teacherId: TEACHER_ID,
     });
-    await expect(service.createCorrection(ASSES_ID, createDto)).rejects.toThrow(NotFoundException);
+    await expect(service.createCorrection(ASSES_ID, USER_ID, createDto)).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   test('Should throw an exception when a forbidden user tries to add a correction', async () => {
@@ -718,13 +718,12 @@ describe('AssessmentService', () => {
 
     const createDto: CorrectionCreateDto = {
       teacherId: FORBIDDEN_USER_ID,
-      userId: USER_ID,
       corrections: ['Good job!'],
       feedback: 'Good job!',
       note: 10,
     };
 
-    await expect(service.createCorrection(ASSES_ID, createDto)).rejects.toThrow(
+    await expect(service.createCorrection(ASSES_ID, USER_ID, createDto)).rejects.toThrow(
       ForbiddenUserException,
     );
   });
@@ -744,7 +743,6 @@ describe('AssessmentService', () => {
 
     const createDto: CorrectionCreateDto = {
       teacherId: TEACHER_ID,
-      userId: USER_ID,
       corrections: [],
       feedback: 'Good job!',
       note: 10,
@@ -756,7 +754,7 @@ describe('AssessmentService', () => {
       teacherId: TEACHER_ID,
     });
 
-    await expect(service.createCorrection(ASSES_ID, createDto)).rejects.toThrow(
+    await expect(service.createCorrection(ASSES_ID, USER_ID, createDto)).rejects.toThrow(
       BadRequestException,
     );
   });
