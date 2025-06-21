@@ -11,16 +11,6 @@ import { Assessment, AssessmentDocument } from 'src/schema/assessment.schema';
 import { Assessment as AssessmentSchema } from 'src/schema/assessment.schema';
 import { Submission } from 'src/schema/submission.schema';
 
-/**
- * - profesor necesita todas las entregas con correcciones
- * - alumno necesita entrega
- * - alumno necesita correccion
- * - profesor y alumno necesitan assessment solo
- * - tanto en POST como en UPDATE de submission/correction se necesita un campo booleano que sea submitted,
- *   que diga si es el cambio final o no, ahi se registra el submittedAt/correctedAt y se cierra la
- *   submission/correction (no se puede seguir editando)
- */
-
 export interface CreateAssessmentProps
   extends Omit<AssessmentSchema, 'createdAt' | '_id' | '__v' | 'submissions'> {}
 
@@ -99,10 +89,10 @@ export class AssessmentRepository {
     return deletedAssessment.toObject();
   }
 
-  async createAssesSubmission(assesId: string, userId: string, createData: Submission) {
+  async setAssesSubmission(assesId: string, userId: string, submission: Submission) {
     const updatedAsses = await this.assessmentModel.findOneAndUpdate(
       { _id: assesId },
-      { $set: { [`submissions.${userId}`]: createData } },
+      { $set: { [`submissions.${userId}`]: submission } },
       { new: true },
     );
     if (!updatedAsses) {

@@ -34,7 +34,7 @@ describe('AssessmentService', () => {
       findByCourseId: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
-      createAssesSubmission: jest.fn(),
+      setAssesSubmission: jest.fn(),
     } as any;
     service = new AssessmentService(mockAssesRepo, mockCourseRepo);
   });
@@ -458,11 +458,11 @@ describe('AssessmentService', () => {
       userId: USER_ID,
       role: Role.STUDENT,
     });
-    (mockAssesRepo.createAssesSubmission as jest.Mock).mockResolvedValue(submission);
+    (mockAssesRepo.setAssesSubmission as jest.Mock).mockResolvedValue(submission);
 
     expect(await service.createSubmission(ASSES_ID, createDto)).toEqual(expected);
     expect(mockAssesRepo.findById).toHaveBeenCalledWith(ASSES_ID);
-    expect(mockAssesRepo.createAssesSubmission).toHaveBeenCalledWith(ASSES_ID, USER_ID, submission);
+    expect(mockAssesRepo.setAssesSubmission).toHaveBeenCalledWith(ASSES_ID, USER_ID, submission);
     expect(mockCourseRepo.findEnrollment).toHaveBeenCalledWith(COURSE_ID, USER_ID);
 
     jest.restoreAllMocks();
