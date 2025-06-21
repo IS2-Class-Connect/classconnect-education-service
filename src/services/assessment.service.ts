@@ -222,7 +222,7 @@ export class AssessmentService {
         continue;
       }
 
-      for (const [_, submission] of Object.entries(submissions)) {
+      for (const submission of Object.values(submissions)) {
         // A grade is counted if the submission is corrected
         // and it's correction time is inside the range.
         if (submission.correctedAt && submission.note) {
@@ -313,7 +313,7 @@ export class AssessmentService {
       let gradesCount = 0;
       let completionCount = 0;
 
-      for (const [_, submission] of Object.entries(submissions)) {
+      for (const submission of Object.values(submissions)) {
         if (submission.correctedAt && submission.note) {
           gradesSum += submission.note;
           gradesCount++;
