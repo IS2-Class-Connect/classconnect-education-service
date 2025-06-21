@@ -209,39 +209,57 @@ export class AssessmentService {
     let completionCount = 0;
     let submissionCount = 0;
     let openCount = 0;
+    let closedCount = 0;
 
-    // TODO: definir bien como conseguimos esto
-    const now = new Date().getTimezoneOffset();
+    from = from ? from : new Date(0);
+    till = till ? till : new Date();
 
-    for (const a of assessments) {
+    for (const assessment of assessments) {
+      // An assessment is closed if it's deadline is before the end of
+      // the interval and was created after the start of it.
+      if (from <= assessment.createdAt && assessment.deadline <= till) {
+        closedCount++;
+      }
+
+      // An assessment is open if it's deadline is after the end of the
+      // interval and was created after the start of it.
+      if (from <= assessment.createdAt && till < assessment.deadline) {
+        openCount++;
+      }
+
+      const submissions = assessment.submissions;
+      if (!submissions) {
+        continue;
+      }
+
+      for (const [_, submission] of Object.entries(submissions)) {
+        // A grade is counted if the submission is corrected
+        // and it's correction time is inside the range.
+        if (submission.correctedAt && submission.note) {
+          if (from <= submission.correctedAt && submission.correctedAt <= till) {
+            gradesSum += submission.note;
+            gradesCount++;
+          }
+        }
+
+        // A submission is counted if it was submited inside the interval.
+        if (from <= submission.submittedAt && submission.submittedAt < till) {
+          submissionCount++;
+
+          // A submission is completed if it was submited inside the range and
+          // has answers for all the exercices.
+          const exercisesCount = assessment.exercises.length;
+          if (exercisesCount == submission.answers.length) {
+            completionCount++;
+          }
+        }
+      }
     }
-
-    /*
-
-    1. Definir como usar las fechas (formato)
-
-    gradeAverage (submissions):
-      si la fecha de correccion (noteCreatedAt) cae entre el intervalo dado
-    
-    completionRate (submissions):
-      si esta entregada (submitAt) entre el intervalo
-      si el largo de ejercicios es igual al largo de respuestas
-
-    totalClosedAssessments (assessments):
-      si el assessment cierra antes de from y despues de till
-
-    totalSubmissions (submissions):
-      la cantidad de assessments (submitAt) entre el intervalo
-
-    openRate (assessments):
-      si el deadline cae luego del till
-
-    */
 
     return {
       averageGrade: gradesSum / Math.max(1, gradesCount),
       completionRate: completionCount / Math.max(1, studentCount),
-      totalAssessments: assessmentCount,
+      totalAssessments: closedCount,
       totalSubmissions: submissionCount,
       openRate: openCount / Math.max(1, submissionCount),
     } as CoursePerformanceDto;
