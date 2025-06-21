@@ -4,6 +4,7 @@ import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
+import { CorrectionCreateDto } from 'src/dtos/correction/correction.create.dto';
 import { SubmissionCreateDto } from 'src/dtos/submission/submission.create.dto';
 import { SubmissionResponseDto } from 'src/dtos/submission/submission.response.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
@@ -13,13 +14,43 @@ import { Assessment, AssessmentType } from 'src/schema/assessment.schema';
 import { ExerciseType } from 'src/schema/exercise.schema';
 import { Submission, SubmittedAnswer } from 'src/schema/submission.schema';
 import { AssessmentService } from 'src/services/assessment.service';
-import { ASSES_ID, COURSE_ID, FORBIDDEN_USER_ID, getDatesAfterToday, USER_ID } from 'test/utils';
+import {
+  ASSES_ID,
+  COURSE_ID,
+  FORBIDDEN_USER_ID,
+  getDatesAfterToday,
+  TEACHER_ID,
+  USER_ID,
+} from 'test/utils';
 
 describe('AssessmentService', () => {
   let service: AssessmentService;
   let mockCourseRepo: CourseRepository;
   let mockAssesRepo: AssessmentRepository;
   const { startDate, deadline } = getDatesAfterToday();
+
+  // submissions should have the same number of answers as exercises
+  function getMockedAssessment(submissions?: Record<string, Submission>) {
+    const asses: Assessment = {
+      title: 'Assessment',
+      type: AssessmentType.Exam,
+      courseId: COURSE_ID,
+      userId: TEACHER_ID,
+      teacherId: TEACHER_ID,
+      startTime: startDate,
+      deadline,
+      toleranceTime: 5,
+      createdAt: startDate,
+      exercises: [
+        {
+          type: ExerciseType.Written,
+          question: 'Is this a test?',
+        },
+      ],
+      submissions,
+    };
+    return asses;
+  }
 
   beforeEach(() => {
     mockCourseRepo = {
@@ -605,5 +636,128 @@ describe('AssessmentService', () => {
 
     expect(await service.getAssesSubmissions(ASSES_ID)).toEqual(expected);
     expect(mockAssesRepo.findById).toHaveBeenCalledWith(ASSES_ID);
+  });
+
+  test('Should add a correction to an assessment submission', async () => {
+    const answer = 'Yes, it is!';
+    const correction = 'That’s correct!';
+
+    const asses: Assessment = getMockedAssessment({
+      [USER_ID]: {
+        answers: [
+          {
+            answer,
+            correction: '',
+          },
+        ],
+        submittedAt: deadline,
+      },
+    });
+
+    const createDto: CorrectionCreateDto = {
+      teacherId: TEACHER_ID,
+      userId: USER_ID,
+      corrections: [correction],
+      feedback: 'Good job!',
+      note: 10,
+    };
+
+    const newSubmission: Submission = {
+      answers: [
+        {
+          answer,
+          correction,
+        },
+      ],
+      submittedAt: deadline,
+      correctedAt: new Date(),
+      feedback: createDto.feedback,
+      note: createDto.note,
+    };
+
+    (mockAssesRepo.findById as jest.Mock).mockResolvedValue(asses);
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({
+      id: COURSE_ID,
+      teacherId: TEACHER_ID,
+    });
+    (mockAssesRepo.setAssesSubmission as jest.Mock).mockResolvedValue(newSubmission);
+
+    const expected: SubmissionResponseDto = {
+      ...newSubmission,
+      userId: USER_ID,
+      assesId: ASSES_ID,
+    };
+
+    expect(await service.createCorrection(ASSES_ID, createDto)).toEqual(expected);
+    expect(mockAssesRepo.findById).toHaveBeenCalledWith(ASSES_ID);
+    expect(mockCourseRepo.findById).toHaveBeenCalledWith(COURSE_ID);
+    expect(mockAssesRepo.setAssesSubmission).toHaveBeenCalledWith(ASSES_ID, USER_ID, newSubmission);
+  });
+
+  test('Should throw an exception when trying to add a correction to a non existing submission', async () => {
+    const asses = getMockedAssessment();
+    const createDto: CorrectionCreateDto = {
+      teacherId: TEACHER_ID,
+      userId: USER_ID,
+      corrections: ['Good job!'],
+      feedback: 'Good job!',
+      note: 10,
+    };
+
+    (mockAssesRepo.findById as jest.Mock).mockResolvedValue(asses);
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({
+      id: COURSE_ID,
+      teacherId: TEACHER_ID,
+    });
+    await expect(service.createCorrection(ASSES_ID, createDto)).rejects.toThrow(NotFoundException);
+  });
+
+  test('Should throw an exception when a forbidden user tries to add a correction', async () => {
+    (mockAssesRepo.findById as jest.Mock).mockResolvedValue({ courseId: COURSE_ID });
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({ teacherId: TEACHER_ID });
+
+    const createDto: CorrectionCreateDto = {
+      teacherId: FORBIDDEN_USER_ID,
+      userId: USER_ID,
+      corrections: ['Good job!'],
+      feedback: 'Good job!',
+      note: 10,
+    };
+
+    await expect(service.createCorrection(ASSES_ID, createDto)).rejects.toThrow(
+      ForbiddenUserException,
+    );
+  });
+
+  test('Should throw an exception when trying to add a correction with different number of answers and corrections', async () => {
+    const asses: Assessment = getMockedAssessment({
+      [USER_ID]: {
+        answers: [
+          {
+            answer: 'Yes, it is!',
+            correction: '',
+          },
+        ],
+        submittedAt: deadline,
+      },
+    });
+
+    const createDto: CorrectionCreateDto = {
+      teacherId: TEACHER_ID,
+      userId: USER_ID,
+      corrections: [],
+      feedback: 'Good job!',
+      note: 10,
+    };
+
+    (mockAssesRepo.findById as jest.Mock).mockResolvedValue(asses);
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({
+      id: COURSE_ID,
+      teacherId: TEACHER_ID,
+    });
+
+    await expect(service.createCorrection(ASSES_ID, createDto)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 });

@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -237,18 +236,16 @@ export class AssessmentService {
 
     const asses = await this.getAssess(assesId);
     const course = await this.getCourse(asses.courseId);
-    if (course.teacherId != teacherId) {
-      throw new ForbiddenException(
+    if (course.teacherId != teacherId)
+      throw new ForbiddenUserException(
         `User ${teacherId} is not authorized to correct the submission. Only the course ${asses.courseId} head teacher can correct the course submissions`,
       );
-    }
 
     const submission = asses.submissions?.[userId];
-    if (!submission) {
+    if (!submission)
       throw new NotFoundException(
         `Submission of user ${userId} not found in assessment ${assesId}.`,
       );
-    }
 
     if (submission.answers.length != corrections.length)
       throw new BadRequestException('There must be the same number of corrections as answers');

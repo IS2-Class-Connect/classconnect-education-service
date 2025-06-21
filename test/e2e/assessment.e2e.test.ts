@@ -22,6 +22,7 @@ import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { SubmissionCreateDto } from 'src/dtos/submission/submission.create.dto';
 import { SubmissionResponseDto } from 'src/dtos/submission/submission.response.dto';
 import { Role } from '@prisma/client';
+import { CorrectionCreateDto } from 'src/dtos/correction/correction.create.dto';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
@@ -288,5 +289,58 @@ describe('Course e2e', () => {
       .send();
     expect(resultError.status).toBe(404);
     expect(resultError.body).toHaveProperty('message');
+  });
+
+  test('POST /assessments/{assesId}/correction should retreive a created correction for the specified submission', async () => {
+    const course = await createCourse();
+    const asses = await createAssessment(course.id, AssessmentType.Exam);
+    const assesId = asses._id;
+
+    const answer = '1';
+    const correction = 'Very good!';
+
+    // Enroll the user as a student in the course
+    await request(app.getHttpServer())
+      .post(`/courses/${course.id}/enrollments`)
+      .send({ userId: USER_ID, role: Role.STUDENT });
+
+    const createDto: SubmissionCreateDto = {
+      userId: USER_ID,
+      answers: [answer],
+    };
+
+    const submissionRes = await request(app.getHttpServer())
+      .post(`/assessments/${assesId}/submissions`)
+      .send(createDto);
+
+    expect(submissionRes.status).toBe(201);
+    expect(submissionRes.body).toHaveProperty('data');
+    const submission = submissionRes.body.data;
+
+    const correctionDto: CorrectionCreateDto = {
+      teacherId: TEACHER_ID,
+      userId: USER_ID,
+      corrections: [correction],
+      feedback: 'It seems that you have understood the topic.',
+      note: 10,
+    };
+
+    const expected: Omit<SubmissionResponseDto, 'correctedAt'> = {
+      userId: USER_ID,
+      assesId,
+      answers: [{ answer: answer, correction: correction }],
+      feedback: correctionDto.feedback,
+      note: correctionDto.note,
+      submittedAt: submission.submittedAt,
+    };
+
+    const result = await request(app.getHttpServer())
+      .post(`/assessments/${assesId}/correction`)
+      .send(correctionDto);
+
+    expect(result.status).toBe(201);
+    expect(result.body).toHaveProperty('data');
+    const data = result.body.data;
+    expect(data).toEqual({ ...expected, correctedAt: data.correctedAt });
   });
 });
