@@ -7,6 +7,23 @@ on:
     branches: [main]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint project
+        run: npm run lint
+
   test:
     runs-on: ubuntu-latest
 
@@ -39,7 +56,7 @@ jobs:
             echo "Waiting for postgres..."
             sleep 2
           done
-          
+
       - name: Wait for MongoDB to be ready
         run: |
           until docker exec my-mongo mongosh --eval "db.adminCommand('ping')"  >/dev/null 2>&1; do

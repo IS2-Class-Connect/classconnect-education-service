@@ -42,12 +42,12 @@ describe('PushNotificationService', () => {
     (httpService.post as jest.Mock).mockReturnValueOnce(of(mockResponse));
 
     await expect(
-      service.notifyTaskAssignment('123', 'Test Title', 'Test Body')
+      service.notifyTaskAssignment('123', 'Test Title', 'Test Body'),
     ).resolves.toBeUndefined();
 
     expect(httpService.post).toHaveBeenCalledWith(
       expect.stringContaining('/notifications'),
-      { uuid: '123', title: 'Test Title', body: 'Test Body', topic: "task-assignment" },
+      { uuid: '123', title: 'Test Title', body: 'Test Body', topic: 'task-assignment' },
       expect.objectContaining({
         headers: expect.objectContaining({
           Authorization: expect.stringContaining('Bearer'),
@@ -69,13 +69,13 @@ describe('PushNotificationService', () => {
 
     (httpService.post as jest.Mock).mockReturnValueOnce(of(mockResponse));
 
-    await expect(
-      service.notifyMessageReceived('123', 'Test Title', 'Test Body')
-    ).rejects.toThrow(InternalServerErrorException);
+    await expect(service.notifyMessageReceived('123', 'Test Title', 'Test Body')).rejects.toThrow(
+      InternalServerErrorException,
+    );
 
     expect(httpService.post).toHaveBeenCalledWith(
       expect.stringContaining('/notifications'),
-      { uuid: '123', title: 'Test Title', body: 'Test Body', topic: "message-received" },
+      { uuid: '123', title: 'Test Title', body: 'Test Body', topic: 'message-received' },
       expect.objectContaining({
         headers: expect.objectContaining({
           Authorization: expect.stringContaining('Bearer'),
@@ -86,16 +86,16 @@ describe('PushNotificationService', () => {
 
   it('should throw InternalServerErrorException when HttpService throws an error', async () => {
     (httpService.post as jest.Mock).mockReturnValueOnce(
-      throwError(() => new Error('Connection error'))
+      throwError(() => new Error('Connection error')),
     );
 
-    await expect(
-      service.notifyDeadlineReminder('123', 'Test Title', 'Test Body')
-    ).rejects.toThrow(InternalServerErrorException);
+    await expect(service.notifyDeadlineReminder('123', 'Test Title', 'Test Body')).rejects.toThrow(
+      InternalServerErrorException,
+    );
 
     expect(httpService.post).toHaveBeenCalledWith(
       expect.stringContaining('/notifications'),
-      { uuid: '123', title: 'Test Title', body: 'Test Body', topic: "deadline-reminder" },
+      { uuid: '123', title: 'Test Title', body: 'Test Body', topic: 'deadline-reminder' },
       expect.objectContaining({
         headers: expect.objectContaining({
           Authorization: expect.stringContaining('Bearer'),

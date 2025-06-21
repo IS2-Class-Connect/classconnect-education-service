@@ -86,7 +86,7 @@ export class CourseController {
     const course = await this.service.findCourseById(id);
     if (!course) {
       logger.warn(`Course with ID ${id} not found.`);
-      throw new NotFoundException(`The course with ID ${id} was not found.`);
+      throw new NotFoundException(`Course with ID ${id} was not found.`);
     }
     return course;
   }
