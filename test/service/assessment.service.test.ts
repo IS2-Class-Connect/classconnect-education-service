@@ -1,10 +1,13 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { Enrollment, Role } from '@prisma/client';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
 import { CorrectionCreateDto } from 'src/dtos/correction/correction.create.dto';
+import { AssessmentPerformanceDto } from 'src/dtos/course/course.assessmentPerformance.dto';
+import { CoursePerformanceDto } from 'src/dtos/course/course.performance.dto';
+import { StudentPerformanceInCourseDto } from 'src/dtos/course/course.studentPerformance.dto';
 import { SubmissionCreateDto } from 'src/dtos/submission/submission.create.dto';
 import { SubmissionResponseDto } from 'src/dtos/submission/submission.response.dto';
 import { ForbiddenUserException } from 'src/exceptions/exception.forbidden.user';
@@ -57,6 +60,7 @@ describe('AssessmentService', () => {
       findById: jest.fn(),
       findEnrollment: jest.fn(),
       createActivityRegister: jest.fn(),
+      findCourseEnrollments: jest.fn(),
     } as any;
     mockAssesRepo = {
       create: jest.fn(),
@@ -756,6 +760,644 @@ describe('AssessmentService', () => {
 
     await expect(service.createCorrection(ASSES_ID, USER_ID, createDto)).rejects.toThrow(
       BadRequestException,
+    );
+  });
+
+  test('Should return an empty list with a course with no assessments', async () => {
+    const courseId = COURSE_ID;
+    const from = undefined;
+    const till = undefined;
+
+    const expected = {
+      averageGrade: 0,
+      completionRate: 0,
+      openRate: 0,
+      totalAssessments: 0,
+      totalSubmissions: 0,
+    } as CoursePerformanceDto;
+
+    (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue([]);
+
+    expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
+  });
+
+  test('Should return an empty list with a course with no assessments and time range', async () => {
+    const courseId = COURSE_ID;
+    const till = new Date();
+    const from = new Date(till.getTime() - 1000);
+
+    const expected = {
+      averageGrade: 0,
+      completionRate: 0,
+      openRate: 0,
+      totalAssessments: 0,
+      totalSubmissions: 0,
+    } as CoursePerformanceDto;
+
+    (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue([]);
+
+    expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
+  });
+
+  test('Should return two open assessments', async () => {
+    const courseId = COURSE_ID;
+    const from = undefined;
+    const till = undefined;
+
+    const assessment: Assessment = {
+      title: 'Testing exam',
+      description: 'This is an exam for testing purposes',
+      type: AssessmentType.Exam,
+      toleranceTime: 0,
+      userId: USER_ID,
+      startTime: startDate,
+      deadline,
+      courseId: COURSE_ID,
+      teacherId: USER_ID,
+      createdAt: new Date(),
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
+      submissions: {},
+    };
+
+    const assessments: Assessment[] = [
+      {
+        ...assessment,
+        title: 'one',
+      },
+      {
+        ...assessment,
+        title: 'two',
+      },
+    ];
+
+    const expected = {
+      averageGrade: 0,
+      completionRate: 0,
+      openRate: 1,
+      totalAssessments: 2,
+      totalSubmissions: 0,
+    } as CoursePerformanceDto;
+
+    (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
+
+    expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
+  });
+
+  test('Should return 2 assessments', async () => {
+    const courseId = COURSE_ID;
+    const from = undefined;
+    const till = undefined;
+
+    const now = new Date();
+    const deadline = new Date(now.getTime() - 1000);
+    const assessment: Assessment = {
+      title: 'Testing exam',
+      description: 'This is an exam for testing purposes',
+      type: AssessmentType.Exam,
+      toleranceTime: 0,
+      userId: USER_ID,
+      startTime: startDate,
+      deadline,
+      courseId: COURSE_ID,
+      teacherId: USER_ID,
+      createdAt: new Date(deadline.getTime() - 1000),
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
+      submissions: {},
+    };
+
+    const assessments: Assessment[] = [
+      {
+        ...assessment,
+        title: 'one',
+      },
+      {
+        ...assessment,
+        title: 'two',
+      },
+    ];
+
+    const expected = {
+      averageGrade: 0,
+      completionRate: 0,
+      openRate: 0,
+      totalAssessments: 2,
+      totalSubmissions: 0,
+    } as CoursePerformanceDto;
+
+    (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
+
+    expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
+  });
+
+  test('Should return 0 closed assessments because the range does not take them into consideration', async () => {
+    const courseId = COURSE_ID;
+    const now = new Date();
+
+    const from = new Date(now.getTime() - 500);
+    const till = undefined;
+
+    const deadline = new Date(now.getTime() - 1000);
+    const assessment: Assessment = {
+      title: 'Testing exam',
+      description: 'This is an exam for testing purposes',
+      type: AssessmentType.Exam,
+      toleranceTime: 0,
+      userId: USER_ID,
+      startTime: startDate,
+      deadline,
+      courseId: COURSE_ID,
+      teacherId: USER_ID,
+      createdAt: new Date(deadline.getTime() - 1000),
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
+      submissions: {},
+    };
+
+    const assessments: Assessment[] = [
+      {
+        ...assessment,
+        title: 'one',
+      },
+      {
+        ...assessment,
+        title: 'two',
+      },
+    ];
+
+    const expected = {
+      averageGrade: 0,
+      completionRate: 0,
+      openRate: 0,
+      totalAssessments: 0,
+      totalSubmissions: 0,
+    } as CoursePerformanceDto;
+
+    (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
+
+    expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
+  });
+
+  test('Should return a nice summary for a course with assessments and submissions', async () => {
+    const courseId = COURSE_ID;
+    const now = new Date();
+
+    const from = new Date(1000);
+    const till = new Date(now.getTime() - 100);
+
+    const deadline = new Date(now.getTime() - 1000);
+    const correctedAt = new Date(now.getTime() - 500);
+    const submittedAt = new Date(now.getTime() - 750);
+
+    const submission: Submission = {
+      answers: [
+        {
+          answer: '1',
+          correction: '',
+        },
+      ],
+      submittedAt,
+    };
+
+    const assessment: Assessment = {
+      title: 'Testing exam',
+      description: 'This is an exam for testing purposes',
+      type: AssessmentType.Exam,
+      toleranceTime: 0,
+      userId: USER_ID,
+      startTime: startDate,
+      deadline,
+      courseId: COURSE_ID,
+      teacherId: USER_ID,
+      createdAt: new Date(deadline.getTime() - 1000),
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
+      submissions: {
+        [USER_ID]: {
+          note: 9,
+          correctedAt,
+          ...submission,
+        },
+        [USER_ID + 1]: {
+          note: 7,
+          correctedAt,
+          ...submission,
+        },
+      },
+    };
+
+    const assessments: Assessment[] = [
+      {
+        ...assessment,
+        title: 'one',
+      },
+      {
+        ...assessment,
+        title: 'two',
+      },
+      {
+        ...assessment,
+        title: 'three',
+        deadline: new Date(now.getTime() + 1000),
+        createdAt: new Date(10),
+      },
+    ];
+
+    const expected = {
+      averageGrade: 8,
+      completionRate: 1,
+      openRate: 0,
+      totalAssessments: 2,
+      totalSubmissions: 6,
+    } as CoursePerformanceDto;
+
+    (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
+
+    expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
+  });
+
+  test('Should return an empty summary with no assessments', async () => {
+    const courseId = COURSE_ID;
+    const studentId = 0;
+
+    const expected = {
+      averageGrade: 0,
+      completedAssessments: 0,
+      totalAssessments: 0,
+    } as StudentPerformanceInCourseDto;
+
+    (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue([]);
+
+    expect(await service.calculateStudentPerformanceSummaryInCourse(courseId, studentId)).toEqual(
+      expected,
+    );
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
+  });
+
+  test('Should return partial summary with assessments but no submissions', async () => {
+    const courseId = COURSE_ID;
+    const studentId = 0;
+
+    const assessment: Assessment = {
+      title: 'Testing exam',
+      description: 'This is an exam for testing purposes',
+      type: AssessmentType.Exam,
+      toleranceTime: 0,
+      userId: USER_ID,
+      startTime: startDate,
+      deadline,
+      courseId: COURSE_ID,
+      teacherId: USER_ID,
+      createdAt: new Date(deadline.getTime() - 1000),
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
+      submissions: {},
+    };
+
+    const expected = {
+      averageGrade: 0,
+      completedAssessments: 0,
+      totalAssessments: 2,
+    } as StudentPerformanceInCourseDto;
+
+    const assessments: Assessment[] = [
+      {
+        ...assessment,
+      },
+      {
+        ...assessment,
+      },
+    ];
+
+    (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
+
+    expect(await service.calculateStudentPerformanceSummaryInCourse(courseId, studentId)).toEqual(
+      expected,
+    );
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
+  });
+
+  test('Should return a nice summary for a student in a course', async () => {
+    const courseId = COURSE_ID;
+    const studentId = 0;
+
+    const now = new Date();
+    const deadline = new Date(now.getTime() - 1000);
+    const correctedAt = new Date(now.getTime() - 500);
+    const submittedAt = new Date(now.getTime() - 750);
+
+    const submission: Submission = {
+      answers: [
+        {
+          answer: '1',
+          correction: '',
+        },
+      ],
+      submittedAt,
+    };
+
+    const assessment: Assessment = {
+      title: 'Testing exam',
+      description: 'This is an exam for testing purposes',
+      type: AssessmentType.Exam,
+      toleranceTime: 0,
+      userId: USER_ID,
+      startTime: startDate,
+      deadline,
+      courseId: COURSE_ID,
+      teacherId: USER_ID,
+      createdAt: new Date(now.getTime() - 1000),
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
+      submissions: {
+        ['0']: {
+          note: 9,
+          correctedAt,
+          ...submission,
+        },
+        ['1']: {
+          note: 7,
+          correctedAt,
+          ...submission,
+        },
+      },
+    };
+
+    const assessments: Assessment[] = [
+      {
+        ...assessment,
+        title: 'one',
+      },
+      {
+        ...assessment,
+        title: 'two',
+      },
+      {
+        ...assessment,
+        title: 'three',
+        submissions: {
+          ['0']: submission,
+        },
+      },
+    ];
+
+    const expected = {
+      averageGrade: 9,
+      completedAssessments: 3,
+      totalAssessments: 3,
+    } as StudentPerformanceInCourseDto;
+
+    (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
+
+    expect(await service.calculateStudentPerformanceSummaryInCourse(courseId, studentId)).toEqual(
+      expected,
+    );
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
+  });
+
+  test('Should return an empty list of summaries when the course has no assessments', async () => {
+    const courseId = COURSE_ID;
+    (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue([]);
+    (mockCourseRepo.findCourseEnrollments as jest.Mock).mockResolvedValue([]);
+    expect(await service.calculateAssessmentPerformanceSummariesInCourse(courseId)).toEqual([]);
+    expect(mockCourseRepo.findCourseEnrollments).toHaveBeenCalledWith(courseId);
+  });
+
+  test('Should return a list with some assessments but no submissions', async () => {
+    const now = new Date();
+
+    const assessment: Assessment = {
+      title: 'Testing exam',
+      description: 'This is an exam for testing purposes',
+      type: AssessmentType.Exam,
+      toleranceTime: 0,
+      userId: USER_ID,
+      startTime: startDate,
+      deadline,
+      courseId: COURSE_ID,
+      teacherId: USER_ID,
+      createdAt: new Date(now.getTime() - 1000),
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
+      submissions: {},
+    };
+
+    const assessments: Assessment[] = [
+      {
+        ...assessment,
+        title: 'one',
+      },
+      {
+        ...assessment,
+        title: 'two',
+      },
+      {
+        ...assessment,
+        title: 'three',
+      },
+    ];
+
+    const enrollment: Enrollment = {
+      userId: USER_ID,
+      courseId: COURSE_ID,
+      favorite: false,
+      role: Role.STUDENT,
+      studentFeedback: null,
+      studentNote: null,
+      courseFeedback: null,
+      courseNote: null,
+    };
+
+    const enrollments: Enrollment[] = [
+      {
+        ...enrollment,
+      },
+      {
+        ...enrollment,
+        userId: USER_ID + 1,
+      },
+    ];
+
+    const expected: AssessmentPerformanceDto[] = [
+      {
+        title: 'one',
+        averageGrade: 0,
+        completionRate: 0,
+      },
+      {
+        title: 'two',
+        averageGrade: 0,
+        completionRate: 0,
+      },
+      {
+        title: 'three',
+        averageGrade: 0,
+        completionRate: 0,
+      },
+    ];
+
+    (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
+    (mockCourseRepo.findCourseEnrollments as jest.Mock).mockResolvedValue(enrollments);
+
+    expect(await service.calculateAssessmentPerformanceSummariesInCourse(COURSE_ID)).toEqual(
+      expected,
+    );
+  });
+
+  test('Should return a nice summary of assessment performance in a course', async () => {
+    const now = new Date();
+
+    const submission: Submission = {
+      answers: [
+        {
+          answer: '1',
+          correction: '',
+        },
+      ],
+      submittedAt: now,
+    };
+
+    const assessment: Assessment = {
+      title: 'Testing exam',
+      description: 'This is an exam for testing purposes',
+      type: AssessmentType.Exam,
+      toleranceTime: 0,
+      userId: USER_ID,
+      startTime: startDate,
+      deadline,
+      courseId: COURSE_ID,
+      teacherId: USER_ID,
+      createdAt: new Date(now.getTime() - 1000),
+      exercises: [
+        {
+          type: ExerciseType.Mc,
+          question: 'For what purpose it’s used this assess?',
+          choices: ['To test students', 'To test code'],
+          correctChoiceIdx: 1,
+        },
+      ],
+      submissions: {
+        ['u1']: {
+          note: 8,
+          correctedAt: now,
+          ...submission,
+        },
+        ['u2']: {
+          note: 2,
+          correctedAt: now,
+          ...submission,
+        },
+      },
+    };
+
+    const assessments: Assessment[] = [
+      {
+        ...assessment,
+        title: 'one',
+      },
+      {
+        ...assessment,
+        title: 'two',
+      },
+      {
+        ...assessment,
+        title: 'three',
+      },
+    ];
+
+    const enrollment: Enrollment = {
+      userId: USER_ID,
+      courseId: COURSE_ID,
+      favorite: false,
+      role: Role.STUDENT,
+      studentFeedback: null,
+      studentNote: null,
+      courseFeedback: null,
+      courseNote: null,
+    };
+
+    const enrollments: Enrollment[] = [
+      {
+        ...enrollment,
+      },
+      {
+        ...enrollment,
+        userId: USER_ID + 1,
+      },
+    ];
+
+    const expected: AssessmentPerformanceDto[] = [
+      {
+        title: 'one',
+        averageGrade: 5,
+        completionRate: 1,
+      },
+      {
+        title: 'two',
+        averageGrade: 5,
+        completionRate: 1,
+      },
+      {
+        title: 'three',
+        averageGrade: 5,
+        completionRate: 1,
+      },
+    ];
+
+    (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
+    (mockCourseRepo.findCourseEnrollments as jest.Mock).mockResolvedValue(enrollments);
+
+    expect(await service.calculateAssessmentPerformanceSummariesInCourse(COURSE_ID)).toEqual(
+      expected,
     );
   });
 });
