@@ -362,7 +362,7 @@ export class CourseController {
     return await this.assessService.findAssessmentsByCourse(courseId);
   }
 
-  @Get('/courses/:courseId/performance/summary')
+  @Get(':courseId/performance/summary')
   async getCoursePerformanceSummary(
     @Param('courseId') courseId: number,
     @Query('from') from?: string,
@@ -374,13 +374,13 @@ export class CourseController {
     return await this.assessService.calculateCoursePerformanceSummary(courseId, fromDate, tillDate)
   }
 
-  @Get('/courses/:courseId/performance/students/:studentId')
+  @Get(':courseId/performance/students/:studentId')
   async getStudentPerformanceSummaryInCourse(@Param('courseId') courseId: number, @Param('studentId') studentId: number) {
     logger.log(`Getting performance summary for student with ID ${studentId} in course with ID ${courseId}`);
     return await this.assessService.calculateStudentPerformanceSummaryInCourse(courseId, studentId);
   }
 
-  @Get('/courses/:courseId/performance/by-assessment')
+  @Get(':courseId/performance/by-assessment')
   async getAssessmentPerformanceSummary(@Param('courseId') courseId: number) {
     logger.log(`Getting assessment student performances in course with ID ${courseId}`);
     return await this.assessService.calculateAssessmentPerformanceSummariesInCourse(courseId);
