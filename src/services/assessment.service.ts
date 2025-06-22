@@ -10,6 +10,7 @@ import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
+import { CorrectionCreateDto } from 'src/dtos/correction/correction.create.dto';
 import { AssessmentPerformanceDto } from 'src/dtos/course/course.assessmentPerformance.dto';
 import { CoursePerformanceDto } from 'src/dtos/course/course.performance.dto';
 import { StudentPerformanceInCourseDto } from 'src/dtos/course/course.studentPerformance.dto';
@@ -69,7 +70,7 @@ export class AssessmentService {
   constructor(
     private readonly repository: AssessmentRepository,
     private readonly courseRepository: CourseRepository,
-  ) { }
+  ) {}
 
   private async getCourse(id: number) {
     const course = await this.courseRepository.findById(id);
@@ -99,7 +100,7 @@ export class AssessmentService {
       if (!(userEnrollmentToCourse && userEnrollmentToCourse.role == Role.ASSISTANT)) {
         throw new ForbiddenUserException(
           getForbiddenExceptionMsg(courseId, userId, activity) +
-          ' User has to be either the course head teacher or an assistant.',
+            ' User has to be either the course head teacher or an assistant.',
         );
       }
 
@@ -201,7 +202,85 @@ export class AssessmentService {
     return deletedAssessment ? getAssessResponse(deletedAssessment) : null;
   }
 
-  async calculateCoursePerformanceSummary(courseId: number, from: Date | undefined, till: Date | undefined): Promise<CoursePerformanceDto> {
+  async createSubmission(id: string, createDto: SubmissionCreateDto) {
+    const { userId, answers } = createDto;
+    const asses = await this.getAssess(id);
+    if (asses.submissions && asses.submissions[userId]) {
+      throw new ConflictException(`Submission for user ${userId} already exists`);
+    }
+    const enrollment = await this.courseRepository.findEnrollment(asses.courseId, userId);
+    if (!enrollment || enrollment.role != Role.STUDENT)
+      throw new ForbiddenUserException(
+        `User ${userId} is not authorized to sumbit the assessment. Only course ${asses.courseId} students can submit the assessment.`,
+      );
+    const submittedAnswers: SubmittedAnswer[] = answers.map((answer) => ({
+      answer,
+      correction: '',
+    }));
+    const createData: Submission = { answers: submittedAnswers, submittedAt: new Date() };
+    const submission = await this.repository.setAssesSubmission(id, userId, createData);
+    return getSubmissionResponse(submission, id, userId);
+  }
+
+  async getAssesSubmissions(id: string) {
+    const submissions = (await this.getAssess(id)).submissions;
+    if (!submissions) {
+      return [];
+    }
+    return Object.entries(submissions).map(([userId, submission]) =>
+      getSubmissionResponse(submission, id, userId),
+    );
+  }
+
+  async getAssesSubmission(assesId: string, userId: string) {
+    const asses = await this.getAssess(assesId);
+    const userSubmission = asses.submissions?.[userId];
+    if (!userSubmission)
+      throw new NotFoundException(
+        `Submission of user ${userId} not found in assessment ${assesId}`,
+      );
+    return getSubmissionResponse(userSubmission, assesId, userId);
+  }
+
+  async createCorrection(assesId: string, userId: string, createDto: CorrectionCreateDto) {
+    const { teacherId, corrections, ...correctionData } = createDto;
+
+    const asses = await this.getAssess(assesId);
+    const course = await this.getCourse(asses.courseId);
+    if (course.teacherId != teacherId)
+      throw new ForbiddenUserException(
+        `User ${teacherId} is not authorized to correct the submission. Only the course ${asses.courseId} head teacher can correct the course submissions`,
+      );
+
+    const submission = asses.submissions?.[userId];
+    if (!submission)
+      throw new NotFoundException(
+        `Submission of user ${userId} not found in assessment ${assesId}.`,
+      );
+
+    if (submission.answers.length != corrections.length)
+      throw new BadRequestException('There must be the same number of corrections as answers');
+    submission.answers.forEach((answer, idx) => {
+      answer.correction = corrections[idx];
+    });
+    // TODO: Add AI feedback
+    const correctedSubmission: Submission = {
+      ...submission,
+      ...correctionData,
+      correctedAt: new Date(),
+    };
+    return getSubmissionResponse(
+      await this.repository.setAssesSubmission(assesId, userId, correctedSubmission),
+      assesId,
+      userId,
+    );
+  }
+
+  async calculateCoursePerformanceSummary(
+    courseId: number,
+    from: Date | undefined,
+    till: Date | undefined,
+  ): Promise<CoursePerformanceDto> {
     await this.getCourse(courseId);
 
     const assessments = await this.repository.findAssessments({ courseId } as AssessmentFilterDto);
@@ -279,7 +358,7 @@ export class AssessmentService {
 
     for (const a of assessments) {
       if (!a.submissions) {
-        continue
+        continue;
       }
 
       const studentSubmission = a.submissions[studentId.toString()];
@@ -293,7 +372,7 @@ export class AssessmentService {
       }
 
       if (studentSubmission.correctedAt && studentSubmission.note) {
-        gradesSum += studentSubmission.note
+        gradesSum += studentSubmission.note;
         gradesCount++;
       }
     }
@@ -307,10 +386,10 @@ export class AssessmentService {
 
   async calculateAssessmentPerformanceSummariesInCourse(courseId: number): Promise<AssessmentPerformanceDto[]> {
     await this.getCourse(courseId);
+
     const assessments = await this.repository.findAssessments({ courseId } as AssessmentFilterDto);
     const enrollments = await this.courseRepository.findCourseEnrollments(courseId);
-    const studentCount = enrollments.filter(e => e.role == Role.STUDENT).length;
-
+    const studentCount = enrollments.filter((e) => e.role == Role.STUDENT).length;
 
     let summaries: AssessmentPerformanceDto[] = [];
     for (const assessment of assessments) {
@@ -343,46 +422,6 @@ export class AssessmentService {
     }
 
     return summaries;
-  }
-
-  async createSubmission(id: string, createDto: SubmissionCreateDto) {
-    const { userId, answers } = createDto;
-    const asses = await this.getAssess(id);
-    if (asses.submissions && asses.submissions[userId]) {
-      throw new ConflictException(`Submission for user ${userId} already exists`);
-    }
-    const enrollment = await this.courseRepository.findEnrollment(asses.courseId, userId);
-    if (!enrollment || enrollment.role != Role.STUDENT)
-      throw new ForbiddenUserException(
-        `User ${userId} is not authorized to sumbit the assessment. Only course ${asses.courseId} students can submit the assessment.`,
-      );
-    const submittedAnswers: SubmittedAnswer[] = answers.map((answer) => ({
-      answer,
-      correction: '',
-    }));
-    const createData: Submission = { answers: submittedAnswers, submittedAt: new Date() };
-    const submission = await this.repository.createAssesSubmission(id, userId, createData);
-    return getSubmissionResponse(submission, id, userId);
-  }
-
-  async getAssesSubmissions(id: string) {
-    const submissions = (await this.getAssess(id)).submissions;
-    if (!submissions) {
-      return [];
-    }
-    return Object.entries(submissions).map(([userId, submission]) =>
-      getSubmissionResponse(submission, id, userId),
-    );
-  }
-
-  async getAssesSubmission(assesId: string, userId: string) {
-    const asses = await this.getAssess(assesId);
-    const userSubmission = asses.submissions?.[userId];
-    if (!userSubmission)
-      throw new NotFoundException(
-        `Submission of user ${userId} not found in assessment ${assesId}`,
-      );
-    return getSubmissionResponse(userSubmission, assesId, userId);
   }
 }
 
