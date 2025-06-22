@@ -1367,28 +1367,157 @@ components:
 
     AssessmentUpdate:
       type: object
-      # TODO: tiene los mismos campos que AssessmentRequest + userId - type
+      properties:
+        description:
+          type: string
+          example: "Questions about DP taken from previous examination instances"
+        type:
+          $ref: '#/components/schemas/AssessmentType'
+        startTime:
+          type: string
+        deadline:
+          type: string
+        toleranceTime:
+          type: number
+          example: 10
+        userId:
+          type: string
+          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"        
+        exercises:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExerciseCreate'
     
     AssessmentFilter:
       type: object
       properties:
+        type:
+          $ref: '#/components/schemas/ExerciseType'    
+        question:
+          type: string
+          example: "Propose a Mergesort implementation in Python"
+        link:
+          type: string
+        choices:
+          type: array
+          items:
+            type: string
+        correctChoiceIdx:
+          type: number
+          example: 0
         startTimeBegin:
           type: string
         startTimeEnd:
           type: string
         deadlineBegin:
           type: string
-        deadlineend:
+        deadlineEnd:
           type: string
-      # TODO: agregar los campos de AssessmentCreate que esten
 
     AssessmentResponse:
       type: object
-      # TODO
-    
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          example: "Physics: AC"
+        description:
+          type: string
+          example: "Exercices about alternate current"
+        type:
+          $ref: '#/components/schemas/AssessmentType'
+        courseId:
+          type: number
+          example: 1
+        userId:
+          type: string
+          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+        teacherId:
+          type: string
+          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+        startTime:
+          type: string
+        deadline:
+          type: string
+        toleranceTime:
+          type: number
+          example: 10
+        createdAt:
+          type: string
+        exercises:
+          type: array
+          items:
+            type: any
+
+    AssessmentType:
+      type: string
+      enum:
+        - Exam
+        - Task
+      description: The type of the assessment.
+
+    ExerciseType:
+      type: string
+      enum:
+        - Written
+        - Mc
+      description: The type of the exercise.
+
+    ExerciseCreate:
+      type: object
+      required:
+        - type
+        - question
+      properties:
+        type:
+          $ref: '#/components/schemas/ExerciseType'    
+        question:
+          type: string
+          example: "Propose a Mergesort implementation in Python"
+        link:
+          type: string
+        choices:
+          type: array
+          items:
+            type: string
+        correctChoiceIdx:
+          type: number
+          example: 0
+
     AssessmentCreate:
       type: object
-      # TODO
+      required:
+        - title
+        - type
+        - startTime
+        - dealine
+        - toleranceTime
+        - userId
+        - exercises
+      properties:
+        title:
+          type: string
+          example: "Dynamic Programming Exam-like questions"
+        description:
+          type: string
+          example: "Questions about DP taken from previous examination instances"
+        type:
+          $ref: '#/components/schemas/AssessmentType'
+        startTime:
+          type: string
+        deadline:
+          type: string
+        toleranceTime:
+          type: number
+          example: 10
+        userId:
+          type: string
+          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"        
+        exercises:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExerciseCreate'
 
     StudentFeedbackResponse:
       type: object
