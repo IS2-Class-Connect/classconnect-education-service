@@ -375,7 +375,7 @@ export class CourseController {
   }
 
   @Get('/courses/:courseId/performance/students/:studentId')
-  async getStudentPerformanceSummaryInCourse(@Param('courseId') courseId: number, @Param('studentId') studentId: number) {
+  async getStudentPerformanceSummaryInCourse(@Param('courseId') courseId: number, @Param('studentId') studentId: string) {
     logger.log(`Getting performance summary for student with ID ${studentId} in course with ID ${courseId}`);
     return await this.assessService.calculateStudentPerformanceSummaryInCourse(courseId, studentId);
   }

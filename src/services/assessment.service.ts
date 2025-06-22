@@ -80,6 +80,14 @@ export class AssessmentService {
     return course;
   }
 
+  private async getEnrollment(courseId: number, userId: string) {
+    const enrollment = await this.courseRepository.findEnrollment(courseId, userId);
+    if (!enrollment) {
+      logger.error(`The enrollment in course Id ${courseId} for user with id ${userId} was not found.`);
+      throw new NotFoundException(`Enrollment with course ID ${courseId} and user ID ${userId} not found.`);
+    }
+  }
+
   private async registerActivity(
     courseId: number,
     teacherId: string,
@@ -194,6 +202,8 @@ export class AssessmentService {
   }
 
   async calculateCoursePerformanceSummary(courseId: number, from: Date | undefined, till: Date | undefined): Promise<CoursePerformanceDto> {
+    await this.getCourse(courseId);
+
     const assessments = await this.repository.findAssessments({ courseId } as AssessmentFilterDto);
 
     let gradesSum = 0;
@@ -256,7 +266,10 @@ export class AssessmentService {
     } as CoursePerformanceDto;
   }
 
-  async calculateStudentPerformanceSummaryInCourse(courseId: number, studentId: number): Promise<StudentPerformanceInCourseDto> {
+  async calculateStudentPerformanceSummaryInCourse(courseId: number, studentId: string): Promise<StudentPerformanceInCourseDto> {
+    await this.getCourse(courseId);
+    await this.getEnrollment(courseId, studentId);
+
     const assessments = await this.repository.findAssessments({ courseId } as AssessmentFilterDto);
     const assessmentCount = assessments.length;
 
@@ -292,12 +305,8 @@ export class AssessmentService {
     } as StudentPerformanceInCourseDto;
   }
 
-  // Tests relevantes:
-  //
-  // 1. sin assessments
-  // 2. con assessments sin submissions
-  // 3. con assessments con submissions
   async calculateAssessmentPerformanceSummariesInCourse(courseId: number): Promise<AssessmentPerformanceDto[]> {
+    await this.getCourse(courseId);
     const assessments = await this.repository.findAssessments({ courseId } as AssessmentFilterDto);
     const enrollments = await this.courseRepository.findCourseEnrollments(courseId);
     const studentCount = enrollments.filter(e => e.role == Role.STUDENT).length;

@@ -962,9 +962,105 @@ paths:
                 items:
                   $ref: '#/components/schemas/AssessmentResponse'
 
+  /courses/{courseId}/performance/summary:
+    get:
+      summary: Retrieves a course performance summary.
+      description: |
+        Will calculate a performance summary for the given course and return it. An
+        interval of time can be provided to filter assessments and submission that
+        fall outside of it.
+      operationId: getCoursePerformanceSummary
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: number
+        - in: query
+          name: from
+          schema:
+            type: string
+        - in: query
+          name: till
+          schema:
+            type: string
+      responses:
+        '404':
+          description: The course was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+
+        '200':
+          description: The performance summary for this course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoursePerformance'
+          
+  /courses/{courseId}/performance/students/{studentId}:
+    get:
+      summary: Retieves a student performance summary for a given course.
+      description: |
+        Will calculate a performance summary for a student in a given course and return it.
+      operationId: getStudentPerformanceSummaryInCourse
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: studentId
+          required: true
+          schema:
+            type: string
+      responses:
+        '404':
+          description: The course or enrollment was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '200':
+          description: The performance summary for this student in this course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentPerformanceInCourse'
+        
+  /courses/{courseId}/performance/by-assessment:
+    get:
+      summary: Retrieves the performance summaries of all the assessments in a course.
+      description: |
+        Will calculate a performance summary for every assessment in a course and return them in a list.
+      operationId: getAssesmentPerformanceSummary
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: number
+      responses:
+        '404':
+          description: The course or enrollment was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERROR'
+        '200':
+          description: A list of assessment performance summaries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AssessmentPerformance'
+
   /courses/metrics:
     get:
-      summary: Retrieve the metrics of a service.
+      summary: Retrieves the metrics of a service.
       description: Returns metric information for Prometheus server.
       operationId: getMetrics
       responses:
@@ -1202,6 +1298,51 @@ paths:
 
 components:
   schemas:
+    AssessmentPerformance:
+      type: object
+      properties:
+        title:
+          type: string
+          example: "Alternate Current exercises 1-5"
+        averageGrade:
+          type: number
+          example: 10
+        completionRate:
+          type: number
+          example: 0.9 
+
+    StudentPerformanceInCourse:
+      type: object
+      properties:
+        averageGrade:
+          type: number
+          example: 10
+        completedAssessments:
+          type: number
+          example: 24
+        totalAssesments:
+          type: number
+          example: 30      
+
+    CoursePerformance:
+      type: object
+      properties:
+        averageGrade:
+          type: number
+          example: 10
+        completionRate:
+          type: number
+          example: 0.5
+        totalAssessments:
+          type: number
+          example: 24
+        totalSubmissions:
+          type: number
+          example: 620
+        openRate:
+          type: number
+          example: 0.1
+    
     SubmissionResponse:
       type: object
       properties:
