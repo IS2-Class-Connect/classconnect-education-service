@@ -4,6 +4,7 @@ import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
+import { CorrectionCreateDto } from 'src/dtos/correction/correction.create.dto';
 import { AssessmentPerformanceDto } from 'src/dtos/course/course.assessmentPerformance.dto';
 import { CoursePerformanceDto } from 'src/dtos/course/course.performance.dto';
 import { StudentPerformanceInCourseDto } from 'src/dtos/course/course.studentPerformance.dto';
@@ -16,13 +17,43 @@ import { Assessment, AssessmentType } from 'src/schema/assessment.schema';
 import { ExerciseType } from 'src/schema/exercise.schema';
 import { Submission, SubmittedAnswer } from 'src/schema/submission.schema';
 import { AssessmentService } from 'src/services/assessment.service';
-import { ASSES_ID, COURSE_ID, FORBIDDEN_USER_ID, getDatesAfterToday, USER_ID } from 'test/utils';
+import {
+  ASSES_ID,
+  COURSE_ID,
+  FORBIDDEN_USER_ID,
+  getDatesAfterToday,
+  TEACHER_ID,
+  USER_ID,
+} from 'test/utils';
 
 describe('AssessmentService', () => {
   let service: AssessmentService;
   let mockCourseRepo: CourseRepository;
   let mockAssesRepo: AssessmentRepository;
   const { startDate, deadline } = getDatesAfterToday();
+
+  // submissions should have the same number of answers as exercises
+  function getMockedAssessment(submissions?: Record<string, Submission>) {
+    const asses: Assessment = {
+      title: 'Assessment',
+      type: AssessmentType.Exam,
+      courseId: COURSE_ID,
+      userId: TEACHER_ID,
+      teacherId: TEACHER_ID,
+      startTime: startDate,
+      deadline,
+      toleranceTime: 5,
+      createdAt: startDate,
+      exercises: [
+        {
+          type: ExerciseType.Written,
+          question: 'Is this a test?',
+        },
+      ],
+      submissions,
+    };
+    return asses;
+  }
 
   beforeEach(() => {
     mockCourseRepo = {
@@ -38,7 +69,7 @@ describe('AssessmentService', () => {
       findByCourseId: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
-      createAssesSubmission: jest.fn(),
+      setAssesSubmission: jest.fn(),
     } as any;
     service = new AssessmentService(mockAssesRepo, mockCourseRepo);
   });
@@ -462,11 +493,11 @@ describe('AssessmentService', () => {
       userId: USER_ID,
       role: Role.STUDENT,
     });
-    (mockAssesRepo.createAssesSubmission as jest.Mock).mockResolvedValue(submission);
+    (mockAssesRepo.setAssesSubmission as jest.Mock).mockResolvedValue(submission);
 
     expect(await service.createSubmission(ASSES_ID, createDto)).toEqual(expected);
     expect(mockAssesRepo.findById).toHaveBeenCalledWith(ASSES_ID);
-    expect(mockAssesRepo.createAssesSubmission).toHaveBeenCalledWith(ASSES_ID, USER_ID, submission);
+    expect(mockAssesRepo.setAssesSubmission).toHaveBeenCalledWith(ASSES_ID, USER_ID, submission);
     expect(mockCourseRepo.findEnrollment).toHaveBeenCalledWith(COURSE_ID, USER_ID);
 
     jest.restoreAllMocks();
@@ -611,6 +642,127 @@ describe('AssessmentService', () => {
     expect(mockAssesRepo.findById).toHaveBeenCalledWith(ASSES_ID);
   });
 
+  test('Should add a correction to an assessment submission', async () => {
+    const answer = 'Yes, it is!';
+    const correction = 'That’s correct!';
+
+    const asses: Assessment = getMockedAssessment({
+      [USER_ID]: {
+        answers: [
+          {
+            answer,
+            correction: '',
+          },
+        ],
+        submittedAt: deadline,
+      },
+    });
+
+    const createDto: CorrectionCreateDto = {
+      teacherId: TEACHER_ID,
+      corrections: [correction],
+      feedback: 'Good job!',
+      note: 10,
+    };
+
+    const newSubmission: Submission = {
+      answers: [
+        {
+          answer,
+          correction,
+        },
+      ],
+      submittedAt: deadline,
+      correctedAt: expect.any(Date),
+      feedback: createDto.feedback,
+      note: createDto.note,
+    };
+
+    (mockAssesRepo.findById as jest.Mock).mockResolvedValue(asses);
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({
+      id: COURSE_ID,
+      teacherId: TEACHER_ID,
+    });
+    (mockAssesRepo.setAssesSubmission as jest.Mock).mockResolvedValue(newSubmission);
+
+    const expected: SubmissionResponseDto = {
+      ...newSubmission,
+      userId: USER_ID,
+      assesId: ASSES_ID,
+    };
+
+    expect(await service.createCorrection(ASSES_ID, USER_ID, createDto)).toEqual(expected);
+    expect(mockAssesRepo.findById).toHaveBeenCalledWith(ASSES_ID);
+    expect(mockCourseRepo.findById).toHaveBeenCalledWith(COURSE_ID);
+    expect(mockAssesRepo.setAssesSubmission).toHaveBeenCalledWith(ASSES_ID, USER_ID, newSubmission);
+  });
+
+  test('Should throw an exception when trying to add a correction to a non existing submission', async () => {
+    const asses = getMockedAssessment();
+    const createDto: CorrectionCreateDto = {
+      teacherId: TEACHER_ID,
+      corrections: ['Good job!'],
+      feedback: 'Good job!',
+      note: 10,
+    };
+
+    (mockAssesRepo.findById as jest.Mock).mockResolvedValue(asses);
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({
+      id: COURSE_ID,
+      teacherId: TEACHER_ID,
+    });
+    await expect(service.createCorrection(ASSES_ID, USER_ID, createDto)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  test('Should throw an exception when a forbidden user tries to add a correction', async () => {
+    (mockAssesRepo.findById as jest.Mock).mockResolvedValue({ courseId: COURSE_ID });
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({ teacherId: TEACHER_ID });
+
+    const createDto: CorrectionCreateDto = {
+      teacherId: FORBIDDEN_USER_ID,
+      corrections: ['Good job!'],
+      feedback: 'Good job!',
+      note: 10,
+    };
+
+    await expect(service.createCorrection(ASSES_ID, USER_ID, createDto)).rejects.toThrow(
+      ForbiddenUserException,
+    );
+  });
+
+  test('Should throw an exception when trying to add a correction with different number of answers and corrections', async () => {
+    const asses: Assessment = getMockedAssessment({
+      [USER_ID]: {
+        answers: [
+          {
+            answer: 'Yes, it is!',
+            correction: '',
+          },
+        ],
+        submittedAt: deadline,
+      },
+    });
+
+    const createDto: CorrectionCreateDto = {
+      teacherId: TEACHER_ID,
+      corrections: [],
+      feedback: 'Good job!',
+      note: 10,
+    };
+
+    (mockAssesRepo.findById as jest.Mock).mockResolvedValue(asses);
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({
+      id: COURSE_ID,
+      teacherId: TEACHER_ID,
+    });
+
+    await expect(service.createCorrection(ASSES_ID, USER_ID, createDto)).rejects.toThrow(
+      BadRequestException,
+    );
+  });
+
   test('Should return an empty list with a course with no assessments', async () => {
     const courseId = COURSE_ID;
     const from = undefined;
@@ -624,11 +776,10 @@ describe('AssessmentService', () => {
       totalSubmissions: 0,
     } as CoursePerformanceDto;
 
-
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue([]);
 
     expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
-    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId })
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
   });
 
   test('Should return an empty list with a course with no assessments and time range', async () => {
@@ -644,11 +795,10 @@ describe('AssessmentService', () => {
       totalSubmissions: 0,
     } as CoursePerformanceDto;
 
-
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue([]);
 
     expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
-    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId })
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
   });
 
   test('Should return two open assessments', async () => {
@@ -681,13 +831,13 @@ describe('AssessmentService', () => {
     const assessments: Assessment[] = [
       {
         ...assessment,
-        title: "one",
+        title: 'one',
       },
       {
         ...assessment,
-        title: "two",
+        title: 'two',
       },
-    ]
+    ];
 
     const expected = {
       averageGrade: 0,
@@ -700,7 +850,7 @@ describe('AssessmentService', () => {
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
 
     expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
-    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId })
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
   });
 
   test('Should return 2 assessments', async () => {
@@ -735,13 +885,13 @@ describe('AssessmentService', () => {
     const assessments: Assessment[] = [
       {
         ...assessment,
-        title: "one",
+        title: 'one',
       },
       {
         ...assessment,
-        title: "two",
+        title: 'two',
       },
-    ]
+    ];
 
     const expected = {
       averageGrade: 0,
@@ -754,7 +904,7 @@ describe('AssessmentService', () => {
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
 
     expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
-    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId })
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
   });
 
   test('Should return 0 closed assessments because the range does not take them into consideration', async () => {
@@ -790,13 +940,13 @@ describe('AssessmentService', () => {
     const assessments: Assessment[] = [
       {
         ...assessment,
-        title: "one",
+        title: 'one',
       },
       {
         ...assessment,
-        title: "two",
+        title: 'two',
       },
-    ]
+    ];
 
     const expected = {
       averageGrade: 0,
@@ -809,7 +959,7 @@ describe('AssessmentService', () => {
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
 
     expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
-    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId })
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
   });
 
   test('Should return a nice summary for a course with assessments and submissions', async () => {
@@ -869,15 +1019,15 @@ describe('AssessmentService', () => {
     const assessments: Assessment[] = [
       {
         ...assessment,
-        title: "one",
+        title: 'one',
       },
       {
         ...assessment,
-        title: "two",
+        title: 'two',
       },
       {
         ...assessment,
-        title: "three",
+        title: 'three',
         deadline: new Date(now.getTime() + 1000),
         createdAt: new Date(10),
       },
@@ -894,7 +1044,7 @@ describe('AssessmentService', () => {
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
 
     expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
-    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId })
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
   });
 
   test('Should return an empty summary with no assessments', async () => {
@@ -907,11 +1057,12 @@ describe('AssessmentService', () => {
       totalAssessments: 0,
     } as StudentPerformanceInCourseDto;
 
-
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue([]);
 
-    expect(await service.calculateStudentPerformanceSummaryInCourse(courseId, studentId)).toEqual(expected);
-    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId })
+    expect(await service.calculateStudentPerformanceSummaryInCourse(courseId, studentId)).toEqual(
+      expected,
+    );
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
   });
 
   test('Should return partial summary with assessments but no submissions', async () => {
@@ -952,13 +1103,15 @@ describe('AssessmentService', () => {
       },
       {
         ...assessment,
-      }
+      },
     ];
 
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
 
-    expect(await service.calculateStudentPerformanceSummaryInCourse(courseId, studentId)).toEqual(expected);
-    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId })
+    expect(await service.calculateStudentPerformanceSummaryInCourse(courseId, studentId)).toEqual(
+      expected,
+    );
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
   });
 
   test('Should return a nice summary for a student in a course', async () => {
@@ -1000,12 +1153,12 @@ describe('AssessmentService', () => {
         },
       ],
       submissions: {
-        ["0"]: {
+        ['0']: {
           note: 9,
           correctedAt,
           ...submission,
         },
-        ["1"]: {
+        ['1']: {
           note: 7,
           correctedAt,
           ...submission,
@@ -1016,18 +1169,18 @@ describe('AssessmentService', () => {
     const assessments: Assessment[] = [
       {
         ...assessment,
-        title: "one",
+        title: 'one',
       },
       {
         ...assessment,
-        title: "two",
+        title: 'two',
       },
       {
         ...assessment,
-        title: "three",
+        title: 'three',
         submissions: {
-          ["0"]: submission,
-        }
+          ['0']: submission,
+        },
       },
     ];
 
@@ -1039,8 +1192,10 @@ describe('AssessmentService', () => {
 
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
 
-    expect(await service.calculateStudentPerformanceSummaryInCourse(courseId, studentId)).toEqual(expected);
-    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId })
+    expect(await service.calculateStudentPerformanceSummaryInCourse(courseId, studentId)).toEqual(
+      expected,
+    );
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId });
   });
 
   test('Should return an empty list of summaries when the course has no assessments', async () => {
@@ -1079,15 +1234,15 @@ describe('AssessmentService', () => {
     const assessments: Assessment[] = [
       {
         ...assessment,
-        title: "one",
+        title: 'one',
       },
       {
         ...assessment,
-        title: "two",
+        title: 'two',
       },
       {
         ...assessment,
-        title: "three",
+        title: 'three',
       },
     ];
 
@@ -1100,7 +1255,7 @@ describe('AssessmentService', () => {
       studentNote: null,
       courseFeedback: null,
       courseNote: null,
-    }
+    };
 
     const enrollments: Enrollment[] = [
       {
@@ -1114,26 +1269,28 @@ describe('AssessmentService', () => {
 
     const expected: AssessmentPerformanceDto[] = [
       {
-        title: "one",
+        title: 'one',
         averageGrade: 0,
         completionRate: 0,
       },
       {
-        title: "two",
+        title: 'two',
         averageGrade: 0,
         completionRate: 0,
       },
       {
-        title: "three",
+        title: 'three',
         averageGrade: 0,
         completionRate: 0,
-      }
+      },
     ];
 
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
     (mockCourseRepo.findCourseEnrollments as jest.Mock).mockResolvedValue(enrollments);
 
-    expect(await service.calculateAssessmentPerformanceSummariesInCourse(COURSE_ID)).toEqual(expected);
+    expect(await service.calculateAssessmentPerformanceSummariesInCourse(COURSE_ID)).toEqual(
+      expected,
+    );
   });
 
   test('Should return a nice summary of assessment performance in a course', async () => {
@@ -1169,31 +1326,31 @@ describe('AssessmentService', () => {
         },
       ],
       submissions: {
-        ["u1"]: {
+        ['u1']: {
           note: 8,
           correctedAt: now,
           ...submission,
         },
-        ["u2"]: {
+        ['u2']: {
           note: 2,
           correctedAt: now,
           ...submission,
-        }
+        },
       },
     };
 
     const assessments: Assessment[] = [
       {
         ...assessment,
-        title: "one",
+        title: 'one',
       },
       {
         ...assessment,
-        title: "two",
+        title: 'two',
       },
       {
         ...assessment,
-        title: "three",
+        title: 'three',
       },
     ];
 
@@ -1206,7 +1363,7 @@ describe('AssessmentService', () => {
       studentNote: null,
       courseFeedback: null,
       courseNote: null,
-    }
+    };
 
     const enrollments: Enrollment[] = [
       {
@@ -1220,25 +1377,27 @@ describe('AssessmentService', () => {
 
     const expected: AssessmentPerformanceDto[] = [
       {
-        title: "one",
+        title: 'one',
         averageGrade: 5,
         completionRate: 1,
       },
       {
-        title: "two",
+        title: 'two',
         averageGrade: 5,
         completionRate: 1,
       },
       {
-        title: "three",
+        title: 'three',
         averageGrade: 5,
         completionRate: 1,
-      }
+      },
     ];
 
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
     (mockCourseRepo.findCourseEnrollments as jest.Mock).mockResolvedValue(enrollments);
 
-    expect(await service.calculateAssessmentPerformanceSummariesInCourse(COURSE_ID)).toEqual(expected);
+    expect(await service.calculateAssessmentPerformanceSummariesInCourse(COURSE_ID)).toEqual(
+      expected,
+    );
   });
 });

@@ -13,6 +13,7 @@ import {
 import mongoose from 'mongoose';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
+import { CorrectionCreateDto } from 'src/dtos/correction/correction.create.dto';
 import { SubmissionCreateDto } from 'src/dtos/submission/submission.create.dto';
 import { AssessmentService } from 'src/services/assessment.service';
 
@@ -75,6 +76,17 @@ export class AssessmentController {
     validateAssesId(assesId);
     logger.log(`Getting user ${userId} submission for assessment ${assesId}`);
     return this.service.getAssesSubmission(assesId, userId);
+  }
+
+  @Post(':assesId/submissions/:userId/correction')
+  async createCorrection(
+    @Param('assesId') id: string,
+    @Param('userId') userId: string,
+    @Body() createDto: CorrectionCreateDto,
+  ) {
+    validateAssesId(id);
+    logger.log(`Creating correction to submission from user ${userId} of assessment ${id}`);
+    return this.service.createCorrection(id, userId, createDto);
   }
 }
 
