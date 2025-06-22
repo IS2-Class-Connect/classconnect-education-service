@@ -24,7 +24,7 @@ function validateAssesId(id: string) {
 
 @Controller('/assessments')
 export class AssessmentController {
-  constructor(private readonly service: AssessmentService) {}
+  constructor(private readonly service: AssessmentService) { }
 
   @Get()
   async getAssessments(@Query() filter: AssessmentFilterDto) {
