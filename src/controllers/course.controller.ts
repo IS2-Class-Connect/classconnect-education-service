@@ -361,6 +361,30 @@ export class CourseController {
     logger.log(`Getting assessments for course with ID ${courseId}`);
     return await this.assessService.findAssessmentsByCourse(courseId);
   }
+
+  @Get('/courses/:courseId/performance/summary')
+  async getCoursePerformanceSummary(
+    @Param('courseId') courseId: number,
+    @Query('from') from?: string,
+    @Query('till') till?: string,
+  ) {
+    const fromDate = from ? new Date(from) : undefined;
+    const tillDate = till ? new Date(till) : undefined;
+    logger.log(`Getting performance summary for course with ID ${courseId}`);
+    return await this.assessService.calculateCoursePerformanceSummary(courseId, fromDate, tillDate)
+  }
+
+  @Get('/courses/:courseId/performance/students/:studentId')
+  async getStudentPerformanceSummaryInCourse(@Param('courseId') courseId: number, @Param('studentId') studentId: number) {
+    logger.log(`Getting performance summary for student with ID ${studentId} in course with ID ${courseId}`);
+    return await this.assessService.calculateStudentPerformanceSummaryInCourse(courseId, studentId);
+  }
+
+  @Get('/courses/:courseId/performance/by-assessment')
+  async getAssessmentPerformanceSummary(@Param('courseId') courseId: number) {
+    logger.log(`Getting assessment student performances in course with ID ${courseId}`);
+    return await this.assessService.calculateAssessmentPerformanceSummariesInCourse(courseId);
+  }
 }
 
 const logger = new Logger(CourseController.name);
