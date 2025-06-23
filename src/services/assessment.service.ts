@@ -58,10 +58,10 @@ function validateAssessmentUpdate(updateData: AssessmentUpdateDto, assessment: A
 
   if (
     startTime &&
-    (new Date(startTime) >= now || (!deadline && new Date(startTime) >= assessment.deadline))
+    (new Date(startTime) <= now || (!deadline && new Date(startTime) >= assessment.deadline))
   ) {
     // TODO: change msg
-    throw new BadRequestException('Start time must be a future date.');
+    throw new BadRequestException('Start time must be a future date and before the deadline.');
   }
 }
 
@@ -79,6 +79,18 @@ export class AssessmentService {
       throw new NotFoundException(`Course with ID ${id} not found.`);
     }
     return course;
+  }
+
+  private async getEnrollment(courseId: number, userId: string) {
+    const enrollment = await this.courseRepository.findEnrollment(courseId, userId);
+    if (!enrollment) {
+      logger.error(
+        `The enrollment in course Id ${courseId} for user with id ${userId} was not found.`,
+      );
+      throw new NotFoundException(
+        `Enrollment with course ID ${courseId} and user ID ${userId} not found.`,
+      );
+    }
   }
 
   private async registerActivity(
@@ -273,6 +285,8 @@ export class AssessmentService {
     from: Date | undefined,
     till: Date | undefined,
   ): Promise<CoursePerformanceDto> {
+    await this.getCourse(courseId);
+
     const assessments = await this.repository.findAssessments({ courseId } as AssessmentFilterDto);
 
     let gradesSum = 0;
@@ -337,8 +351,11 @@ export class AssessmentService {
 
   async calculateStudentPerformanceSummaryInCourse(
     courseId: number,
-    studentId: number,
+    studentId: string,
   ): Promise<StudentPerformanceInCourseDto> {
+    await this.getCourse(courseId);
+    await this.getEnrollment(courseId, studentId);
+
     const assessments = await this.repository.findAssessments({ courseId } as AssessmentFilterDto);
     const assessmentCount = assessments.length;
 
@@ -374,14 +391,11 @@ export class AssessmentService {
     } as StudentPerformanceInCourseDto;
   }
 
-  // Tests relevantes:
-  //
-  // 1. sin assessments
-  // 2. con assessments sin submissions
-  // 3. con assessments con submissions
   async calculateAssessmentPerformanceSummariesInCourse(
     courseId: number,
   ): Promise<AssessmentPerformanceDto[]> {
+    await this.getCourse(courseId);
+
     const assessments = await this.repository.findAssessments({ courseId } as AssessmentFilterDto);
     const enrollments = await this.courseRepository.findCourseEnrollments(courseId);
     const studentCount = enrollments.filter((e) => e.role == Role.STUDENT).length;

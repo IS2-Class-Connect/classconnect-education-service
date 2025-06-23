@@ -10,7 +10,7 @@ echo "⏳ Esperando que la base de datos esté lista en localhost:5433..."
 RETRIES=30
 until docker exec classconnect-education-tests pg_isready -h localhost -p 5432 -U postgres >/dev/null 2>&1 || [ $RETRIES -eq 0 ]; do
   echo "Esperando base de datos... intentos restantes: $RETRIES"
-  sleep 1
+  sleep 2
   RETRIES=$((RETRIES - 1))
 done
 

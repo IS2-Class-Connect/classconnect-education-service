@@ -357,15 +357,27 @@ export class CourseService {
     );
   }
 
-  async createCourseFeedback(courseId: number, userId: string, feedback: CourseFeedbackRequestDto) {
-    await this.repository.updateEnrollment(courseId, userId, feedback);
+  async createCourseFeedback(
+    courseId: number,
+    userId: string,
+    feedback: CourseFeedbackRequestDto,
+  ): Promise<CourseFeedbackResponseDto | null> {
+    const enrollment = await this.repository.updateEnrollment(courseId, userId, feedback);
+    if (!enrollment || !(enrollment.courseFeedback && enrollment.courseNote)) return null;
+    const { courseFeedback, courseNote } = enrollment;
+    return {
+      courseId,
+      studentId: userId,
+      courseFeedback,
+      courseNote,
+    };
   }
 
   async createStudentFeedback(
     courseId: number,
     userId: string,
     feedback: StudentFeedbackRequestDto,
-  ) {
+  ): Promise<StudentFeedbackResponseDto | null> {
     const course = await this.getCourse(courseId);
     const { teacherId, ...updateData } = feedback;
     if (course.teacherId != teacherId) {
@@ -373,7 +385,15 @@ export class CourseService {
         `User ${userId} is not allowed to create feedback for course ${courseId}. Only the head teacher is allowed.`,
       );
     }
-    await this.repository.updateEnrollment(courseId, userId, updateData);
+    const enrollment = await this.repository.updateEnrollment(courseId, userId, updateData);
+    if (!enrollment || !(enrollment.studentFeedback && enrollment.studentNote)) return null;
+    const { studentFeedback, studentNote } = enrollment;
+    return {
+      courseId,
+      studentId: userId,
+      studentFeedback,
+      studentNote,
+    };
   }
 
   async getCourseFeedback(courseId: number, userId: string): Promise<CourseFeedbackResponseDto> {
@@ -388,6 +408,7 @@ export class CourseService {
       courseFeedback,
       courseNote,
       studentId: userId,
+      courseId,
     };
   }
 
@@ -397,7 +418,7 @@ export class CourseService {
       throw new NotFoundException(`Feedback for user ${userId} in course ${courseId} not found.`);
     }
     const { studentFeedback, studentNote } = enrollment;
-    return { studentFeedback, studentNote, courseId };
+    return { studentFeedback, studentNote, courseId, studentId: userId };
   }
 
   async getCourseFeedbacks(
@@ -411,6 +432,7 @@ export class CourseService {
           courseFeedback,
           courseNote,
           studentId: userId,
+          courseId,
         };
       }
       return [];
@@ -435,12 +457,13 @@ export class CourseService {
     studentId: string,
   ): Promise<{ feedbacks: StudentFeedbackResponseDto[]; summary: string }> {
     const enrollments = await this.repository.findEnrollments({ userId: studentId });
-    const feedbacks = enrollments.flatMap(({ studentFeedback, studentNote, courseId }) => {
+    const feedbacks = enrollments.flatMap(({ studentFeedback, studentNote, courseId, userId }) => {
       if (studentFeedback && studentNote) {
         return {
           studentFeedback,
           studentNote,
           courseId,
+          studentId: userId,
         };
       }
       return [];

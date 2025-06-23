@@ -776,6 +776,7 @@ describe('AssessmentService', () => {
       totalSubmissions: 0,
     } as CoursePerformanceDto;
 
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({});
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue([]);
 
     expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
@@ -795,6 +796,7 @@ describe('AssessmentService', () => {
       totalSubmissions: 0,
     } as CoursePerformanceDto;
 
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({});
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue([]);
 
     expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
@@ -847,6 +849,7 @@ describe('AssessmentService', () => {
       totalSubmissions: 0,
     } as CoursePerformanceDto;
 
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({});
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
 
     expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
@@ -901,6 +904,7 @@ describe('AssessmentService', () => {
       totalSubmissions: 0,
     } as CoursePerformanceDto;
 
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({});
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
 
     expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
@@ -956,6 +960,7 @@ describe('AssessmentService', () => {
       totalSubmissions: 0,
     } as CoursePerformanceDto;
 
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({});
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
 
     expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
@@ -1041,6 +1046,7 @@ describe('AssessmentService', () => {
       totalSubmissions: 6,
     } as CoursePerformanceDto;
 
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({});
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
 
     expect(await service.calculateCoursePerformanceSummary(courseId, from, till)).toEqual(expected);
@@ -1049,7 +1055,7 @@ describe('AssessmentService', () => {
 
   test('Should return an empty summary with no assessments', async () => {
     const courseId = COURSE_ID;
-    const studentId = 0;
+    const studentId = USER_ID;
 
     const expected = {
       averageGrade: 0,
@@ -1057,6 +1063,8 @@ describe('AssessmentService', () => {
       totalAssessments: 0,
     } as StudentPerformanceInCourseDto;
 
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({});
+    (mockCourseRepo.findEnrollment as jest.Mock).mockResolvedValue({});
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue([]);
 
     expect(await service.calculateStudentPerformanceSummaryInCourse(courseId, studentId)).toEqual(
@@ -1067,7 +1075,7 @@ describe('AssessmentService', () => {
 
   test('Should return partial summary with assessments but no submissions', async () => {
     const courseId = COURSE_ID;
-    const studentId = 0;
+    const studentId = USER_ID;
 
     const assessment: Assessment = {
       title: 'Testing exam',
@@ -1106,6 +1114,8 @@ describe('AssessmentService', () => {
       },
     ];
 
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({});
+    (mockCourseRepo.findEnrollment as jest.Mock).mockResolvedValue({});
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
 
     expect(await service.calculateStudentPerformanceSummaryInCourse(courseId, studentId)).toEqual(
@@ -1116,7 +1126,7 @@ describe('AssessmentService', () => {
 
   test('Should return a nice summary for a student in a course', async () => {
     const courseId = COURSE_ID;
-    const studentId = 0;
+    const studentId = USER_ID;
 
     const now = new Date();
     const deadline = new Date(now.getTime() - 1000);
@@ -1153,7 +1163,7 @@ describe('AssessmentService', () => {
         },
       ],
       submissions: {
-        ['0']: {
+        [USER_ID]: {
           note: 9,
           correctedAt,
           ...submission,
@@ -1179,17 +1189,19 @@ describe('AssessmentService', () => {
         ...assessment,
         title: 'three',
         submissions: {
-          ['0']: submission,
-        },
+          ["1"]: submission,
+        }
       },
     ];
 
     const expected = {
       averageGrade: 9,
-      completedAssessments: 3,
+      completedAssessments: 2,
       totalAssessments: 3,
     } as StudentPerformanceInCourseDto;
 
+    (mockCourseRepo.findEnrollment as jest.Mock).mockResolvedValue({});
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({});
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
 
     expect(await service.calculateStudentPerformanceSummaryInCourse(courseId, studentId)).toEqual(
@@ -1200,8 +1212,11 @@ describe('AssessmentService', () => {
 
   test('Should return an empty list of summaries when the course has no assessments', async () => {
     const courseId = COURSE_ID;
+
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({});
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue([]);
     (mockCourseRepo.findCourseEnrollments as jest.Mock).mockResolvedValue([]);
+
     expect(await service.calculateAssessmentPerformanceSummariesInCourse(courseId)).toEqual([]);
     expect(mockCourseRepo.findCourseEnrollments).toHaveBeenCalledWith(courseId);
   });
@@ -1285,6 +1300,7 @@ describe('AssessmentService', () => {
       },
     ];
 
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({});
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
     (mockCourseRepo.findCourseEnrollments as jest.Mock).mockResolvedValue(enrollments);
 
@@ -1393,6 +1409,7 @@ describe('AssessmentService', () => {
       },
     ];
 
+    (mockCourseRepo.findById as jest.Mock).mockResolvedValue({});
     (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
     (mockCourseRepo.findCourseEnrollments as jest.Mock).mockResolvedValue(enrollments);
 

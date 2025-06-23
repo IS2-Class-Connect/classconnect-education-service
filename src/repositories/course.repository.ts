@@ -12,7 +12,7 @@ export type EnrollmentWithCourse = Enrollment & { course: Course };
 
 @Injectable()
 export class CourseRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * Creates a new course in the database.
