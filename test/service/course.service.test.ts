@@ -1025,12 +1025,14 @@ describe('CourseService', () => {
       courseFeedback,
       courseNote,
       studentId: userId,
+      courseId,
     };
 
     const expectedStudentFeedback = {
       studentFeedback,
       studentNote,
       courseId,
+      studentId: userId,
     };
 
     (mockRepository.findEnrollment as jest.Mock).mockResolvedValue({
@@ -1077,7 +1079,7 @@ describe('CourseService', () => {
     (mockRepository.findCourseEnrollments as jest.Mock).mockResolvedValue(enrollments);
 
     const expected: { feedbacks: CourseFeedbackResponseDto[]; summary: string } = {
-      feedbacks: [{ studentId: userId, courseFeedback, courseNote }],
+      feedbacks: [{ courseId, studentId: userId, courseFeedback, courseNote }],
       summary: MOCK_AI_RESPONSE,
     };
 
@@ -1099,7 +1101,7 @@ describe('CourseService', () => {
     (mockRepository.findEnrollments as jest.Mock).mockResolvedValue(enrollments);
 
     const expected: { feedbacks: StudentFeedbackResponseDto[]; summary: string } = {
-      feedbacks: [{ courseId, studentFeedback, studentNote }],
+      feedbacks: [{ courseId, studentId: userId, studentFeedback, studentNote }],
       summary: MOCK_AI_RESPONSE,
     };
 

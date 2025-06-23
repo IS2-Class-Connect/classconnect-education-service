@@ -28,11 +28,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
 
     get:
-      summary: Retrieves all courses.
-      description: Returns a list of all the courses that match the optional filter criteria.
+      summary: Retrieves all courses matching a specified filters.
+      description: Returns a list of all the courses that match the optional filter criteria (all existing courses if none is provided).
       operationId: getCourses
       parameters:
         - in: query
@@ -74,7 +74,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CourseEnrollment'
-              
+
   /courses/{id}:
     get:
       summary: Retrieves one course by id.
@@ -98,7 +98,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
 
     patch:
       summary: Updates a course's information.
@@ -122,19 +122,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: The given user is not a teacher or assistant in the given course.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The course was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The updated data for the course.
           content:
@@ -158,7 +158,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The course was successfully deleted.
 
@@ -181,17 +181,23 @@ paths:
               $ref: '#/components/schemas/CourseCreateEnrollment'
       responses:
         '400':
-          description: The given course id is invalid.
+          description: The given course id or role are invalid.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The course was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: The Enrollment already exists
+          content:
+            applicaition/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '201':
           description: The Enrollment was successfully created.
           content:
@@ -210,12 +216,18 @@ paths:
           schema:
             type: number
       responses:
+        '400':
+          description: The given course id or role are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The course was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: A list of enrollments.
           content:
@@ -223,8 +235,8 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/CourseEnrollment'
-        
+                  $ref: '#/components/schemas/EnrollmentResponse'
+
   /courses/{courseId}/enrollments/{userId}:
     patch:
       summary: Updates an enrollment.
@@ -253,13 +265,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
-          description: The course or enrollment was not found.
+          description: The enrollment was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The updated data for the enrollment.
           content:
@@ -288,20 +300,24 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The course or enrollment was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
-        '204':
-          description: The course was successfully deleted.
+                $ref: '#/components/schemas/ErrorResponse'
+        '200':
+          description: The deleted data for the enrollment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentResponse'
 
   /courses/{id}/activities:
     get:
-      summary: Retrieves activities for a given user in a course.
-      description: Returns the activities a student has in a course.
+      summary: Retrieves the activities registered in a given course.
+      description: Returns the assistants activities registered in a course.
       operationId: getCrouseActivity
       parameters:
         - in: path
@@ -315,19 +331,19 @@ paths:
             type: string
       responses:
         '403':
-          description: The given user is not a teacher or assistant in the given course.
+          description: The given user is not allowed to get the activities.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The course was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
-          description: The updated data for the course.
+          description: The activity register of the course.
           content:
             application/json:
               schema:
@@ -338,7 +354,7 @@ paths:
   /courses/{courseId}/modules:
     post:
       summary: Creates a new module inside a course.
-      description: Creates a new module and returns it.        
+      description: Creates a new module and returns it.
       operationId: createModule
       parameters:
         - in: path
@@ -353,24 +369,30 @@ paths:
             schema:
               $ref: '#/components/schemas/CourseModuleCreate'
       responses:
+        '400':
+          description: The request format is incorrect.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: The given user is not a teacher or assistant in the given course.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
-          description: The course or module was not found.
+          description: The course was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '201':
           description: The module was created successfully.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CourseModuleCreate'
+                $ref: '#/components/schemas/ModuleResponse'
 
     get:
       summary: Retrieve all modules from a course.
@@ -388,7 +410,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: A list of modules.
           content:
@@ -396,8 +418,8 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/CourseModuleCreate'
-  
+                  $ref: '#/components/schemas/ModuleResponse'
+
   /courses/{courseId}/modules/{moduleId}:
     get:
       summary: Retrieve a module from a course.
@@ -420,13 +442,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The module was created successfully.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CourseModuleCreate'
+                $ref: '#/components/schemas/ModuleResponse'
 
     patch:
       summary: Updates a module.
@@ -450,24 +472,30 @@ paths:
             schema:
               $ref: '#/components/schemas/CourseModuleUpdate'
       responses:
+        '400':
+          description: The request format is incorrect.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The course or the module was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: The given user is not a teacher or assistant in the given course.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The updated module.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CourseModuleCreate'
+                $ref: '#/components/schemas/ModuleResponse'
 
     delete:
       summary: Deletes a module.
@@ -486,6 +514,7 @@ paths:
             type: string
         - in: query
           name: userId
+          required: true
           schema:
             type: string
       responses:
@@ -494,19 +523,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: The given user is not a teacher or assistant in the given course.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The module was deleted successfully.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CourseModuleCreate'
+                $ref: '#/components/schemas/ModuleResponse'
 
   /courses/{courseId}/modules/{moduleId}/resources:
     post:
@@ -531,24 +560,30 @@ paths:
             schema:
               $ref: '#/components/schemas/CourseResourceCreate'
       responses:
+        '400':
+          description: The request format is incorrect.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: The given user is not a teacher or assistant in the given course.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The course or the module was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '201':
           description: The resource was successfully created.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CourseResourceCreate'
+                $ref: '#/components/schemas/CourseResourceResponse'
 
     get:
       summary: Retrieves the resources of a module
@@ -567,19 +602,19 @@ paths:
             type: string
       responses:
         '404':
-          description: The course or the module was not found.
+          description: The course or the course module was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
-          description: A list of resources.
+          description: A list of the course resources.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/CourseResourceCreate'
+                  $ref: '#/components/schemas/CourseResourceResponse'
 
   /courses/{courseId}/modules/{moduleId}/resources/{link}:
     get:
@@ -604,17 +639,17 @@ paths:
             type: string
       responses:
         '404':
-          description: The course, module or resource was not found.
+          description: The course, course module or resource was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The resource for the module.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CourseResourceCreate'
+                $ref: '#/components/schemas/CourseResourceResponse'
 
     patch:
       summary: Updates a resource in a module
@@ -643,24 +678,30 @@ paths:
             schema:
               $ref: '#/components/schemas/CourseResourceUpdate'
       responses:
+        '400':
+          description: The request format is incorrect.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: The given user is not a teacher or assistant in the given course.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The course, module or resource was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The updated resource for the module.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CourseResourceCreate'
+                $ref: '#/components/schemas/CourseResourceResponse'
 
     delete:
       summary: Deletes a resource from a module
@@ -692,19 +733,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
-          description: The course, module or resource was not found.
+          description: The course, course module or resource was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The deleted resource for the module.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CourseResourceCreate'
+                $ref: '#/components/schemas/CourseResourceResponse'
 
   /courses/{courseId}/enrollments/{userId}/courseFeedback:
     post:
@@ -729,14 +770,24 @@ paths:
             schema:
               $ref: '#/components/schemas/CourseFeedbackRequest'
       responses:
+        '400':
+          description: The request format is incorrect.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The course, user or enrollment was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '201':
-          description: The feedback was created successfully.
+          description: The successfully created course feedback.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseFeedbackResponse'
 
     get:
       summary: Retrieves a specific instance of feedback of a course.
@@ -759,19 +810,18 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The instance of feedback.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CourseFeedbackResponse'
-        
 
   /courses/{courseId}/enrollments/{userId}/studentFeedback:
     post:
-      summary: Leave feedback for a student.
-      description: Leave feedback for a student as a teacher.
+      summary: Leave feedback for a student in a course.
+      description: Leave feedback for a student in a course as a the head teacher.
       operationId: createStudentFeedback
       parameters:
         - in: path
@@ -791,20 +841,30 @@ paths:
             schema:
               $ref: '#/components/schemas/StudentFeedbackRequest'
       responses:
-        '403':
-          description: The given user is not a teacher in the given course.
+        '400':
+          description: The request format is incorrect.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The given user is not the head teacher in the given course.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The course, user or enrollment was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '201':
-          description: The feedback was created successfully.
+          description: The successfully created student feedback.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentFeedbackResponse'
 
     get:
       summary: Retrieve a student feedback.
@@ -827,7 +887,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The feedback of the course by the student.
           content:
@@ -852,7 +912,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: A list of feedbacks and a summary generated by AI.
           content:
@@ -879,12 +939,6 @@ paths:
           schema:
             type: string
       responses:
-        '404':
-          description: The student was not found.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ERROR'
         '200':
           description: A list of feedbacks and a summary generated by AI.
           content:
@@ -922,19 +976,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
-          description: The given user is not a teacher in the given course.
+          description: The given user is not a teacher or assistant in the given course.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The course was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '201':
           description: The assessment was successfully created.
           content:
@@ -990,7 +1044,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
 
         '200':
           description: The performance summary for this course.
@@ -998,7 +1052,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CoursePerformance'
-          
+
   /courses/{courseId}/performance/students/{studentId}:
     get:
       summary: Retieves a student performance summary for a given course.
@@ -1022,14 +1076,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The performance summary for this student in this course.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/StudentPerformanceInCourse'
-        
+
   /courses/{courseId}/performance/by-assessment:
     get:
       summary: Retrieves the performance summaries of all the assessments in a course.
@@ -1048,7 +1102,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: A list of assessment performance summaries.
           content:
@@ -1078,6 +1132,12 @@ paths:
           schema:
             $ref: '#/components/schemas/AssessmentFilter'
       responses:
+        '400':
+          description: The request format is incorrect.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: A list of assessments.
           content:
@@ -1099,12 +1159,18 @@ paths:
           schema:
             type: string
       responses:
+        '400':
+          description: The assessment id is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The assessment was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The assessment.
           content:
@@ -1129,23 +1195,23 @@ paths:
               $ref: '#/components/schemas/AssessmentUpdate'
       responses:
         '400':
-          description: The assessment data is invalid
+          description: The request format is incorrect.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
-          description: The given user is not a teacher in the given course.
+          description: The given user is not a teacher or an assistant in the given course.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
-          description: The assessment or user was not found.
+          description: The assessment was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The updated assessment.
           content:
@@ -1165,21 +1231,28 @@ paths:
             type: string
         - in: query
           name: userId
+          required: true
           schema:
             type: string
       responses:
+        '400':
+          description: The assessment id is invalid or userId is undefined.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
-          description: The given user is not a teacher in the given course.
+          description: The given user is not a teacher or assistant in the given course.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
-          description: The assessment or user was not found.
+          description: The assessment was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The deleted assessment.
           content:
@@ -1206,29 +1279,29 @@ paths:
               $ref: '#/components/schemas/SubmissionCreate'
       responses:
         '400':
-          description: The given id is in an invalid format.
+          description: The assessment id is invalid.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: The user is not enrolled in the course or doesn't have a student role in it.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The assessment was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '409':
           description: The submission for this user already exists.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '201':
           description: The created submission.
           content:
@@ -1247,12 +1320,18 @@ paths:
           schema:
             type: string
       responses:
+        '400':
+          description: The assessment id is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The assessment was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: A list of submissions.
           content:
@@ -1278,17 +1357,17 @@ paths:
             type: string
       responses:
         '400':
-          description: The given id is in an invalid format.
+          description: The assessment id is invalid.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The assessment or the user's submition in it was not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ERROR'
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: The submission for this assessment by the student.
           content:
@@ -1303,13 +1382,13 @@ components:
       properties:
         title:
           type: string
-          example: "Alternate Current exercises 1-5"
+          example: 'Alternate Current exercises 1-5'
         averageGrade:
           type: number
           example: 10
         completionRate:
           type: number
-          example: 0.9 
+          example: 0.9
 
     StudentPerformanceInCourse:
       type: object
@@ -1322,7 +1401,7 @@ components:
           example: 24
         totalAssesments:
           type: number
-          example: 30      
+          example: 30
 
     CoursePerformance:
       type: object
@@ -1342,37 +1421,79 @@ components:
         openRate:
           type: number
           example: 0.1
-    
+
+    SubmittedAnswer:
+      type: object
+      properties:
+        answer:
+          type: string
+          example: '2 + 2 = 4'
+        corrections:
+          type: string
+          example: 'That’s correct'
+
     SubmissionResponse:
       type: object
       properties:
         userId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"    
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
         assesId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubmittedAnswer'
+        note:
+          type: number
+          example: 7
+        feedback:
+          type: string
+          example: 'You worked well'
+        AIFeedback:
+          type: string
+          example: 'The student did a remarkable work'
+        submittedAt:
+          type: string
+          format: date-time
+          example: '2024-06-01T10:30:00Z'
+        correctedAt:
+          type: string
+          format: date-time
+          example: '2024-06-02T15:45:00Z'
+      required:
+        - answers
+        - submittedAt
+        - assesId
+        - userId
 
     SubmissionCreate:
       type: object
       properties:
         userId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"    
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
         answers:
           type: array
           items:
             type: string
-            example: "2 + 2 = 4"
+            example: '2 + 2 = 4'
+        required:
+          - userId
+          - answers
 
     AssessmentUpdate:
       type: object
+      required:
+        - userId
       properties:
+        title:
+          type: string
+          example: 'Midterm Exam: Data Structures'
         description:
           type: string
-          example: "Questions about DP taken from previous examination instances"
-        type:
-          $ref: '#/components/schemas/AssessmentType'
+          example: 'Questions about DP taken from previous examination instances'
         startTime:
           type: string
         deadline:
@@ -1382,20 +1503,20 @@ components:
           example: 10
         userId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"        
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
         exercises:
           type: array
           items:
             $ref: '#/components/schemas/ExerciseCreate'
-    
+
     AssessmentFilter:
       type: object
       properties:
         type:
-          $ref: '#/components/schemas/ExerciseType'    
+          $ref: '#/components/schemas/ExerciseType'
         question:
           type: string
-          example: "Propose a Mergesort implementation in Python"
+          example: 'Propose a Mergesort implementation in Python'
         link:
           type: string
         choices:
@@ -1418,13 +1539,22 @@ components:
       type: object
       required:
         - title
+        - type
+        - courseId
+        - userId
+        - teacherId
+        - startTime
+        - deadline
+        - toleranceTime
+        - createdAt
+        - exercises
       properties:
         title:
           type: string
-          example: "Physics: AC"
+          example: 'Physics: AC'
         description:
           type: string
-          example: "Exercices about alternate current"
+          example: 'Exercices about alternate current'
         type:
           $ref: '#/components/schemas/AssessmentType'
         courseId:
@@ -1432,10 +1562,10 @@ components:
           example: 1
         userId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
         teacherId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
         startTime:
           type: string
         deadline:
@@ -1471,10 +1601,10 @@ components:
         - question
       properties:
         type:
-          $ref: '#/components/schemas/ExerciseType'    
+          $ref: '#/components/schemas/ExerciseType'
         question:
           type: string
-          example: "Propose a Mergesort implementation in Python"
+          example: 'Propose a Mergesort implementation in Python'
         link:
           type: string
         choices:
@@ -1498,10 +1628,10 @@ components:
       properties:
         title:
           type: string
-          example: "Dynamic Programming Exam-like questions"
+          example: 'Dynamic Programming Exam-like questions'
         description:
           type: string
-          example: "Questions about DP taken from previous examination instances"
+          example: 'Questions about DP taken from previous examination instances'
         type:
           $ref: '#/components/schemas/AssessmentType'
         startTime:
@@ -1513,7 +1643,7 @@ components:
           example: 10
         userId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"        
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
         exercises:
           type: array
           items:
@@ -1527,15 +1657,15 @@ components:
           example: 0
         studentFeedback:
           type: string
-          example: "Great course"
+          example: 'Great course'
         studentNote:
           type: number
           example: 5
-    
+
     CourseFeedbackResponse:
       allOf:
         - $ref: '#/components/schemas/CourseFeedbackRequest'
-    
+
     StudentFeedbackRequest:
       type: object
       required:
@@ -1544,13 +1674,13 @@ components:
       properties:
         studentFeedback:
           type: string
-          example: "Persistent student"
+          example: 'Persistent student'
         studentNote:
           type: number
           example: 5
         teacherId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"    
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
 
     CourseFeedbackRequest:
       type: object
@@ -1560,7 +1690,7 @@ components:
       properties:
         courseFeedback:
           type: string
-          example: "Nice course"
+          example: 'Nice course'
         courseNote:
           type: number
           example: 5
@@ -1576,7 +1706,7 @@ components:
           example: 1
         userId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
 
     DataType:
       type: string
@@ -1585,7 +1715,7 @@ components:
         - VIDEO
         - LINK
       description: The type of resource indise a module.
-    
+
     CourseResourceCreate:
       required:
         - link
@@ -1595,7 +1725,7 @@ components:
       properties:
         link:
           type: string
-          example: "https://www.google.com"
+          example: 'https://www.google.com'
         dataType:
           $ref: '#/components/schemas/DataType'
         order:
@@ -1603,23 +1733,45 @@ components:
           example: 0
         userId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
+
+    CourseResourceResponse:
+      type: object
+      properties:
+        link:
+          type: string
+          example: 'https://www.google.com'
+        dataType:
+          $ref: '#/components/schemas/DataType'
+        order:
+          type: number
+          example: 0
+        moduleId:
+          type: string
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
 
     CourseModuleUpdate:
+      type: object
       allOf:
-        - $ref: '#/components/schemas/CourseModuleCreate'
-        - type: object
-          properties:
-            userId:
-              type: string
-              example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+        - $ref: '#/components/schemas/CourseModuleBase'
+      required:
+        - userId
 
     CourseModuleCreate:
       type: object
+      allOf:
+        - $ref: '#/components/schemas/CourseModuleBase'
+      required:
+        - title
+        - description
+        - order
+        - userId
+
+    CourseModuleBase:
       properties:
         title:
           type: string
-          example: "Differential Equations"
+          example: 'Differential Equations'
         description:
           type: string
           example: "This module will tackle Runge Kutta's method for solving DEs"
@@ -1628,7 +1780,26 @@ components:
           example: 0
         userId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
+
+    ModuleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '9b3df1bf-9042-457c-bccf-0d843e5874a2'
+        courseId:
+          type: number
+          example: 1
+        title:
+          type: string
+          example: 'Differential Equations'
+        description:
+          type: string
+          example: "This module will tackle Runge Kutta's method for solving DEs"
+        order:
+          type: number
+          example: 0
 
     Activity:
       type: string
@@ -1645,7 +1816,7 @@ components:
         - DELETE_TASK
         - GRADE_TASK
       description: The activities that happen to a certain course.
-    
+
     ActivityRegister:
       type: object
       properties:
@@ -1654,10 +1825,10 @@ components:
           example: 0
         userId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
         id:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
         activity:
           $ref: '#/components/schemas/Activity'
         createdAt:
@@ -1671,7 +1842,7 @@ components:
           example: true
         role:
           $ref: '#/components/schemas/Role'
-    
+
     EnrollmentResponse:
       type: object
       properties:
@@ -1680,13 +1851,13 @@ components:
           example: 0
         userId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
         role:
           $ref: '#/components/schemas/Role'
         favorite:
           type: boolean
           example: true
-      
+
     CourseCreateEnrollment:
       type: object
       required:
@@ -1695,19 +1866,21 @@ components:
       properties:
         userId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
         role:
           $ref: '#/components/schemas/Role'
 
     CourseUpdate:
       type: object
       allOf:
-        - $ref: '#/components/schemas/CourseRequest'
+        - $ref: '#/components/schemas/CourseRequestBase'
         - type: object
+          required:
+            - userId
           properties:
             userId:
               type: string
-              example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"
+              example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
 
     CourseEnrollment:
       type: object
@@ -1716,7 +1889,7 @@ components:
           $ref: '#/components/schemas/Role'
         userId:
           type: string
-          example: "45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8"      
+          example: '45cbfe18-dc3b-4eff-b3d7-a6473e93c4b8'
         course:
           type: object
           description: Course metadata.
@@ -1726,7 +1899,7 @@ components:
               example: 0
             title:
               type: string
-              example: "CS101"
+              example: 'CS101'
 
     Role:
       type: string
@@ -1734,17 +1907,26 @@ components:
         - STUDENT
         - ASSISTANT
       description: The role of the user in a certain course.
-    
-    ERROR:
+
+    ErrorResponse:
       type: object
       properties:
-        message:
+        type:
           type: string
-          example: "The given id was not found"
+          example: 'about:blank'
+        title:
+          type: string
+          example: 'NotFoundException'
         status:
           type: number
           example: 404
-    
+        detail:
+          type: string
+          example: 'Course with ID 999 was not found.'
+        instance:
+          type: string
+          example: '/courses/999'
+
     CourseResponse:
       type: object
       allOf:
@@ -1753,10 +1935,12 @@ components:
           properties:
             id:
               type: number
-              example: 0
+              example: 1
 
     CourseRequest:
       type: object
+      allOf:
+        - $ref: '#/components/schemas/CourseBase'
       required:
         - title
         - description
@@ -1765,22 +1949,24 @@ components:
         - registrationDeadline
         - totalPlaces
         - teacherId
+
+    CourseRequestBase:
       properties:
         title:
           type: string
-          example: "CS101"
+          example: 'CS101'
         description:
           type: string
-          example: "A course about progamming basics"
+          example: 'A course about progamming basics'
         startDate:
           type: string
-          example: "2025-05-05"
+          example: '2025-05-05'
         endDate:
           type: string
-          example: "2025-12-00"
+          example: '2025-12-01'
         registrationDeadline:
           type: string
-          example: "2025-05-00"
+          example: '2025-05-01'
         totalPlaces:
           type: number
           example: 50

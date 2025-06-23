@@ -40,7 +40,7 @@ export class CourseController {
   constructor(
     private readonly service: CourseService,
     private readonly assessService: AssessmentService,
-  ) { }
+  ) {}
 
   /**
    * Creates a new course.
@@ -371,12 +371,17 @@ export class CourseController {
     const fromDate = from ? new Date(from) : undefined;
     const tillDate = till ? new Date(till) : undefined;
     logger.log(`Getting performance summary for course with ID ${courseId}`);
-    return await this.assessService.calculateCoursePerformanceSummary(courseId, fromDate, tillDate)
+    return await this.assessService.calculateCoursePerformanceSummary(courseId, fromDate, tillDate);
   }
 
   @Get(':courseId/performance/students/:studentId')
-  async getStudentPerformanceSummaryInCourse(@Param('courseId') courseId: number, @Param('studentId') studentId: string) {
-    logger.log(`Getting performance summary for student with ID ${studentId} in course with ID ${courseId}`);
+  async getStudentPerformanceSummaryInCourse(
+    @Param('courseId') courseId: number,
+    @Param('studentId') studentId: string,
+  ) {
+    logger.log(
+      `Getting performance summary for student with ID ${studentId} in course with ID ${courseId}`,
+    );
     return await this.assessService.calculateStudentPerformanceSummaryInCourse(courseId, studentId);
   }
 

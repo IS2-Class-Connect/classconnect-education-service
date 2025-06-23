@@ -58,10 +58,10 @@ function validateAssessmentUpdate(updateData: AssessmentUpdateDto, assessment: A
 
   if (
     startTime &&
-    (new Date(startTime) >= now || (!deadline && new Date(startTime) >= assessment.deadline))
+    (new Date(startTime) <= now || (!deadline && new Date(startTime) >= assessment.deadline))
   ) {
     // TODO: change msg
-    throw new BadRequestException('Start time must be a future date.');
+    throw new BadRequestException('Start time must be a future date and before the deadline.');
   }
 }
 
@@ -84,8 +84,12 @@ export class AssessmentService {
   private async getEnrollment(courseId: number, userId: string) {
     const enrollment = await this.courseRepository.findEnrollment(courseId, userId);
     if (!enrollment) {
-      logger.error(`The enrollment in course Id ${courseId} for user with id ${userId} was not found.`);
-      throw new NotFoundException(`Enrollment with course ID ${courseId} and user ID ${userId} not found.`);
+      logger.error(
+        `The enrollment in course Id ${courseId} for user with id ${userId} was not found.`,
+      );
+      throw new NotFoundException(
+        `Enrollment with course ID ${courseId} and user ID ${userId} not found.`,
+      );
     }
   }
 
@@ -345,7 +349,10 @@ export class AssessmentService {
     } as CoursePerformanceDto;
   }
 
-  async calculateStudentPerformanceSummaryInCourse(courseId: number, studentId: string): Promise<StudentPerformanceInCourseDto> {
+  async calculateStudentPerformanceSummaryInCourse(
+    courseId: number,
+    studentId: string,
+  ): Promise<StudentPerformanceInCourseDto> {
     await this.getCourse(courseId);
     await this.getEnrollment(courseId, studentId);
 
@@ -384,7 +391,9 @@ export class AssessmentService {
     } as StudentPerformanceInCourseDto;
   }
 
-  async calculateAssessmentPerformanceSummariesInCourse(courseId: number): Promise<AssessmentPerformanceDto[]> {
+  async calculateAssessmentPerformanceSummariesInCourse(
+    courseId: number,
+  ): Promise<AssessmentPerformanceDto[]> {
     await this.getCourse(courseId);
 
     const assessments = await this.repository.findAssessments({ courseId } as AssessmentFilterDto);
