@@ -1,3 +1,4 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AssessmentController } from 'src/controllers/assessment.controller';
@@ -11,7 +12,15 @@ import { AssessmentService } from 'src/services/assessment.service';
   controllers: [AssessmentController],
   providers: [
     AssessmentService,
-    // TODO: Add AI provider
+    {
+      provide: GoogleGenerativeAI,
+      useFactory: () => {
+        if (!process.env.GEMINI_API_KEY) {
+          throw new Error('GEMINI_API_KEY is not set');
+        }
+        return new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      },
+    },
     AssessmentRepository,
     CourseRepository,
   ],
