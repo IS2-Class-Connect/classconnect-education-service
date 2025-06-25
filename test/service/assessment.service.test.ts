@@ -18,6 +18,7 @@ import { Assessment, AssessmentType } from 'src/schema/assessment.schema';
 import { ExerciseType } from 'src/schema/exercise.schema';
 import { Submission, SubmittedAnswer } from 'src/schema/submission.schema';
 import { AssessmentService } from 'src/services/assessment.service';
+import { PushNotificationService } from 'src/services/pushNotification.service';
 import {
   ASSES_ID,
   COURSE_ID,
@@ -32,6 +33,7 @@ describe('AssessmentService', () => {
   let service: AssessmentService;
   let mockCourseRepo: CourseRepository;
   let mockAssesRepo: AssessmentRepository;
+  let mockPushNotificationService: PushNotificationService;
   let mockGenAI: GoogleGenerativeAI;
   const { startDate, deadline } = getDatesAfterToday();
 
@@ -66,6 +68,16 @@ describe('AssessmentService', () => {
         },
       }),
     };
+    mockPushNotificationService = {
+      gatewayUrl: '',
+      gatewayToken: '',
+      validTopics: [],
+      httpService: { post: jest.fn() },
+      notifyTaskAssignment: jest.fn(),
+      notifyAssessmentPublished: jest.fn(),
+      notifyAssessmentDeadline: jest.fn(),
+      notifyAssessmentGraded: jest.fn(),
+    } as any;
     mockCourseRepo = {
       findById: jest.fn(),
       findEnrollment: jest.fn(),
@@ -85,7 +97,12 @@ describe('AssessmentService', () => {
       apiKey: 'dummy-api-key',
       getGenerativeModel: jest.fn().mockReturnValue(mockAIModel),
     } as any;
-    service = new AssessmentService(mockAssesRepo, mockCourseRepo, mockGenAI);
+    service = new AssessmentService(
+      mockAssesRepo,
+      mockCourseRepo,
+      mockPushNotificationService,
+      mockGenAI,
+    );
   });
 
   test('Should create an assessment', async () => {
@@ -127,6 +144,9 @@ describe('AssessmentService', () => {
     };
 
     (mockCourseRepo.findById as jest.Mock).mockResolvedValue({ id: courseId, teacherId: userId });
+    (mockCourseRepo.findCourseEnrollments as jest.Mock).mockResolvedValue([
+      { courseId, userId, role: Role.STUDENT, favorite: false },
+    ]);
     (mockAssesRepo.create as jest.Mock).mockResolvedValue(assessment);
 
     expect(await service.createAssess(courseId, createDto)).toEqual(expected);

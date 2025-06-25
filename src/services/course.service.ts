@@ -21,6 +21,7 @@ import { StudentFeedbackResponseDto } from 'src/dtos/feedback/student.feedback.r
 import { CourseFeedbackResponseDto } from 'src/dtos/feedback/course.feedback.response.dto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getForbiddenExceptionMsg } from 'src/utils';
+import { PushNotificationService } from './pushNotification.service';
 
 const MIN_PLACES_LIMIT = 1;
 
@@ -143,6 +144,7 @@ export class CourseService {
   constructor(
     private readonly repository: CourseRepository,
     private readonly genAI: GoogleGenerativeAI,
+    private readonly notificationService: PushNotificationService,
   ) {}
 
   private async getCourse(id: number) {
@@ -388,6 +390,11 @@ export class CourseService {
     }
     const enrollment = await this.repository.updateEnrollment(courseId, userId, updateData);
     if (!enrollment || !(enrollment.studentFeedback && enrollment.studentNote)) return null;
+    await this.notificationService.notifyFeedback(
+      userId,
+      'New feedback',
+      `You have a new feedback for course ${courseId}.`,
+    );
     const { studentFeedback, studentNote } = enrollment;
     return {
       courseId,

@@ -12,11 +12,13 @@ import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.d
 import { CourseFeedbackResponseDto } from 'src/dtos/feedback/course.feedback.response.dto';
 import { StudentFeedbackResponseDto } from 'src/dtos/feedback/student.feedback.response.dto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { PushNotificationService } from 'src/services/pushNotification.service';
 
 describe('CourseService', () => {
   let service: CourseService;
   let mockRepository: CourseRepository;
   let mockGenAI: GoogleGenerativeAI;
+  let mockNotificationService: PushNotificationService;
   const { startDate, endDate, registrationDeadline } = getDatesAfterToday();
 
   beforeEach(() => {
@@ -27,6 +29,15 @@ describe('CourseService', () => {
         },
       }),
     };
+    mockNotificationService = {
+      gatewayUrl: '',
+      gatewayToken: '',
+      validTopics: [],
+      httpService: { post: jest.fn() },
+      notifyTaskAssignment: jest.fn(),
+      notifyDeadlineReminder: jest.fn(),
+      notifyFeedback: jest.fn(),
+    } as any;
     mockRepository = {
       findAll: jest.fn(),
       findCourses: jest.fn(),
@@ -57,7 +68,7 @@ describe('CourseService', () => {
       apiKey: 'dummy-api-key',
       getGenerativeModel: jest.fn().mockReturnValue(mockAIModel),
     } as any;
-    service = new CourseService(mockRepository, mockGenAI);
+    service = new CourseService(mockRepository, mockGenAI, mockNotificationService);
   });
 
   test('Should create a Course', async () => {
@@ -971,7 +982,7 @@ describe('CourseService', () => {
     expect(mockRepository.updateEnrollment).toHaveBeenCalledWith(courseId, userId, feedback);
   });
 
-  test('Should add the feedback of student in a course', async () => {
+  test('Should add the feedback of a student in a course', async () => {
     const courseId = 1;
     const userId = 'a1';
     const teacherId = 'a2';
@@ -980,15 +991,28 @@ describe('CourseService', () => {
       studentNote: 4,
       teacherId,
     };
+    const enrollment = {
+      userId,
+      studentFeedback: feedback.studentFeedback,
+      studentNote: feedback.studentNote,
+      courseId,
+    };
 
     (mockRepository.findById as jest.Mock).mockResolvedValue({
       id: courseId,
       teacherId,
     });
+    (mockRepository.updateEnrollment as jest.Mock).mockResolvedValue(enrollment);
 
-    await service.createStudentFeedback(courseId, userId, feedback);
+    expect(await service.createStudentFeedback(courseId, userId, feedback)).toEqual({
+      studentId: userId,
+      courseId,
+      studentFeedback: feedback.studentFeedback,
+      studentNote: feedback.studentNote,
+    });
     const { teacherId: _, ...feedbackData } = feedback;
     expect(mockRepository.updateEnrollment).toHaveBeenCalledWith(courseId, userId, feedbackData);
+    expect(mockNotificationService.notifyFeedback).toHaveBeenCalled();
   });
 
   test('Should throw an exception when a forbidden user tries to add a feedback of a student in a course', async () => {

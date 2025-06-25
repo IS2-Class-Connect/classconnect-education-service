@@ -40,7 +40,7 @@ export class AssessmentRepository {
     deadlineEnd,
     ...rest
   }: AssessmentQueryByCourse): Promise<Assessment[]> {
-    // Elimina las propiedades undefined o null del filtro
+    // Eliminate undefined or null properties
     const filters: Record<string, any> = {};
 
     // Clean and add basic fields
