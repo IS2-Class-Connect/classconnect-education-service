@@ -5,7 +5,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../../src/app.module';
 import { BaseExceptionFilter } from '../../src/middleware/exception.filter';
 import { ResponseInterceptor } from '../../src/middleware/response.interceptor';
-import { cleanDataBase, cleanMongoDatabase, getDatesAfterToday } from 'test/utils';
+import { cleanDataBase, cleanMongoDatabase, getDatesAfterToday, USER_ID } from 'test/utils';
 import { PrismaService } from 'src/prisma.service';
 import { Role } from '@prisma/client';
 import { Connection } from 'mongoose';
@@ -13,11 +13,17 @@ import { getConnectionToken } from '@nestjs/mongoose';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { ExerciseType } from 'src/schema/exercise.schema';
 import { AssessmentType } from 'src/schema/assessment.schema';
+import { PushNotificationService } from 'src/services/pushNotification.service';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   let connection: Connection;
+  const mockPushService = {
+    notifyTaskAssignment: jest.fn(),
+    notifyDeadlineReminder: jest.fn(),
+    notifyFeedback: jest.fn(),
+  };
 
   const { startDate, endDate, registrationDeadline, deadline } = getDatesAfterToday();
 
@@ -39,7 +45,10 @@ describe('Course e2e', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(PushNotificationService)
+      .useValue(mockPushService)
+      .compile();
 
     app = moduleFixture.createNestApplication();
 
@@ -1154,6 +1163,13 @@ describe('Course e2e', () => {
     const courseId = course.id;
     const { teacherId } = course;
 
+    // Enroll a user to check if the notification is sent
+    const enrollRes = await request(app.getHttpServer())
+      .post(`/courses/${courseId}/enrollments`)
+      .send({ userId: USER_ID, role: Role.STUDENT });
+
+    expect(enrollRes.status).toBe(201);
+
     const assessmentDto: AssessmentCreateDto = {
       title: `Exam 1`,
       description: `It is an Exam for testing purpose.`,
@@ -1191,5 +1207,6 @@ describe('Course e2e', () => {
     expect(res.status).toBe(201);
 
     expect(data).toEqual(expected);
+    expect(mockPushService.notifyTaskAssignment).toHaveBeenCalled();
   });
 });

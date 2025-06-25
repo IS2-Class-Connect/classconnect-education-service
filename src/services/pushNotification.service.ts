@@ -30,17 +30,6 @@ export class PushNotificationService {
     body: string,
     topic: string,
   ): Promise<void> {
-    // if (!this.gatewayUrl || !this.gatewayToken) {
-    //   // mock functionality
-    //   logger.log(
-    //     `Notifying user ${uuid} with title\n` +
-    //       `"${title}"\n` +
-    //       `and body\n` +
-    //       `"${body}"\n` +
-    //       `on topic "${topic}"`,
-    //   );
-    //   return;
-    // }
     if (!this.validTopics.has(topic)) {
       throw new InternalServerErrorException('Got an invalid notification topic', topic);
     }

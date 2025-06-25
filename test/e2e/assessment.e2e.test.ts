@@ -23,11 +23,17 @@ import { SubmissionCreateDto } from 'src/dtos/submission/submission.create.dto';
 import { SubmissionResponseDto } from 'src/dtos/submission/submission.response.dto';
 import { Role } from '@prisma/client';
 import { CorrectionCreateDto } from 'src/dtos/correction/correction.create.dto';
+import { PushNotificationService } from 'src/services/pushNotification.service';
 
 describe('Course e2e', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   let connection: Connection;
+  const mockPushService = {
+    notifyTaskAssignment: jest.fn(),
+    notifyDeadlineReminder: jest.fn(),
+    notifyFeedback: jest.fn(),
+  };
 
   const { startDate, endDate, registrationDeadline, deadline } = getDatesAfterToday();
 
@@ -74,7 +80,10 @@ describe('Course e2e', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(PushNotificationService)
+      .useValue(mockPushService)
+      .compile();
 
     app = moduleFixture.createNestApplication();
 

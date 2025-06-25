@@ -26,7 +26,7 @@ export class DeadlineCheckerService {
       endDateGt: now.toISOString(),
     });
 
-    courses.forEach(async (course) => {
+    for (const course of courses) {
       // Get all students enrolled in the course
       const enrollments = await this.courseRepository.findEnrollments({
         role: Role.STUDENT,
@@ -40,18 +40,24 @@ export class DeadlineCheckerService {
       });
 
       // For each student, notify about the upcoming assessment
-      enrollments.forEach(async (enrollment) => {
-        upcomingAssessments.forEach(async (assessment) => {
+      enrollments.forEach((enrollment) => {
+        upcomingAssessments.forEach((assessment) => {
           if (!assessment.submissions || !assessment.submissions[enrollment.userId]) {
-            this.pushNotificationService.notifyDeadlineReminder(
-              enrollment.userId,
-              'Upcoming deadline',
-              `The assignment "${assessment.title}" is due soon.`,
-            );
+            try {
+              this.pushNotificationService.notifyDeadlineReminder(
+                enrollment.userId,
+                'Upcoming deadline',
+                `The assignment "${assessment.title}" is due soon.`,
+              );
+            } catch (error) {
+              logger.error(
+                `Failed to notify user ${enrollment.userId} for assessment ${assessment['_id']}: ${error.message}`,
+              );
+            }
           }
         });
       });
-    });
+    }
 
     logger.log(`All deadlines checked at ${now.toISOString()}.`);
   }

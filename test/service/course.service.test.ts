@@ -35,9 +35,8 @@ describe('CourseService', () => {
       validTopics: [],
       httpService: { post: jest.fn() },
       notifyTaskAssignment: jest.fn(),
-      notifyAssessmentPublished: jest.fn(),
-      notifyAssessmentDeadline: jest.fn(),
-      notifyAssessmentGraded: jest.fn(),
+      notifyDeadlineReminder: jest.fn(),
+      notifyFeedback: jest.fn(),
     } as any;
     mockRepository = {
       findAll: jest.fn(),
@@ -983,7 +982,7 @@ describe('CourseService', () => {
     expect(mockRepository.updateEnrollment).toHaveBeenCalledWith(courseId, userId, feedback);
   });
 
-  test('Should add the feedback of student in a course', async () => {
+  test('Should add the feedback of a student in a course', async () => {
     const courseId = 1;
     const userId = 'a1';
     const teacherId = 'a2';
@@ -992,15 +991,28 @@ describe('CourseService', () => {
       studentNote: 4,
       teacherId,
     };
+    const enrollment = {
+      userId,
+      studentFeedback: feedback.studentFeedback,
+      studentNote: feedback.studentNote,
+      courseId,
+    };
 
     (mockRepository.findById as jest.Mock).mockResolvedValue({
       id: courseId,
       teacherId,
     });
+    (mockRepository.updateEnrollment as jest.Mock).mockResolvedValue(enrollment);
 
-    await service.createStudentFeedback(courseId, userId, feedback);
+    expect(await service.createStudentFeedback(courseId, userId, feedback)).toEqual({
+      studentId: userId,
+      courseId,
+      studentFeedback: feedback.studentFeedback,
+      studentNote: feedback.studentNote,
+    });
     const { teacherId: _, ...feedbackData } = feedback;
     expect(mockRepository.updateEnrollment).toHaveBeenCalledWith(courseId, userId, feedbackData);
+    expect(mockNotificationService.notifyFeedback).toHaveBeenCalled();
   });
 
   test('Should throw an exception when a forbidden user tries to add a feedback of a student in a course', async () => {
