@@ -1,3 +1,4 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
   BadRequestException,
   ConflictException,
@@ -70,6 +71,7 @@ export class AssessmentService {
   constructor(
     private readonly repository: AssessmentRepository,
     private readonly courseRepository: CourseRepository,
+    private readonly genAI: GoogleGenerativeAI,
   ) {}
 
   private async getCourse(id: number) {
@@ -249,6 +251,7 @@ export class AssessmentService {
   async createCorrection(assesId: string, userId: string, createDto: CorrectionCreateDto) {
     const { teacherId, corrections, ...correctionData } = createDto;
 
+    // Check asses integrity
     const asses = await this.getAssess(assesId);
     const course = await this.getCourse(asses.courseId);
     if (course.teacherId != teacherId)
@@ -256,23 +259,45 @@ export class AssessmentService {
         `User ${teacherId} is not authorized to correct the submission. Only the course ${asses.courseId} head teacher can correct the course submissions`,
       );
 
+    // Check submission integrity
     const submission = asses.submissions?.[userId];
     if (!submission)
       throw new NotFoundException(
         `Submission of user ${userId} not found in assessment ${assesId}.`,
       );
 
+    // Check corrections to be consisten with answers
     if (submission.answers.length != corrections.length)
       throw new BadRequestException('There must be the same number of corrections as answers');
     submission.answers.forEach((answer, idx) => {
       answer.correction = corrections[idx];
     });
-    // TODO: Add AI feedback
+
+    // Generate AI feedback
+    const prompt = [
+      'You are given a list of corrections for each exercise of an assignment, along with a general feedback comment for the whole work.',
+      'Summarize the key points of the evaluation in a concise paragraph.',
+      'Highlight the main strengths and areas for improvement mentioned in the corrections and the general feedback.',
+      'If there is only a general feedback and no exercise corrections, summarize only the general feedback.',
+      'If there are no corrections or feedback, state that no evaluation details are available.',
+      'Here are the exercise corrections:',
+      JSON.stringify(corrections, null, 2),
+      'General feedback:',
+      createDto.feedback ?? 'No general feedback provided.',
+    ].join('\n');
+    const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const AIFeedback = response.text();
+
+    // Update submission with corrections
     const correctedSubmission: Submission = {
       ...submission,
       ...correctionData,
       correctedAt: new Date(),
+      AIFeedback,
     };
+
     return getSubmissionResponse(
       await this.repository.setAssesSubmission(assesId, userId, correctedSubmission),
       assesId,

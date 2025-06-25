@@ -2,7 +2,7 @@ import { CourseService } from '../../src/services/course.service';
 import { CourseRequestDto } from '../../src/dtos/course/course.request.dto';
 import { CourseRepository } from 'src/repositories/course.repository';
 import { CourseResponseDto } from 'src/dtos/course/course.response.dto';
-import { getDatesAfterToday } from 'test/utils';
+import { getDatesAfterToday, MOCK_AI_RESPONSE } from 'test/utils';
 import { Activity, DataType, Prisma, Role } from '@prisma/client';
 import { NotFoundException } from '@nestjs/common';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
@@ -13,8 +13,6 @@ import { CourseFeedbackResponseDto } from 'src/dtos/feedback/course.feedback.res
 import { StudentFeedbackResponseDto } from 'src/dtos/feedback/student.feedback.response.dto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const MOCK_AI_RESPONSE = 'Mocked AI response';
-
 describe('CourseService', () => {
   let service: CourseService;
   let mockRepository: CourseRepository;
@@ -22,7 +20,7 @@ describe('CourseService', () => {
   const { startDate, endDate, registrationDeadline } = getDatesAfterToday();
 
   beforeEach(() => {
-    const mockModel = {
+    const mockAIModel = {
       generateContent: jest.fn().mockResolvedValue({
         response: {
           text: () => MOCK_AI_RESPONSE,
@@ -57,7 +55,7 @@ describe('CourseService', () => {
     } as any;
     mockGenAI = {
       apiKey: 'dummy-api-key',
-      getGenerativeModel: jest.fn().mockReturnValue(mockModel),
+      getGenerativeModel: jest.fn().mockReturnValue(mockAIModel),
     } as any;
     service = new CourseService(mockRepository, mockGenAI);
   });

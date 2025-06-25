@@ -331,6 +331,7 @@ describe('Course e2e', () => {
       feedback: correctionDto.feedback,
       note: correctionDto.note,
       submittedAt: submission.submittedAt,
+      AIFeedback: expect.any(String),
     };
 
     const result = await request(app.getHttpServer())

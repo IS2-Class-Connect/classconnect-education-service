@@ -6,6 +6,7 @@ export const TEACHER_ID = 't1';
 export const USER_ID = 'u1';
 export const FORBIDDEN_USER_ID = 'u2';
 export const ASSES_ID = 'a1'; // WARNING: this is not a valid ObjectId, but used for testing purposes
+export const MOCK_AI_RESPONSE = 'Mocked AI response';
 
 /**
  * Get dates that are beyond the current date, useful to add a new course
