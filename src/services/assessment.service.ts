@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Activity, Course, Prisma, Role } from '@prisma/client';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
-import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
+import { AssessmentQueryDto } from 'src/dtos/assessment/assessment.query.dto';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
 import { CorrectionCreateDto } from 'src/dtos/correction/correction.create.dto';
@@ -179,8 +179,8 @@ export class AssessmentService {
     return getAssessResponse(await this.getAssess(id));
   }
 
-  async getAssessments(filter: AssessmentFilterDto, courseId?: number) {
-    return (await this.repository.findAssessments({ courseId, ...filter })).map((assessment) =>
+  async getAssessments(query: AssessmentQueryDto, courseId?: number) {
+    return (await this.repository.findAssessments({ courseId, ...query })).map((assessment) =>
       getAssessResponse(assessment),
     );
   }
@@ -330,7 +330,7 @@ export class AssessmentService {
   ): Promise<CoursePerformanceDto> {
     await this.getCourse(courseId);
 
-    const assessments = await this.repository.findAssessments({ courseId } as AssessmentFilterDto);
+    const assessments = await this.repository.findAssessments({ courseId } as AssessmentQueryDto);
 
     let gradesSum = 0;
     let gradesCount = 0;
@@ -399,7 +399,7 @@ export class AssessmentService {
     await this.getCourse(courseId);
     await this.getEnrollment(courseId, studentId);
 
-    const assessments = await this.repository.findAssessments({ courseId } as AssessmentFilterDto);
+    const assessments = await this.repository.findAssessments({ courseId } as AssessmentQueryDto);
     const assessmentCount = assessments.length;
 
     let gradesSum = 0;
@@ -439,11 +439,11 @@ export class AssessmentService {
   ): Promise<AssessmentPerformanceDto[]> {
     await this.getCourse(courseId);
 
-    const assessments = await this.repository.findAssessments({ courseId } as AssessmentFilterDto);
+    const assessments = await this.repository.findAssessments({ courseId } as AssessmentQueryDto);
     const enrollments = await this.courseRepository.findCourseEnrollments(courseId);
     const studentCount = enrollments.filter((e) => e.role == Role.STUDENT).length;
 
-    let summaries: AssessmentPerformanceDto[] = [];
+    const summaries: AssessmentPerformanceDto[] = [];
     for (const assessment of assessments) {
       const submissions = assessment.submissions;
       if (!submissions) {

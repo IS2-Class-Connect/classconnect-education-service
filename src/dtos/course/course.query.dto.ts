@@ -1,8 +1,19 @@
-import { IsDateString, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsDateString, IsInt, IsOptional } from 'class-validator';
 
-export class CourseFilterDto {
+export class CourseQueryDto {
   @IsOptional()
   teacherId?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  page = 1;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  limit = 10;
 
   @IsOptional()
   @IsDateString()

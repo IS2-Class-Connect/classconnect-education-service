@@ -142,9 +142,9 @@ describe('CourseService', () => {
       },
     ]);
 
-    const foundResponseDTO = await service.findCourses({});
+    const foundResponseDTO = await service.findCourses({ page: 1, limit: 10 });
 
-    expect(mockRepository.findAll).toHaveBeenCalledWith();
+    expect(mockRepository.findAll).toHaveBeenCalledWith({ page: 1, limit: 10 });
     expect(foundResponseDTO).toBeDefined();
     expect(foundResponseDTO.length).toEqual(2);
     // check to be ordered by createdAt
@@ -175,9 +175,9 @@ describe('CourseService', () => {
       },
     ]);
 
-    const foundResponseDTO = await service.findCourses({ teacherId });
+    const foundResponseDTO = await service.findCourses({ page: 1, limit: 10, teacherId });
 
-    expect(mockRepository.findCourses).toHaveBeenCalledWith({ teacherId });
+    expect(mockRepository.findCourses).toHaveBeenCalledWith({ page: 1, limit: 10, teacherId });
     expect(foundResponseDTO).toBeDefined();
     expect(foundResponseDTO.length).toEqual(1);
     expect(foundResponseDTO[0]).toEqual(expectedResponseDTO);
@@ -1093,7 +1093,7 @@ describe('CourseService', () => {
       summary: MOCK_AI_RESPONSE,
     };
 
-    expect(await service.getCourseFeedbacks(courseId)).toEqual(expected);
+    expect(await service.getCourseFeedbacks(courseId, { page: 1, limit: 10 })).toEqual(expected);
     expect(mockRepository.findCourseEnrollments).toHaveBeenCalledWith(courseId);
   });
 
@@ -1115,7 +1115,7 @@ describe('CourseService', () => {
       summary: MOCK_AI_RESPONSE,
     };
 
-    expect(await service.getStudentFeedbacks(userId)).toEqual(expected);
+    expect(await service.getStudentFeedbacks(userId, { page: 1, limit: 10 })).toEqual(expected);
     expect(mockRepository.findEnrollments).toHaveBeenCalledWith({ userId });
   });
 });
