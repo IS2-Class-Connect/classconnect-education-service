@@ -34,6 +34,8 @@ jobs:
       MONGODB_URL: mongodb://cc_user:cc_password@localhost:27017
       MONGODB_NAME: classconnect?authSource=admin
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GATEWAY_URL: http://localhost:3000
+      GATEWAY_TOKEN: gateway-token
 
     steps:
       - name: Checkout code

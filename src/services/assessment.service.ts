@@ -6,7 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Activity, Prisma, Role } from '@prisma/client';
+import { Activity, Course, Prisma, Role } from '@prisma/client';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
@@ -23,6 +23,7 @@ import { CourseRepository } from 'src/repositories/course.repository';
 import { Assessment, AssessmentType } from 'src/schema/assessment.schema';
 import { Submission, SubmittedAnswer } from 'src/schema/submission.schema';
 import { getForbiddenExceptionMsg } from 'src/utils';
+import { PushNotificationService } from './pushNotification.service';
 
 function getAssessResponse(asses: Assessment): AssessmentResponseDto {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -61,7 +62,6 @@ function validateAssessmentUpdate(updateData: AssessmentUpdateDto, assessment: A
     startTime &&
     (new Date(startTime) <= now || (!deadline && new Date(startTime) >= assessment.deadline))
   ) {
-    // TODO: change msg
     throw new BadRequestException('Start time must be a future date and before the deadline.');
   }
 }
@@ -71,6 +71,7 @@ export class AssessmentService {
   constructor(
     private readonly repository: AssessmentRepository,
     private readonly courseRepository: CourseRepository,
+    private readonly pushNotifications: PushNotificationService,
     private readonly genAI: GoogleGenerativeAI,
   ) {}
 
@@ -93,6 +94,25 @@ export class AssessmentService {
         `Enrollment with course ID ${courseId} and user ID ${userId} not found.`,
       );
     }
+  }
+
+  private async notifyUsers(course: Course, asses: AssessmentResponseDto) {
+    const enrollments = await this.courseRepository.findCourseEnrollments(course.id);
+    enrollments.forEach(async (enrollment) => {
+      if (enrollment.role == Role.STUDENT) {
+        try {
+          await this.pushNotifications.notifyTaskAssignment(
+            enrollment.userId,
+            `New assessment available: ${asses.title}`,
+            `A new assessment has been assigned in your course: ${asses.title}.`,
+          );
+        } catch (error) {
+          logger.error(
+            `Failed to notify user ${enrollment.userId} about new assessment in course ${course.id}: ${error}`,
+          );
+        }
+      }
+    });
   }
 
   private async registerActivity(
@@ -148,21 +168,19 @@ export class AssessmentService {
     );
     const assessment = { courseId, userId, teacherId, ...assessmentData, startTime, deadline };
 
-    return getAssessResponse(await this.repository.create(assessment));
+    const response = getAssessResponse(await this.repository.create(assessment));
+
+    await this.notifyUsers(course, response);
+
+    return response;
   }
 
   async findAssess(id: string) {
     return getAssessResponse(await this.getAssess(id));
   }
 
-  async getAssessments(filter: AssessmentFilterDto) {
-    return (await this.repository.findAssessments(filter)).map((assessment) =>
-      getAssessResponse(assessment),
-    );
-  }
-
-  async findAssessmentsByCourse(courseId: number) {
-    return (await this.repository.findByCourseId(courseId)).map((assessment) =>
+  async getAssessments(filter: AssessmentFilterDto, courseId?: number) {
+    return (await this.repository.findAssessments({ courseId, ...filter })).map((assessment) =>
       getAssessResponse(assessment),
     );
   }

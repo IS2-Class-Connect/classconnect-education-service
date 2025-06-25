@@ -44,4 +44,4 @@ echo "🧬 Ejecutando prisma migrate deploy..."
 npx prisma migrate deploy
 
 echo "🧪 Ejecutando tests..."
-npx jest --runInBand
+npx jest --runInBand #--testPathPattern=test/service/assessment

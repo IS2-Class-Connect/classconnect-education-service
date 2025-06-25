@@ -12,11 +12,13 @@ import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.d
 import { CourseFeedbackResponseDto } from 'src/dtos/feedback/course.feedback.response.dto';
 import { StudentFeedbackResponseDto } from 'src/dtos/feedback/student.feedback.response.dto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { PushNotificationService } from 'src/services/pushNotification.service';
 
 describe('CourseService', () => {
   let service: CourseService;
   let mockRepository: CourseRepository;
   let mockGenAI: GoogleGenerativeAI;
+  let mockNotificationService: PushNotificationService;
   const { startDate, endDate, registrationDeadline } = getDatesAfterToday();
 
   beforeEach(() => {
@@ -27,6 +29,16 @@ describe('CourseService', () => {
         },
       }),
     };
+    mockNotificationService = {
+      gatewayUrl: '',
+      gatewayToken: '',
+      validTopics: [],
+      httpService: { post: jest.fn() },
+      notifyTaskAssignment: jest.fn(),
+      notifyAssessmentPublished: jest.fn(),
+      notifyAssessmentDeadline: jest.fn(),
+      notifyAssessmentGraded: jest.fn(),
+    } as any;
     mockRepository = {
       findAll: jest.fn(),
       findCourses: jest.fn(),
@@ -57,7 +69,7 @@ describe('CourseService', () => {
       apiKey: 'dummy-api-key',
       getGenerativeModel: jest.fn().mockReturnValue(mockAIModel),
     } as any;
-    service = new CourseService(mockRepository, mockGenAI);
+    service = new CourseService(mockRepository, mockGenAI, mockNotificationService);
   });
 
   test('Should create a Course', async () => {

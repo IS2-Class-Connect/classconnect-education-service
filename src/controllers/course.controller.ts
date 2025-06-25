@@ -31,6 +31,7 @@ import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentService } from 'src/services/assessment.service';
 import { McExerciseCreateDto } from 'src/dtos/exercise/exercise.create.dto';
+import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
 
 /**
  * Controller class for handling HTTP requests related to courses.
@@ -357,9 +358,14 @@ export class CourseController {
   }
 
   @Get(':courseId/assessments')
-  async getCourseAssessments(@Param('courseId') courseId: number) {
-    logger.log(`Getting assessments for course with ID ${courseId}`);
-    return await this.assessService.findAssessmentsByCourse(courseId);
+  async getCourseAssessments(
+    @Param('courseId') courseId: number,
+    @Query() filter: AssessmentFilterDto,
+  ) {
+    logger.log(
+      `Getting assessments for course with ID ${courseId}, matching filters: ${JSON.stringify(filter)}`,
+    );
+    return await this.assessService.getAssessments(filter, courseId);
   }
 
   @Get(':courseId/performance/summary')

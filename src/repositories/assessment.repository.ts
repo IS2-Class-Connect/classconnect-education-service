@@ -14,6 +14,8 @@ import { Submission } from 'src/schema/submission.schema';
 export interface CreateAssessmentProps
   extends Omit<AssessmentSchema, 'createdAt' | '_id' | '__v' | 'submissions'> {}
 
+type AssessmentFilterByCourse = AssessmentFilterDto & { courseId?: number };
+
 @Injectable()
 export class AssessmentRepository {
   constructor(
@@ -29,7 +31,7 @@ export class AssessmentRepository {
     return (await this.assessmentModel.findById(id).exec())?.toObject();
   }
 
-  async findAssessments(filter: AssessmentFilterDto): Promise<Assessment[]> {
+  async findAssessments(filter: AssessmentFilterByCourse): Promise<Assessment[]> {
     // Elimina las propiedades undefined o null del filtro
     const query: Record<string, any> = {};
 
@@ -60,12 +62,6 @@ export class AssessmentRepository {
       if (Object.keys(query.deadline).length === 0) delete query.deadline;
     }
     return (await this.assessmentModel.find(query).exec()).map((assesment) => assesment.toObject());
-  }
-
-  async findByCourseId(courseId: number): Promise<Assessment[]> {
-    return (await this.assessmentModel.find({ courseId }).exec()).map((assessment) =>
-      assessment.toObject(),
-    );
   }
 
   async update(

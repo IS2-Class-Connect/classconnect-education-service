@@ -9,10 +9,11 @@ const PRISMA_NOT_FOUND_CODE = 'P2025';
 
 export type CourseWithEnrollments = Course & { enrollments: Enrollment[] };
 export type EnrollmentWithCourse = Enrollment & { course: Course };
+type EnrollmentFilter = EnrollmentFilterDto & { courseId?: number };
 
 @Injectable()
 export class CourseRepository {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Creates a new course in the database.
@@ -41,11 +42,23 @@ export class CourseRepository {
    * @returns A promise that resolves to the courses matching the filters.
    */
   findCourses(filters: CourseFilterDto): Promise<Course[]> {
-    return this.prisma.course.findMany({
-      where: {
-        ...filters,
-      },
-    });
+    const { startDateGt, startDateLt, endDateGt, endDateLt, ...rest } = filters;
+
+    const where: any = rest;
+
+    if (startDateGt || startDateLt) {
+      where.startDate = {};
+      if (startDateGt) where.startDate.gte = startDateGt;
+      if (startDateLt) where.startDate.lte = startDateLt;
+    }
+
+    if (endDateGt || endDateLt) {
+      where.endDate = {};
+      if (endDateGt) where.endDate.gte = endDateGt;
+      if (endDateLt) where.endDate.lte = endDateLt;
+    }
+
+    return this.prisma.course.findMany({ where });
   }
 
   /**
@@ -153,7 +166,7 @@ export class CourseRepository {
   //  * @param filters - The specified properties values that the enrollment have to match.
   //  * @returns A promise that resolves to the enrollments.
   //  */
-  async findEnrollments(filters: EnrollmentFilterDto): Promise<EnrollmentWithCourse[]> {
+  async findEnrollments(filters: EnrollmentFilter): Promise<EnrollmentWithCourse[]> {
     return await this.prisma.enrollment.findMany({
       where: {
         ...filters,
