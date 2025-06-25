@@ -94,7 +94,7 @@ describe('CourseController', () => {
     ];
     (mockService.findCourses as jest.Mock).mockResolvedValue(mockCourses);
 
-    const result = await controller.getCourses({});
+    const result = await controller.getCourses({ page: 1, limit: 10 });
 
     expect(result).toEqual(mockCourses);
     expect(mockService.findCourses).toHaveBeenCalled();

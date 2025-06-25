@@ -134,7 +134,7 @@ describe('CourseService', () => {
 
     const foundResponseDTO = await service.findCourses({ page: 1, limit: 10 });
 
-    expect(mockRepository.findAll).toHaveBeenCalledWith();
+    expect(mockRepository.findAll).toHaveBeenCalledWith({ page: 1, limit: 10 });
     expect(foundResponseDTO).toBeDefined();
     expect(foundResponseDTO.length).toEqual(2);
     // check to be ordered by createdAt
@@ -167,7 +167,7 @@ describe('CourseService', () => {
 
     const foundResponseDTO = await service.findCourses({ page: 1, limit: 10, teacherId });
 
-    expect(mockRepository.findCourses).toHaveBeenCalledWith({ teacherId });
+    expect(mockRepository.findCourses).toHaveBeenCalledWith({ page: 1, limit: 10, teacherId });
     expect(foundResponseDTO).toBeDefined();
     expect(foundResponseDTO.length).toEqual(1);
     expect(foundResponseDTO[0]).toEqual(expectedResponseDTO);
