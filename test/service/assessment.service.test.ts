@@ -1,3 +1,4 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Enrollment, Role } from '@prisma/client';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
@@ -22,6 +23,7 @@ import {
   COURSE_ID,
   FORBIDDEN_USER_ID,
   getDatesAfterToday,
+  MOCK_AI_RESPONSE,
   TEACHER_ID,
   USER_ID,
 } from 'test/utils';
@@ -30,6 +32,7 @@ describe('AssessmentService', () => {
   let service: AssessmentService;
   let mockCourseRepo: CourseRepository;
   let mockAssesRepo: AssessmentRepository;
+  let mockGenAI: GoogleGenerativeAI;
   const { startDate, deadline } = getDatesAfterToday();
 
   // submissions should have the same number of answers as exercises
@@ -56,6 +59,13 @@ describe('AssessmentService', () => {
   }
 
   beforeEach(() => {
+    const mockAIModel = {
+      generateContent: jest.fn().mockResolvedValue({
+        response: {
+          text: () => MOCK_AI_RESPONSE,
+        },
+      }),
+    };
     mockCourseRepo = {
       findById: jest.fn(),
       findEnrollment: jest.fn(),
@@ -71,7 +81,11 @@ describe('AssessmentService', () => {
       delete: jest.fn(),
       setAssesSubmission: jest.fn(),
     } as any;
-    service = new AssessmentService(mockAssesRepo, mockCourseRepo);
+    mockGenAI = {
+      apiKey: 'dummy-api-key',
+      getGenerativeModel: jest.fn().mockReturnValue(mockAIModel),
+    } as any;
+    service = new AssessmentService(mockAssesRepo, mockCourseRepo, mockGenAI);
   });
 
   test('Should create an assessment', async () => {
@@ -676,6 +690,7 @@ describe('AssessmentService', () => {
       correctedAt: expect.any(Date),
       feedback: createDto.feedback,
       note: createDto.note,
+      AIFeedback: MOCK_AI_RESPONSE,
     };
 
     (mockAssesRepo.findById as jest.Mock).mockResolvedValue(asses);

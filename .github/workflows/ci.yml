@@ -33,7 +33,7 @@ jobs:
       DATABASE_URL: postgresql://cc-education-user:cc-education@localhost:5433/education-tests
       MONGODB_URL: mongodb://cc_user:cc_password@localhost:27017
       MONGODB_NAME: classconnect?authSource=admin
-      GEMINI_API_KEY: gemini_api_key
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
     steps:
       - name: Checkout code
