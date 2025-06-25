@@ -11,7 +11,7 @@ import {
   Query,
 } from '@nestjs/common';
 import mongoose from 'mongoose';
-import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
+import { AssessmentQueryDto } from 'src/dtos/assessment/assessment.query.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
 import { CorrectionCreateDto } from 'src/dtos/correction/correction.create.dto';
 import { SubmissionCreateDto } from 'src/dtos/submission/submission.create.dto';
@@ -25,13 +25,11 @@ function validateAssesId(id: string) {
 
 @Controller('/assessments')
 export class AssessmentController {
-  constructor(private readonly service: AssessmentService) { }
+  constructor(private readonly service: AssessmentService) {}
 
   @Get()
-  async getAssessments(@Query() filter: AssessmentFilterDto) {
-    logger.log(
-      `Getting the assessments that match with ${filter ? `the filters: ${JSON.stringify(filter)}` : 'non filters'}`,
-    );
+  async getAssessments(@Query() filter: AssessmentQueryDto) {
+    logger.log(`Getting the assessments that match with the query ${JSON.stringify(filter)}`);
     return await this.service.getAssessments(filter);
   }
 

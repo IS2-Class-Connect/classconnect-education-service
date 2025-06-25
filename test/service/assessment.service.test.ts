@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Enrollment, Role } from '@prisma/client';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
-import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
+import { AssessmentQueryDto } from 'src/dtos/assessment/assessment.query.dto';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
 import { CorrectionCreateDto } from 'src/dtos/correction/correction.create.dto';
@@ -242,7 +242,7 @@ describe('AssessmentService', () => {
   });
 
   test('Should get all the assessments matching a specified filter', async () => {
-    const filter: AssessmentFilterDto = {
+    const filter: AssessmentQueryDto = {
       type: AssessmentType.Exam,
     };
 
@@ -277,11 +277,11 @@ describe('AssessmentService', () => {
     expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith(filter);
   });
 
-  test('Should find all the assessments belonging to a specific course', async () => {
+  test('Should find all the assessments belonging to a specific course and matching a specified filter', async () => {
     const courseId = 1;
+    const filter: AssessmentQueryDto = { type: AssessmentType.Exam };
     const assessments: Assessment[] = [
       {
-        // TODO: complete with exercises and submissions
         title: 'Testing exam',
         description: 'This is an exam for testing purposes',
         type: AssessmentType.Exam,
@@ -309,10 +309,10 @@ describe('AssessmentService', () => {
       },
     ];
 
-    (mockAssesRepo.findByCourseId as jest.Mock).mockResolvedValue(assessments);
+    (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
 
-    expect(await service.findAssessmentsByCourse(courseId)).toEqual(expected);
-    expect(mockAssesRepo.findByCourseId).toHaveBeenCalledWith(courseId);
+    expect(await service.getAssessments(filter, courseId)).toEqual(expected);
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId, ...filter });
   });
 
   test('Should update an existing assessment', async () => {

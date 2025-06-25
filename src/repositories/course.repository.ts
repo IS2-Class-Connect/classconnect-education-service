@@ -3,7 +3,7 @@ import { PrismaService } from 'src/prisma.service';
 import { Prisma, Course, Enrollment, ActivityRegister } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { EnrollmentFilterDto } from 'src/dtos/enrollment/enrollment.filter.dto';
-import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
+import { CourseQueryDto } from 'src/dtos/course/course.query.dto';
 
 const PRISMA_NOT_FOUND_CODE = 'P2025';
 
@@ -12,7 +12,7 @@ export type EnrollmentWithCourse = Enrollment & { course: Course };
 
 @Injectable()
 export class CourseRepository {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Creates a new course in the database.
@@ -31,20 +31,31 @@ export class CourseRepository {
   /**
    * Retrieves all courses from the database.
    */
-  findAll(): Promise<Course[]> {
-    return this.prisma.course.findMany();
+  findAll({ page, limit }: CourseQueryDto): Promise<Course[]> {
+    const skip = (page - 1) * limit;
+    return this.prisma.course.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+      skip,
+      take: limit,
+    });
   }
 
   /**
-   * Retrieves courses based on the provided filters.
-   * @param filters - The specified properties values that the course have to match.
-   * @returns A promise that resolves to the courses matching the filters.
+   * Retrieves courses based on the provided query.
+   * @param query - The specified properties values that the course have to match.
+   * @returns A promise that resolves to the courses matching the query.
    */
-  findCourses(filters: CourseFilterDto): Promise<Course[]> {
+  findCourses({ page, limit, ...where }: CourseQueryDto): Promise<Course[]> {
+    const skip = (page - 1) * limit;
     return this.prisma.course.findMany({
-      where: {
-        ...filters,
+      where,
+      orderBy: {
+        createdAt: 'desc',
       },
+      skip,
+      take: limit,
     });
   }
 

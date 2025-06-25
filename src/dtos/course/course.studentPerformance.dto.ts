@@ -3,9 +3,9 @@
  */
 export interface StudentPerformanceInCourseDto {
   /** Average grade of completed submissions */
-  averageGrade: number,
+  averageGrade: number;
   /** Number of completed submissions */
-  completedAssessments: number,
+  completedAssessments: number;
   /** Number of assessments */
-  totalAssessments: number,
+  totalAssessments: number;
 }

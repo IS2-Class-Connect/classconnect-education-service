@@ -35,7 +35,7 @@ describe('CourseController', () => {
     } as any;
     mockAssessmentService = {
       createAssess: jest.fn(),
-      findAssessmentsByCourse: jest.fn(),
+      getAssessments: jest.fn(),
     } as any;
     controller = new CourseController(mockService, mockAssessmentService);
   });
@@ -94,7 +94,7 @@ describe('CourseController', () => {
     ];
     (mockService.findCourses as jest.Mock).mockResolvedValue(mockCourses);
 
-    const result = await controller.getCourses({});
+    const result = await controller.getCourses({ page: 1, limit: 10 });
 
     expect(result).toEqual(mockCourses);
     expect(mockService.findCourses).toHaveBeenCalled();
@@ -406,9 +406,12 @@ describe('CourseController', () => {
       },
     ];
 
-    (mockAssessmentService.findAssessmentsByCourse as jest.Mock).mockResolvedValue(expected);
+    (mockAssessmentService.getAssessments as jest.Mock).mockResolvedValue(expected);
 
-    expect(await controller.getCourseAssessments(courseId)).toEqual(expected);
-    expect(mockAssessmentService.findAssessmentsByCourse).toHaveBeenCalledWith(courseId);
+    expect(await controller.getCourseAssessments(courseId, {})).toEqual(expected);
+    expect(mockAssessmentService.getAssessments).toHaveBeenCalledWith(
+      { page: 1, limit: 10 },
+      courseId,
+    );
   });
 });

@@ -6,13 +6,15 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
+import { AssessmentQueryDto } from 'src/dtos/assessment/assessment.query.dto';
 import { Assessment, AssessmentDocument } from 'src/schema/assessment.schema';
 import { Assessment as AssessmentSchema } from 'src/schema/assessment.schema';
 import { Submission } from 'src/schema/submission.schema';
 
 export interface CreateAssessmentProps
   extends Omit<AssessmentSchema, 'createdAt' | '_id' | '__v' | 'submissions'> {}
+
+type AssessmentQueryByCourse = AssessmentQueryDto & { courseId?: number };
 
 @Injectable()
 export class AssessmentRepository {
@@ -29,43 +31,56 @@ export class AssessmentRepository {
     return (await this.assessmentModel.findById(id).exec())?.toObject();
   }
 
-  async findAssessments(filter: AssessmentFilterDto): Promise<Assessment[]> {
+  async findAssessments({
+    page,
+    limit,
+    startTimeBegin,
+    startTimeEnd,
+    deadlineBegin,
+    deadlineEnd,
+    ...rest
+  }: AssessmentQueryByCourse): Promise<Assessment[]> {
     // Elimina las propiedades undefined o null del filtro
-    const query: Record<string, any> = {};
-
-    // Extraer los valores especiales
-    const { startTimeBegin, startTimeEnd, deadlineBegin, deadlineEnd, ...rest } = filter;
+    const filters: Record<string, any> = {};
 
     // Clean and add basic fields
     Object.entries(rest).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        query[key] = value;
+        filters[key] = value;
       }
     });
 
     // Add nested fields if necessary
     if (startTimeBegin !== undefined || startTimeEnd !== undefined) {
-      query.startTime = {};
-      if (startTimeBegin !== undefined) query.startTime.$gte = startTimeBegin;
-      if (startTimeEnd !== undefined) query.startTime.$lt = startTimeEnd;
+      filters.startTime = {};
+      if (startTimeBegin !== undefined) filters.startTime.$gte = startTimeBegin;
+      if (startTimeEnd !== undefined) filters.startTime.$lt = startTimeEnd;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      if (Object.keys(query.startTime).length === 0) delete query.startTime;
+      if (Object.keys(filters.startTime).length === 0) delete filters.startTime;
     }
 
     if (deadlineBegin !== undefined || deadlineEnd !== undefined) {
-      query.deadline = {};
-      if (deadlineBegin !== undefined) query.deadline.$gte = deadlineBegin;
-      if (deadlineEnd !== undefined) query.deadline.$lt = deadlineEnd;
+      filters.deadline = {};
+      if (deadlineBegin !== undefined) filters.deadline.$gte = deadlineBegin;
+      if (deadlineEnd !== undefined) filters.deadline.$lt = deadlineEnd;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      if (Object.keys(query.deadline).length === 0) delete query.deadline;
+      if (Object.keys(filters.deadline).length === 0) delete filters.deadline;
     }
-    return (await this.assessmentModel.find(query).exec()).map((assesment) => assesment.toObject());
-  }
-
-  async findByCourseId(courseId: number): Promise<Assessment[]> {
-    return (await this.assessmentModel.find({ courseId }).exec()).map((assessment) =>
-      assessment.toObject(),
-    );
+    if (page && limit) {
+      const skip = (page - 1) * limit;
+      return (
+        await this.assessmentModel
+          .find(filters)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .exec()
+      ).map((assesment) => assesment.toObject());
+    } else {
+      return (await this.assessmentModel.find(filters).sort({ createdAt: -1 }).exec()).map(
+        (assesment) => assesment.toObject(),
+      );
+    }
   }
 
   async update(
