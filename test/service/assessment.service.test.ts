@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Enrollment, Role } from '@prisma/client';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
-import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
+import { AssessmentQueryDto } from 'src/dtos/assessment/assessment.query.dto';
 import { AssessmentResponseDto } from 'src/dtos/assessment/assessment.response.dto';
 import { AssessmentUpdateDto } from 'src/dtos/assessment/assessment.update.dto';
 import { CorrectionCreateDto } from 'src/dtos/correction/correction.create.dto';
@@ -228,7 +228,7 @@ describe('AssessmentService', () => {
   });
 
   test('Should get all the assessments matching a specified filter', async () => {
-    const filter: AssessmentFilterDto = {
+    const filter: AssessmentQueryDto = {
       type: AssessmentType.Exam,
     };
 
@@ -265,7 +265,7 @@ describe('AssessmentService', () => {
 
   test('Should find all the assessments belonging to a specific course and matching a specified filter', async () => {
     const courseId = 1;
-    const filter: AssessmentFilterDto = { type: AssessmentType.Exam };
+    const filter: AssessmentQueryDto = { type: AssessmentType.Exam };
     const assessments: Assessment[] = [
       {
         title: 'Testing exam',

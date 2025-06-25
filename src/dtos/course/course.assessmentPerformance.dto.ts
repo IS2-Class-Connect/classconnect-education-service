@@ -3,9 +3,9 @@
  */
 export interface AssessmentPerformanceDto {
   /** Title of the assessment */
-  title: string,
+  title: string;
   /** Average grade of completed submissions */
-  averageGrade: number,
+  averageGrade: number;
   /** Current completion rate of assessments */
-  completionRate: number,
+  completionRate: number;
 }

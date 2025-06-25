@@ -16,7 +16,7 @@ import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.upda
 import { CourseFeedbackRequestDto } from 'src/dtos/feedback/course.feedback.request.dto';
 import { StudentFeedbackRequestDto } from 'src/dtos/feedback/student.feedback.request.dto';
 import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.dto';
-import { CourseQueryDto } from 'src/dtos/course/course.filter.dto';
+import { CourseQueryDto } from 'src/dtos/course/course.query.dto';
 import { StudentFeedbackResponseDto } from 'src/dtos/feedback/student.feedback.response.dto';
 import { CourseFeedbackResponseDto } from 'src/dtos/feedback/course.feedback.response.dto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -426,10 +426,11 @@ export class CourseService {
 
   async getCourseFeedbacks(
     courseId: number,
+    { page, limit }: { page: number; limit: number },
   ): Promise<{ feedbacks: CourseFeedbackResponseDto[]; summary: string }> {
     await this.getCourse(courseId);
     const enrollments = await this.repository.findCourseEnrollments(courseId);
-    const feedbacks = enrollments.flatMap(({ courseFeedback, courseNote, userId }) => {
+    const allFeedbacks = enrollments.flatMap(({ courseFeedback, courseNote, userId }) => {
       if (courseFeedback && courseNote) {
         return {
           courseFeedback,
@@ -440,6 +441,8 @@ export class CourseService {
       }
       return [];
     }) as CourseFeedbackResponseDto[];
+
+    // Generate summary for all feedbacks
     const prompt = [
       'Summarize the following course feedbacks in a concise paragraph.',
       'Each feedback consists of a comment and a numeric rating (from 1 to 5) given by a student.',
@@ -447,31 +450,40 @@ export class CourseService {
       'If there is only one feedback, provide a very brief analysis (no more than two sentences) of it',
       'If there are no feedbacks, just say that there are no feedbacks.',
       'Here are the feedbacks:',
-      JSON.stringify(feedbacks, null, 2),
+      JSON.stringify(allFeedbacks, null, 2),
     ].join('\n');
     const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
     const result = await model.generateContent(prompt);
     const response = result.response;
     const summary = response.text();
+
+    // Paginate feedbacks
+    const start = (page - 1) * limit;
+    const feedbacks = allFeedbacks.slice(start, start + limit);
+
     return { feedbacks, summary };
   }
 
   async getStudentFeedbacks(
     studentId: string,
+    { page, limit }: { page: number; limit: number },
   ): Promise<{ feedbacks: StudentFeedbackResponseDto[]; summary: string }> {
     const enrollments = await this.repository.findEnrollments({ userId: studentId });
-    const feedbacks = enrollments.flatMap(({ studentFeedback, studentNote, courseId, userId }) => {
-      if (studentFeedback && studentNote) {
-        return {
-          studentFeedback,
-          studentNote,
-          courseId,
-          studentId: userId,
-        };
-      }
-      return [];
-    }) as StudentFeedbackResponseDto[];
+    const allFeedbacks = enrollments.flatMap(
+      ({ studentFeedback, studentNote, courseId, userId }) => {
+        if (studentFeedback && studentNote) {
+          return {
+            studentFeedback,
+            studentNote,
+            courseId,
+            studentId: userId,
+          };
+        }
+        return [];
+      },
+    ) as StudentFeedbackResponseDto[];
 
+    // Generate summary for all feedbacks
     const prompt = [
       'Summarize the following student feedbacks in a concise paragraph.',
       'Each feedback consists of a comment and a numeric rating (from 1 to 5) given by the head teacher of a course.',
@@ -479,12 +491,17 @@ export class CourseService {
       'If there is only one feedback, provide a very brief analysis (no more than two sentences) of it',
       'If there are no feedbacks, just say that there are no feedbacks.',
       'Here are the feedbacks:',
-      JSON.stringify(feedbacks, null, 2),
+      JSON.stringify(allFeedbacks, null, 2),
     ].join('\n');
     const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
     const result = await model.generateContent(prompt);
     const response = result.response;
     const summary = response.text();
+
+    // Paginate feedbacks
+    const start = (page - 1) * limit;
+    const feedbacks = allFeedbacks.slice(start, start + limit);
+
     return { feedbacks, summary };
   }
 

@@ -27,19 +27,11 @@ import { CourseResourceCreateDto } from 'src/dtos/resources/course.resource.crea
 import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
 import { CourseFeedbackRequestDto } from 'src/dtos/feedback/course.feedback.request.dto';
 import { StudentFeedbackRequestDto } from 'src/dtos/feedback/student.feedback.request.dto';
-import { CourseQueryDto } from 'src/dtos/course/course.filter.dto';
+import { CourseQueryDto } from 'src/dtos/course/course.query.dto';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentService } from 'src/services/assessment.service';
 import { McExerciseCreateDto } from 'src/dtos/exercise/exercise.create.dto';
-import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
-
-/**
- * Cursos
- * StudentFeedback
- * CourseFeedback
- * AssessmentsUser
- * AssessmentsCourse/Teacher
- */
+import { AssessmentQueryDto } from 'src/dtos/assessment/assessment.query.dto';
 
 /**
  * Controller class for handling HTTP requests related to courses.
@@ -336,15 +328,25 @@ export class CourseController {
   }
 
   @Get(':courseId/feedbacks')
-  async getCourseFeedbacks(@Param('courseId') courseId: number) {
+  async getCourseFeedbacks(
+    @Param('courseId') courseId: number,
+    @Query() query: { page?: number; limit?: number },
+  ) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
     logger.log(`Getting all feedbacks for course ${courseId}`);
-    return await this.service.getCourseFeedbacks(courseId);
+    return await this.service.getCourseFeedbacks(courseId, { page, limit });
   }
 
   @Get('studentFeedbacks/:studentId')
-  async getStudentFeedbacks(@Param('studentId') studentId: string) {
+  async getStudentFeedbacks(
+    @Param('studentId') studentId: string,
+    @Query() query: { page?: number; limit?: number },
+  ) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
     logger.log(`Getting all feedbacks for student with ID ${studentId}`);
-    return await this.service.getStudentFeedbacks(studentId);
+    return await this.service.getStudentFeedbacks(studentId, { page, limit });
   }
 
   @HttpCode(HttpStatus.CREATED)
@@ -368,12 +370,14 @@ export class CourseController {
   @Get(':courseId/assessments')
   async getCourseAssessments(
     @Param('courseId') courseId: number,
-    @Query() filter: AssessmentFilterDto,
+    @Query() query: AssessmentQueryDto,
   ) {
+    query.page = query.page ?? 1;
+    query.limit = query.limit ?? 10;
     logger.log(
-      `Getting assessments for course with ID ${courseId}, matching filters: ${JSON.stringify(filter)}`,
+      `Getting assessments for course with ID ${courseId}, with query: ${JSON.stringify(query)}`,
     );
-    return await this.assessService.getAssessments(filter, courseId);
+    return await this.assessService.getAssessments(query, courseId);
   }
 
   @Get(':courseId/performance/summary')

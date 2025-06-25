@@ -409,6 +409,9 @@ describe('CourseController', () => {
     (mockAssessmentService.getAssessments as jest.Mock).mockResolvedValue(expected);
 
     expect(await controller.getCourseAssessments(courseId, {})).toEqual(expected);
-    expect(mockAssessmentService.getAssessments).toHaveBeenCalledWith({}, courseId);
+    expect(mockAssessmentService.getAssessments).toHaveBeenCalledWith(
+      { page: 1, limit: 10 },
+      courseId,
+    );
   });
 });

@@ -3,13 +3,13 @@
  */
 export interface CoursePerformanceDto {
   /** Average grade of completed submissions */
-  averageGrade: number,
+  averageGrade: number;
   /** Current completion rate of submissions */
-  completionRate: number,
+  completionRate: number;
   /** Number of assessments */
-  totalAssessments: number,
+  totalAssessments: number;
   /** Number of submissions */
-  totalSubmissions: number,
+  totalSubmissions: number;
   /** Rate of open evaluations */
-  openRate: number
+  openRate: number;
 }

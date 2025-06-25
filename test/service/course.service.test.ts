@@ -1083,7 +1083,7 @@ describe('CourseService', () => {
       summary: MOCK_AI_RESPONSE,
     };
 
-    expect(await service.getCourseFeedbacks(courseId)).toEqual(expected);
+    expect(await service.getCourseFeedbacks(courseId, { page: 1, limit: 10 })).toEqual(expected);
     expect(mockRepository.findCourseEnrollments).toHaveBeenCalledWith(courseId);
   });
 
@@ -1105,7 +1105,7 @@ describe('CourseService', () => {
       summary: MOCK_AI_RESPONSE,
     };
 
-    expect(await service.getStudentFeedbacks(userId)).toEqual(expected);
+    expect(await service.getStudentFeedbacks(userId, { page: 1, limit: 10 })).toEqual(expected);
     expect(mockRepository.findEnrollments).toHaveBeenCalledWith({ userId });
   });
 });
