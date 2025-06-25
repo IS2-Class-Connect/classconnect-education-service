@@ -20,6 +20,8 @@ export class DeadlineCheckerService {
 
     // Get only courses that are open
     const courses = await this.courseRepository.findCourses({
+      page: 1,
+      limit: 10,
       startDateLt: now.toISOString(),
       endDateGt: now.toISOString(),
     });

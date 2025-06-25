@@ -69,7 +69,7 @@ describe('PushNotificationService', () => {
 
     (httpService.post as jest.Mock).mockReturnValueOnce(of(mockResponse));
 
-    await expect(service.notifyMessageReceived('123', 'Test Title', 'Test Body')).rejects.toThrow(
+    await expect(service.notifyFeedback('123', 'Test Title', 'Test Body')).rejects.toThrow(
       InternalServerErrorException,
     );
 

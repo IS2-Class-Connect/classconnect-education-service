@@ -44,6 +44,13 @@ export class PushNotificationService {
     if (!this.validTopics.has(topic)) {
       throw new InternalServerErrorException('Got an invalid notification topic', topic);
     }
+    logger.debug(
+      `Notifying user ${uuid} with title\n` +
+        `"${title}"\n` +
+        `and body\n` +
+        `"${body}"\n` +
+        `on topic "${topic}"`,
+    );
 
     const url = `${this.gatewayUrl}/notifications`;
     const data = { uuid, title, body, topic };
