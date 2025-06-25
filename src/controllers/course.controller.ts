@@ -27,11 +27,19 @@ import { CourseResourceCreateDto } from 'src/dtos/resources/course.resource.crea
 import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.update.dto';
 import { CourseFeedbackRequestDto } from 'src/dtos/feedback/course.feedback.request.dto';
 import { StudentFeedbackRequestDto } from 'src/dtos/feedback/student.feedback.request.dto';
-import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
+import { CourseQueryDto } from 'src/dtos/course/course.filter.dto';
 import { AssessmentCreateDto } from 'src/dtos/assessment/assessment.create.dto';
 import { AssessmentService } from 'src/services/assessment.service';
 import { McExerciseCreateDto } from 'src/dtos/exercise/exercise.create.dto';
 import { AssessmentFilterDto } from 'src/dtos/assessment/assessment.filter.dto';
+
+/**
+ * Cursos
+ * StudentFeedback
+ * CourseFeedback
+ * AssessmentsUser
+ * AssessmentsCourse/Teacher
+ */
 
 /**
  * Controller class for handling HTTP requests related to courses.
@@ -62,9 +70,9 @@ export class CourseController {
    * @returns An array of all courses.
    */
   @Get()
-  getCourses(@Query() filters: CourseFilterDto) {
-    logger.log(`Getting all courses matching: ${JSON.stringify(filters)}`);
-    return this.service.findCourses(filters);
+  getCourses(@Query() query: CourseQueryDto) {
+    logger.log(`Getting all courses with query: ${JSON.stringify(query)}`);
+    return this.service.findCourses(query);
   }
 
   @Get('enrollments')

@@ -132,7 +132,7 @@ describe('CourseService', () => {
       },
     ]);
 
-    const foundResponseDTO = await service.findCourses({});
+    const foundResponseDTO = await service.findCourses({ page: 1, limit: 10 });
 
     expect(mockRepository.findAll).toHaveBeenCalledWith();
     expect(foundResponseDTO).toBeDefined();
@@ -165,7 +165,7 @@ describe('CourseService', () => {
       },
     ]);
 
-    const foundResponseDTO = await service.findCourses({ teacherId });
+    const foundResponseDTO = await service.findCourses({ page: 1, limit: 10, teacherId });
 
     expect(mockRepository.findCourses).toHaveBeenCalledWith({ teacherId });
     expect(foundResponseDTO).toBeDefined();

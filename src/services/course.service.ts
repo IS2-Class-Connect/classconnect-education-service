@@ -16,7 +16,7 @@ import { CourseResourceUpdateDto } from 'src/dtos/resources/course.resource.upda
 import { CourseFeedbackRequestDto } from 'src/dtos/feedback/course.feedback.request.dto';
 import { StudentFeedbackRequestDto } from 'src/dtos/feedback/student.feedback.request.dto';
 import { EnrollmentResponseDto } from 'src/dtos/enrollment/enrollment.response.dto';
-import { CourseFilterDto } from 'src/dtos/course/course.filter.dto';
+import { CourseQueryDto } from 'src/dtos/course/course.filter.dto';
 import { StudentFeedbackResponseDto } from 'src/dtos/feedback/student.feedback.response.dto';
 import { CourseFeedbackResponseDto } from 'src/dtos/feedback/course.feedback.response.dto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -223,10 +223,13 @@ export class CourseService {
    * @param filter - The filter criteria for retrieving courses.
    * @returns An array of all courses.
    */
-  async findCourses(filters: CourseFilterDto): Promise<CourseResponseDto[]> {
+  async findCourses(query: CourseQueryDto): Promise<CourseResponseDto[]> {
+    const { page, limit, ...filters } = query;
     const isEmpty = !filters || Object.keys(filters).length === 0;
     const courses = (
-      await (isEmpty ? this.repository.findAll() : this.repository.findCourses(filters))
+      await (isEmpty
+        ? this.repository.findAll({ page, limit })
+        : this.repository.findCourses(query))
     )
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .map((course) => getResponseDTO(course));
