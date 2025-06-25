@@ -3,7 +3,7 @@ import { AssessmentCreateDto } from './assessment.create.dto';
 import { IsDateString, IsOptional } from 'class-validator';
 
 export class AssessmentFilterDto extends PartialType(
-  OmitType(AssessmentCreateDto, ['startTime', 'deadline'] as const),
+  OmitType(AssessmentCreateDto, ['startTime', 'deadline', 'exercises'] as const),
 ) {
   @IsOptional()
   @IsDateString()

@@ -153,14 +153,8 @@ export class AssessmentService {
     return getAssessResponse(await this.getAssess(id));
   }
 
-  async getAssessments(filter: AssessmentFilterDto) {
-    return (await this.repository.findAssessments(filter)).map((assessment) =>
-      getAssessResponse(assessment),
-    );
-  }
-
-  async findAssessmentsByCourse(courseId: number) {
-    return (await this.repository.findByCourseId(courseId)).map((assessment) =>
+  async getAssessments(filter: AssessmentFilterDto, courseId?: number) {
+    return (await this.repository.findAssessments({ courseId, ...filter })).map((assessment) =>
       getAssessResponse(assessment),
     );
   }
@@ -249,6 +243,7 @@ export class AssessmentService {
   async createCorrection(assesId: string, userId: string, createDto: CorrectionCreateDto) {
     const { teacherId, corrections, ...correctionData } = createDto;
 
+    // Check asses integrity
     const asses = await this.getAssess(assesId);
     const course = await this.getCourse(asses.courseId);
     if (course.teacherId != teacherId)
@@ -256,23 +251,27 @@ export class AssessmentService {
         `User ${teacherId} is not authorized to correct the submission. Only the course ${asses.courseId} head teacher can correct the course submissions`,
       );
 
+    // Check submission integrity
     const submission = asses.submissions?.[userId];
     if (!submission)
       throw new NotFoundException(
         `Submission of user ${userId} not found in assessment ${assesId}.`,
       );
 
+    // Check corrections to be consisten with answers
     if (submission.answers.length != corrections.length)
       throw new BadRequestException('There must be the same number of corrections as answers');
     submission.answers.forEach((answer, idx) => {
       answer.correction = corrections[idx];
     });
-    // TODO: Add AI feedback
+
+    // Update submission with corrections
     const correctedSubmission: Submission = {
       ...submission,
       ...correctionData,
       correctedAt: new Date(),
     };
+
     return getSubmissionResponse(
       await this.repository.setAssesSubmission(assesId, userId, correctedSubmission),
       assesId,

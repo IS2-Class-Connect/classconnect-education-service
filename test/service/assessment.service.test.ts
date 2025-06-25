@@ -263,11 +263,11 @@ describe('AssessmentService', () => {
     expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith(filter);
   });
 
-  test('Should find all the assessments belonging to a specific course', async () => {
+  test('Should find all the assessments belonging to a specific course and matching a specified filter', async () => {
     const courseId = 1;
+    const filter: AssessmentFilterDto = { type: AssessmentType.Exam };
     const assessments: Assessment[] = [
       {
-        // TODO: complete with exercises and submissions
         title: 'Testing exam',
         description: 'This is an exam for testing purposes',
         type: AssessmentType.Exam,
@@ -295,10 +295,10 @@ describe('AssessmentService', () => {
       },
     ];
 
-    (mockAssesRepo.findByCourseId as jest.Mock).mockResolvedValue(assessments);
+    (mockAssesRepo.findAssessments as jest.Mock).mockResolvedValue(assessments);
 
-    expect(await service.findAssessmentsByCourse(courseId)).toEqual(expected);
-    expect(mockAssesRepo.findByCourseId).toHaveBeenCalledWith(courseId);
+    expect(await service.getAssessments(filter, courseId)).toEqual(expected);
+    expect(mockAssesRepo.findAssessments).toHaveBeenCalledWith({ courseId, ...filter });
   });
 
   test('Should update an existing assessment', async () => {
@@ -1189,8 +1189,8 @@ describe('AssessmentService', () => {
         ...assessment,
         title: 'three',
         submissions: {
-          ["1"]: submission,
-        }
+          ['1']: submission,
+        },
       },
     ];
 
