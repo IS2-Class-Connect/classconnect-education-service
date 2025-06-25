@@ -68,12 +68,17 @@ export class AssessmentRepository {
     }
     if (page && limit) {
       const skip = (page - 1) * limit;
-      return (await this.assessmentModel.find(filters).skip(skip).limit(limit).exec()).map(
-        (assesment) => assesment.toObject(),
-      );
+      return (
+        await this.assessmentModel
+          .find(filters)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .exec()
+      ).map((assesment) => assesment.toObject());
     } else {
-      return (await this.assessmentModel.find(filters).exec()).map((assesment) =>
-        assesment.toObject(),
+      return (await this.assessmentModel.find(filters).sort({ createdAt: -1 }).exec()).map(
+        (assesment) => assesment.toObject(),
       );
     }
   }

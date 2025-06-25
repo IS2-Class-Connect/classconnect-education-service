@@ -33,7 +33,13 @@ export class CourseRepository {
    */
   findAll({ page, limit }: CourseQueryDto): Promise<Course[]> {
     const skip = (page - 1) * limit;
-    return this.prisma.course.findMany({ skip, take: limit });
+    return this.prisma.course.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+      skip,
+      take: limit,
+    });
   }
 
   /**

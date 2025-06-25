@@ -230,9 +230,7 @@ export class CourseService {
       await (isEmpty
         ? this.repository.findAll({ page, limit })
         : this.repository.findCourses(query))
-    )
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .map((course) => getResponseDTO(course));
+    ).map((course) => getResponseDTO(course));
     return courses;
   }
 
