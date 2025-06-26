@@ -13,7 +13,7 @@ export class DeadlineCheckerService {
     private readonly courseRepository: CourseRepository,
   ) {}
 
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  @Cron(CronExpression.EVERY_HOUR)
   async checkDeadlines() {
     const now = new Date();
     const timeFrame = new Date(now.getTime() + 60 * 70 * 1000); // +1:10h
