@@ -22,5 +22,6 @@ import { NotificationModule } from './notification.module';
     },
     CourseRepository,
   ],
+  exports: [CourseService, CourseRepository],
 })
 export class CourseModule {}
